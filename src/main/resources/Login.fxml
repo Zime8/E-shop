@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="org.example.controllers.LoginController"
+           prefWidth="500" prefHeight="400"
+           style="-fx-background-color: linear-gradient(to bottom, #f7f9fb, #f0f4f8);">
+
+    <VBox alignment="CENTER" spacing="22" maxWidth="440" maxHeight="420"
+          style="-fx-padding: 24;">
+        <Text text="Accedi"
+              style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-fill: #d32f2f;" />
+
+        <GridPane hgap="12" vgap="16" maxWidth="520"
+                  style="
+                      -fx-background-color: white;
+                      -fx-background-radius: 16;
+                      -fx-border-color: #d32f2f;
+                      -fx-border-width: 2;
+                      -fx-border-radius: 16;
+                      -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.16), 18, 0.18, 0, 6);
+                  ">
+            <padding>
+                <Insets top="22" right="22" bottom="22" left="22"/>
+            </padding>
+
+            <!-- colonne: etichette a destra, campi che crescono -->
+            <columnConstraints>
+                <ColumnConstraints minWidth="110" halignment="RIGHT"/>
+                <ColumnConstraints hgrow="ALWAYS" minWidth="220"/>
+            </columnConstraints>
+
+            <!-- Titolo card -->
+            <Label text="E-Commerce"
+                   GridPane.rowIndex="0" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                   style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #d32f2f; -fx-alignment:center"
+                   maxWidth="Infinity" GridPane.halignment="CENTER"/>
+
+            <!-- Username -->
+            <Label text="Username:" GridPane.rowIndex="1" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-text-fill: #555; -fx-font-weight: bold;"/>
+            <TextField fx:id="usernameField"
+                       promptText="Inserisci username"
+                       GridPane.rowIndex="1" GridPane.columnIndex="1"
+                       maxWidth="Infinity"
+                       style="
+                           -fx-background-color: #fafafa;
+                           -fx-background-radius: 10;
+                           -fx-border-color: #e6bcbc;
+                           -fx-border-width: 1.2;
+                           -fx-border-radius: 10;
+                           -fx-padding: 8 10;
+                           -fx-text-fill: #333;
+                       "/>
+
+            <!-- Password -->
+            <Label text="Password:" GridPane.rowIndex="2" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-text-fill: #555; -fx-font-weight: bold;"/>
+            <PasswordField fx:id="passwordField"
+                           promptText="Inserisci password"
+                           GridPane.rowIndex="2" GridPane.columnIndex="1"
+                           maxWidth="Infinity"
+                           style="
+                               -fx-background-color: #fafafa;
+                               -fx-background-radius: 10;
+                               -fx-border-color: #e6bcbc;
+                               -fx-border-width: 1.2;
+                               -fx-border-radius: 10;
+                               -fx-padding: 8 10;
+                               -fx-text-fill: #333;
+                           "/>
+
+            <!-- Login -->
+            <Button text="Login" fx:id="loginButton"
+                    onAction="#onLogin"
+                    GridPane.rowIndex="3" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                    GridPane.halignment="CENTER"
+                    maxWidth="150"
+                    style="
+                        -fx-background-color: #d32f2f;
+                        -fx-text-fill: white;
+                        -fx-font-weight: bold;
+                        -fx-font-size: 15px;
+                        -fx-background-radius: 12;
+                        -fx-padding: 9 16;
+                        -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.18), 12, 0.25, 0, 3);
+                    "/>
+
+            <!-- Link registrazione -->
+            <Hyperlink text="Non hai un account? Registrati"
+                       onAction="#onRegisterLink"
+                       GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                       style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-underline: true;"
+                       GridPane.halignment="CENTER"/>
+        </GridPane>
+    </VBox>
+</StackPane>
