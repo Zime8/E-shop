@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox fx:controller="org.example.controllers.WishlistController"
+         xmlns="http://javafx.com/javafx"
+         xmlns:fx="http://javafx.com/fxml"
+         spacing="10" style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-radius: 18; -fx-background-radius: 18;"
+         prefWidth="500">
+    <padding><Insets top="15" right="15" bottom="15" left="15"/></padding>
+
+    <!-- Titolo -->
+    <Label text="Wishlist" style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #b71c1c;"/>
+
+    <HBox spacing="16" alignment="CENTER">
+        <Label fx:id="emptyLabel"
+               text="La lista dei preferiti è vuota."
+               style="-fx-font-size: 14px; -fx-text-fill: #666;"
+               visible="false"
+               managed="false"
+               alignment="CENTER"/>
+    </HBox>
+
+    <!-- Scrolling area per gli item -->
+    <ScrollPane fx:id="wishlistScroll"
+                fitToWidth="true"
+                hbarPolicy="NEVER"
+                maxHeight="360"
+                style="-fx-background-color: transparent;">
+        <VBox fx:id="itemsBox"
+              spacing="10"
+              style="-fx-padding: 12;"/>
+    </ScrollPane>
+
+    <HBox alignment="CENTER">
+        <Button text="Svuota wishlist" onAction="#onClearWishlist"
+                style="-fx-background-color: #d32f2f;
+                   -fx-text-fill: white;
+                   -fx-font-weight: bold;
+                   -fx-background-radius: 10;
+                   -fx-padding: 6 14;"/>
+    </HBox>
+
+</VBox>

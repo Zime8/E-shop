@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.Insets?>
+<?import org.controlsfx.control.RangeSlider?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml"
+           fx:controller="org.example.controllers.HomeController">
+    <BorderPane style="-fx-background-color: #ffffff;">
+
+        <!-- ░░░░░ TOP BAR ░░░░░ -->
+        <top>
+            <HBox spacing="12" alignment="CENTER"
+                  style="-fx-background-color: #d32f2f;">
+                <padding>
+                    <Insets top="10" right="20" bottom="10" left="20"/>
+                </padding>
+
+                <!-- Sinistra: Ricerca -->
+                <HBox spacing="8" alignment="CENTER_LEFT">
+                    <TextField fx:id="searchField"
+                               promptText="Cerca prodotti…"
+                               maxWidth="200"/>
+                </HBox>
+
+                <!-- Spazio centrale per centrare il titolo -->
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <!-- Centro: Titolo -->
+                <Label text="E-Commerce"
+                       style="-fx-font-size: 25; -fx-font-weight: bold; -fx-text-fill: white;"/>
+
+                <!-- Spazio per spingere la parte destra a destra -->
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <!-- Destra: Pulsanti con immagini + logout -->
+                <HBox spacing="10" alignment="CENTER_RIGHT">
+                    <!-- CART ICON + BADGE -->
+                    <StackPane alignment="TOP_RIGHT">
+                        <Button minHeight="36" minWidth="36" maxHeight="36" maxWidth="36" fx:id="cartBtn" onAction="#onCart"
+                                style="-fx-background-color: white;">
+                            <graphic>
+                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                    <Image url="@/icons/cart.png"/>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Label fx:id="cartCountLabel" text="0"
+                               visible="false"
+                               managed="false"
+                               style="-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 10; -fx-font-weight: bold;
+                                  -fx-padding: 1 5 1 5; -fx-background-radius: 10; -fx-border-radius: 10"
+                               StackPane.alignment="TOP_RIGHT"
+                               translateX="7" translateY="-7"/>
+                    </StackPane>
+                    <StackPane>
+                        <Button minHeight="36" minWidth="36" maxHeight="36" maxWidth="36" fx:id="profileBtn" onAction="#onProfile" style="-fx-background-color: white;">
+                            <graphic>
+                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                    <Image url="@/icons/profile.png"/>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Label visible="false" managed="false"/>
+                    </StackPane>
+                    <StackPane>
+                        <Button minHeight="36" minWidth="36" maxHeight="36" maxWidth="36" fx:id="wishesBtn" onAction="#onWishes" style="-fx-background-color: white;">
+                            <graphic>
+                                <ImageView fitWidth="24" fitHeight="24" preserveRatio="true">
+                                    <Image url="@/icons/wishes.png"/>
+                                </ImageView>
+                            </graphic>
+                        </Button>
+                        <Label visible="false" managed="false"/>
+                    </StackPane>
+                    <Label fx:id="welcomeLabel" style="-fx-font-size: 15; -fx-font-weight: bold; -fx-text-fill: white;"
+                           text="Benvenuto!"/>
+                    <Button text="Logout" onAction="#onLogout"
+                            style="-fx-font-size: 15; -fx-background-color: white; -fx-text-fill: #d32f2f; -fx-font-weight: bold;"/>
+                </HBox>
+            </HBox>
+        </top>
+
+        <!-- ░░░░░ LEFT – FILTRI ░░░░░ -->
+        <left>
+            <VBox spacing="10" style="-fx-background-color:#ffffff; -fx-border-color:#d32f2f; -fx-border-width: 2;"
+                  prefWidth="240">
+                <padding>
+                    <Insets top="12" right="12" bottom="12" left="12"/>
+                </padding>
+                <Label text="Filtri" style="-fx-font-size:20; -fx-font-weight:bold; -fx-text-fill: #d32f2f;"/>
+                <Separator style="-fx-background-color: #d32f2f;"/>
+
+                <Label text="Sport:" style="-fx-text-fill: #d32f2f;"/>
+                <ComboBox fx:id="sportFilter" maxWidth="Infinity"/>
+
+                <Label text="Brand:" style="-fx-text-fill: #d32f2f;"/>
+                <ComboBox fx:id="brandFilter" maxWidth="Infinity"/>
+
+                <Label text="Negozio:" style="-fx-text-fill: #d32f2f;"/>
+                <ComboBox fx:id="shopFilter" maxWidth="Infinity"/>
+
+                <Label text="Categoria:" style="-fx-text-fill: #d32f2f;"/>
+                <ComboBox fx:id="categoryFilter" maxWidth="Infinity"/>
+
+                <Label text="Prezzo:" style="-fx-text-fill: #d32f2f;"/>
+                <RangeSlider fx:id="priceRangeSlider" min="0" max="300" lowValue="0" highValue="300" maxWidth="Infinity"/>
+                <Label fx:id="priceRangeLabel" text="0 € - 300 €" style="-fx-text-fill: #d32f2f;"/>
+
+                <HBox spacing="8">
+                    <Button text="Filtra" HBox.hgrow="ALWAYS" onAction="#onFilter"
+                            style="-fx-font-size: 15; -fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold;"/>
+                    <Button text="Reset" onAction="#onResetFilter"
+                            style="-fx-font-size: 15; -fx-background-color: white; -fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-border-color: #d32f2f; -fx-border-width: 2;"/>
+                </HBox>
+            </VBox>
+        </left>
+
+        <!-- ░░░░░ CENTER – PRODOTTI ░░░░░ -->
+        <center>
+            <VBox spacing="10" style="-fx-padding:15; -fx-background-color: #ffffff;">
+                <!-- Titolo dinamico -->
+                <Label fx:id="sectionTitle"
+                       text="Ultimi Arrivi"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+                <ScrollPane fitToWidth="true" fitToHeight="true" style="-fx-background-color: transparent;">
+                    <padding>
+                        <Insets top="15" right="15" bottom="15" left="15"/>
+                    </padding>
+                    <!-- Usando TilePane per griglia reattiva -->
+                    <TilePane fx:id="productPane"
+                              hgap="15" vgap="15"
+                              prefColumns="4"
+                              tileAlignment="TOP_CENTER"
+                              prefTileWidth="180"
+                              prefTileHeight="220"/>
+                </ScrollPane>
+            </VBox>
+        </center>
+
+        <!-- ░░░░░ BOTTOM BAR ░░░░░ -->
+        <bottom>
+            <HBox alignment="CENTER_LEFT" spacing="6"
+                  style="-fx-background-color: #d32f2f;">
+                <padding>
+                    <Insets top="5" right="5" bottom="5" left="5"/>
+                </padding>
+                <Label text="© 2025 E‑Commerce FX" style="-fx-text-fill: white;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label fx:id="statusLabel" style="-fx-text-fill: white;"/>
+            </HBox>
+        </bottom>
+
+    </BorderPane>
+</StackPane>

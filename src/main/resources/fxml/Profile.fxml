@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controllers.ProfileController"
+      spacing="5"
+      style="-fx-background-color: white;
+             -fx-border-color: #d32f2f;
+             -fx-border-width: 2;
+             -fx-padding: 10;
+             -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.3), 10, 0.3, 0, 3);
+             -fx-background-radius: 18;
+             -fx-border-radius: 18">
+
+    <Button fx:id="profileDetailsBtn" text="👤 Dettagli Profilo"
+            maxWidth="Infinity"
+            style="-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 14; -fx-alignment: CENTER_LEFT;"/>
+    <Button fx:id="purchaseHistoryBtn" text="📜 Ordini"
+            maxWidth="Infinity"
+            style="-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 14; -fx-alignment: CENTER_LEFT;"/>
+    <Button fx:id="savedCardsBtn" text="💳 Carte Salvate"
+            maxWidth="Infinity"
+            style="-fx-background-color: transparent; -fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 14; -fx-alignment: CENTER_LEFT;"/>
+</VBox>

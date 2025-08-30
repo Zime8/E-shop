@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.control.Label?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controllers.ProductCardController"
+      alignment="TOP_CENTER"
+      spacing="8"
+      prefWidth="180" prefHeight="260"
+      style="-fx-padding:10; -fx-border-color:#DDD; -fx-border-radius:4;-fx-cursor: hand;"
+      onMouseClicked="#onCardClicked">
+
+    <!-- questo StackPane ha sempre 120px di altezza -->
+    <StackPane prefWidth="160" prefHeight="120">
+        <ImageView fx:id="photo"
+                   fitWidth="160"
+        fitHeight="120"
+        preserveRatio="true"
+        />
+    </StackPane>
+
+    <Label fx:id="nameLbl"
+           wrapText="true"
+           style="-fx-font-weight:bold;"/>
+    <Label fx:id="nameShopLbl"
+           wrapText="true"
+           style="-fx-font-weight:bold;"/>
+    <Label fx:id="priceLbl"
+           style="-fx-text-fill:#666;"/>
+
+</VBox>

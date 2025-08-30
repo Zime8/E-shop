@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+
+<VBox fx:controller="org.example.controllers.CartController"
+      xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      spacing="10"
+      alignment="CENTER"
+      style="-fx-background-color: white;
+             -fx-border-color: #b71c1c;
+             -fx-border-width: 2;
+             -fx-padding: 15;
+             -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.25), 8, 0, 0, 2);
+             -fx-background-radius: 18;
+             -fx-border-radius: 18">
+
+    <Label text="Carrello"
+           style="-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #b71c1c;"/>
+
+    <!-- Placeholder carrello vuoto -->
+    <Label fx:id="emptyCartLabel"
+           text="Il carrello è vuoto."
+           style="-fx-font-size: 14px; -fx-text-fill: #666;"
+           visible="false" managed="false"
+           maxWidth="Infinity" alignment="CENTER"/>
+
+    <ScrollPane fx:id="cartScroll" fitToWidth="true" maxHeight="200" style="-fx-background-color: transparent;">
+        <VBox fx:id="cartItemsContainer" spacing="8" style="-fx-background-color: transparent;">
+            <!-- Qui in runtime inserirai righe prodotto -->
+            <!-- esempio riga prodotto: -->
+            <!--
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ImageView fitWidth="40" fitHeight="40" pickOnBounds="true" preserveRatio="true" />
+                <Label text="Nome prodotto" style="-fx-font-weight: bold;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Label text="€ XX,XX" style="-fx-text-fill: #d32f2f;"/>
+            </HBox>
+            -->
+        </VBox>
+    </ScrollPane>
+
+    <Separator/>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Label text="Totale:" style="-fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+        <Label fx:id="totalLabel" text="€ 0,00" style="-fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+    </HBox>
+
+    <HBox spacing="10" alignment="CENTER_RIGHT">
+        <Button text="Svuota carrello"
+                style="-fx-background-color: white; -fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-border-color: #d32f2f; -fx-border-width: 2; -fx-border-radius: 12"
+                onAction="#onClearCart"/>
+        <Button text="Checkout"
+                style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-border-width: 2; -fx-border-radius: 12"
+                onAction="#onCheckout"/>
+    </HBox>
+</VBox>
+
