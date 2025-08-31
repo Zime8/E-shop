@@ -17,36 +17,37 @@ public class ProductDAO {
     private static final Logger logger = Logger.getLogger(ProductDAO.class.getName());
 
     // Query costante con filtri opzionali parametrici
-    private static final String SEARCH_BY_FILTERS_SQL =
-            "SELECT p.product_id, p.name_p, p.sport, p.brand, p.category, " +
-                    "MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop " +
-                    "FROM products p " +
-                    "JOIN product_availability pa ON p.product_id = pa.product_id " +
-                    "JOIN shops s ON pa.id_shop = s.id_shop " +
-                    "WHERE pa.price BETWEEN ? AND ? " +
-                    "AND ( ? IS NULL OR p.sport = ? ) " +
-                    "AND ( ? IS NULL OR p.brand = ? ) " +
-                    "AND ( ? IS NULL OR s.id_shop = ? ) " +
-                    "AND ( ? IS NULL OR p.category = ? ) " +
-                    "GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop " +
-                    "ORDER BY p.created_at DESC";
+    private static final String SEARCH_BY_FILTERS_SQL = """ 
+                    SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                    MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
+                    FROM products p
+                    JOIN product_availability pa ON p.product_id = pa.product_id
+                    JOIN shops s ON pa.id_shop = s.id_shop
+                    WHERE pa.price BETWEEN ? AND ?
+                    AND ( ? IS NULL OR p.sport = ? )
+                    AND ( ? IS NULL OR p.brand = ? )
+                    AND ( ? IS NULL OR s.id_shop = ? )
+                    AND ( ? IS NULL OR p.category = ? )
+                    GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
+                    ORDER BY p.created_at DESC""";
 
 
     public List<Product> findLatest(int limit) {
-        String sql = "SELECT p.product_id, p.name_p, p.sport, p.brand, p.category, " +
-                "       pa.price AS price, p.image_data, p.created_at, " +
-                "       s.name_s AS shop_name, pa.quantity, pa.size, s.id_shop " +
-                "FROM products p " +
-                "JOIN product_availability pa ON pa.product_id = p.product_id " +
-                "JOIN shops s ON s.id_shop = pa.id_shop " +
-                "LEFT JOIN product_availability pa2 " +
-                "  ON pa2.product_id = pa.product_id AND pa2.id_shop = pa.id_shop " +
-                " AND (pa2.price < pa.price " +
-                "      OR (pa2.price = pa.price AND pa2.size < pa.size)) " +
-                "WHERE pa2.product_id IS NULL " +   // migliore per product+shop
-                "  AND pa.quantity > 0 " +
-                "ORDER BY p.created_at DESC, p.product_id DESC, s.id_shop ASC " +
-                "LIMIT ?";
+        String sql = """
+                SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                       pa.price AS price, p.image_data, p.created_at,
+                       s.name_s AS shop_name, pa.quantity, pa.size, s.id_shop
+                FROM products p
+                JOIN product_availability pa ON pa.product_id = p.product_id
+                JOIN shops s ON s.id_shop = pa.id_shop
+                LEFT JOIN product_availability pa2
+                  ON pa2.product_id = pa.product_id AND pa2.id_shop = pa.id_shop
+                 AND (pa2.price < pa.price
+                      OR (pa2.price = pa.price AND pa2.size < pa.size))
+                WHERE pa2.product_id IS NULL
+                  AND pa.quantity > 0
+                ORDER BY p.created_at DESC, p.product_id DESC, s.id_shop ASC
+                LIMIT ?""";
 
         try {
             Connection conn = DatabaseConnection.getInstance();
@@ -69,14 +70,15 @@ public class ProductDAO {
     public static List<Product> searchByName(String name) throws SQLException {
         List<Product> products = new ArrayList<>();
 
-        String sql = "SELECT p.product_id, p.name_p, p.sport, p.brand, p.category, " +
-                "MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop " +
-                "FROM products p " +
-                "JOIN product_availability pa ON p.product_id = pa.product_id " +
-                "JOIN shops s ON pa.id_shop = s.id_shop " +
-                "WHERE LOWER(p.name_p) LIKE ? " +
-                "GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop " +
-                "ORDER BY p.created_at DESC";
+        String sql = """
+                SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
+                FROM products p
+                JOIN product_availability pa ON p.product_id = pa.product_id
+                JOIN shops s ON pa.id_shop = s.id_shop
+                WHERE LOWER(p.name_p) LIKE ?
+                GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
+                ORDER BY p.created_at DESC""";
 
         Connection conn = DatabaseConnection.getInstance();
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -201,10 +203,11 @@ public class ProductDAO {
 
     // Restituisce le taglie disponibili per (product, shop) con quantità > 0
     public static List<String> getAvailableSizes(long productId, int idShop) throws SQLException {
-        String sql = "SELECT size " +
-                "FROM product_availability " +
-                "WHERE product_id = ? AND id_shop = ? AND quantity > 0 " +
-                "ORDER BY size ASC";
+        String sql = """
+                SELECT size
+                FROM product_availability
+                WHERE product_id = ? AND id_shop = ? AND quantity > 0
+                ORDER BY size ASC""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -219,8 +222,10 @@ public class ProductDAO {
 
     // Prezzo per specifica taglia
     public static double getPriceFor(long productId, int idShop, String size) throws SQLException {
-        String sql = "SELECT price FROM product_availability " +
-                "WHERE product_id = ? AND id_shop = ? AND size = ?";
+        String sql = """
+                SELECT price
+                "FROM product_availability
+                "WHERE product_id = ? AND id_shop = ? AND size = ?""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -238,8 +243,7 @@ public class ProductDAO {
         String sql = """
         SELECT quantity
         FROM product_availability
-        WHERE product_id = ? AND id_shop = ? AND size = ?
-    """;
+        WHERE product_id = ? AND id_shop = ? AND size = ?""";
         try (Connection c = DatabaseConnection.getInstance();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -253,8 +257,10 @@ public class ProductDAO {
 
 
     public static boolean existsWish(String username, long productId, int idShop, String size) throws SQLException {
-        String sql = "SELECT 1 FROM wishlist " +
-                "WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ? LIMIT 1";
+        String sql = """
+                SELECT 1
+                FROM wishlist
+                WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ? LIMIT 1""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -270,9 +276,11 @@ public class ProductDAO {
     /** Restituisce true se esiste già una riga per user+product+shop */
     public static boolean existsWish(String username, long productId, int shopId)
             throws SQLException {
-        String sql = "SELECT 1 FROM wishlist "
-                + "WHERE username = ? AND product_id = ? AND id_shop = ? "
-                + "LIMIT 1";
+        String sql = """
+                SELECT 1
+                FROM wishlist
+                WHERE username = ? AND product_id = ? AND id_shop = ?
+                LIMIT 1""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);

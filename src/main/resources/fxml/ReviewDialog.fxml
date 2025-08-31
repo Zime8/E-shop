@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<?import java.net.URL?>
+<StackPane fx:id="root" xmlns:fx="http://javafx.com/fxml"
+           fx:controller="org.example.controllers.ReviewDialogController">
+    <stylesheets>
+        <!-- usa il tuo file CSS; vedi regole più sotto -->
+        <URL value="@css/review.css"/>
+    </stylesheets>
+
+    <BorderPane style="-fx-background-color: #ffffff;" prefWidth="520" prefHeight="390">
+
+        <!-- TOP BAR -->
+        <top>
+            <HBox spacing="12" alignment="CENTER_LEFT" style="-fx-background-color: #d32f2f;">
+                <padding><Insets top="10" right="16" bottom="10" left="16"/></padding>
+                <Label text="★  Lascia una recensione"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: white;"/>
+                <Region HBox.hgrow="ALWAYS"/>
+            </HBox>
+        </top>
+
+        <!-- CENTER – FORM -->
+        <center>
+            <VBox spacing="16" style="-fx-padding:18;">
+                <Label fx:id="productTitle"
+                       style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"
+                       text="Prodotto • Negozio"/>
+                <Separator/>
+
+                <GridPane hgap="12" vgap="12">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="120" prefWidth="140"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+
+                    <!-- Rating a stelline -->
+                    <Label text="Voto (1–5):" GridPane.rowIndex="0" GridPane.columnIndex="0"
+                           style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 15"/>
+                    <HBox spacing="4" GridPane.rowIndex="0" GridPane.columnIndex="1" alignment="CENTER_LEFT">
+                        <!-- ToggleButtons stilizzati come “solo stelle” -->
+                        <ToggleButton fx:id="star1" text="★" onAction="#onStarClick"
+                                      styleClass="star" focusTraversable="false"/>
+                        <ToggleButton fx:id="star2" text="★" onAction="#onStarClick"
+                                      styleClass="star" focusTraversable="false"/>
+                        <ToggleButton fx:id="star3" text="★" onAction="#onStarClick"
+                                      styleClass="star" focusTraversable="false"/>
+                        <ToggleButton fx:id="star4" text="★" onAction="#onStarClick"
+                                      styleClass="star" focusTraversable="false"/>
+                        <ToggleButton fx:id="star5" text="★" onAction="#onStarClick"
+                                      styleClass="star" focusTraversable="false"/>
+                        <Label fx:id="ratingLabel" text="5/5" style="-fx-text-fill: #666; -fx-padding: 0 0 0 6;"/>
+                    </HBox>
+
+                    <!-- Titolo -->
+                    <Label text="Titolo:" GridPane.rowIndex="1" GridPane.columnIndex="0"
+                           style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 15"/>
+                    <TextField fx:id="titleField" promptText="Titolo (opzionale)"
+                               GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                    <!-- Commento -->
+                    <Label text="Commento:" GridPane.rowIndex="2" GridPane.columnIndex="0"
+                           style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 15"/>
+                    <TextArea fx:id="commentArea" promptText="Scrivi il tuo commento (opzionale)"
+                              wrapText="true" prefRowCount="6"
+                              GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+        </center>
+
+        <!-- BOTTOM BAR – AZIONI (stile come “Carte Salvate”) -->
+        <bottom>
+            <HBox alignment="CENTER" spacing="12" style="-fx-background-color: #ffffff;">
+                <padding><Insets top="10" right="16" bottom="16" left="16"/></padding>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Annulla" onAction="#onCancel" minWidth="140"
+                        styleClass="btn-outline-red"/>
+                <Button text="Salva recensione" onAction="#onSave" defaultButton="true" minWidth="180"
+                        styleClass="btn-solid-red"/>
+            </HBox>
+        </bottom>
+
+    </BorderPane>
+</StackPane>

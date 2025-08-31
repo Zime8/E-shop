@@ -1,0 +1,36 @@
+/* Bottoni principali (invariati) */
+.button.btn-solid-red {
+    -fx-background-color: #d32f2f;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-radius: 6;
+    -fx-padding: 8 14 8 14;
+}
+.button.btn-solid-red:hover { -fx-opacity: 0.9; }
+
+.button.btn-outline-red {
+    -fx-background-color: white;
+    -fx-text-fill: #d32f2f;
+    -fx-font-weight: bold;
+    -fx-border-color: #d32f2f;
+    -fx-border-width: 2;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-padding: 7 13 7 13;
+}
+
+/* Stelline senza :selected */
+.toggle-button.star {
+    -fx-background-color: transparent;
+    -fx-font-size: 20;
+    -fx-text-fill: #b0b0b0; /* spente */
+    -fx-padding: 2 6 2 6;
+}
+.toggle-button.star.on {
+    -fx-text-fill: #ffd54f; /* acceso */
+}
+/* Hover (va bene lasciarlo) */
+.toggle-button.star:hover,
+.toggle-button.star.on:hover {
+    -fx-text-fill: #ffca28;
+}

@@ -1,0 +1,19 @@
+.icon-button {
+    -fx-background-color: transparent;
+    -fx-padding: 4;
+    -fx-cursor: hand;
+}
+
+.list-view .scroll-bar {
+    -fx-opacity: 0;
+    -fx-max-width: 0;
+    -fx-pref-width: 0;
+    -fx-background-color: transparent;
+}
+
+.product-scroll-pane .scroll-bar {
+    -fx-opacity: 0;
+    -fx-max-width: 0;
+    -fx-pref-width: 0;
+    -fx-background-color: transparent;
+}

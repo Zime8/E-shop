@@ -23,7 +23,10 @@ public class UserDAO {
     public record LoginResult(LoginStatus status, Integer userId, String role) {}
 
     public static LoginResult checkLogin(String username, String password) {
-        String sql = "SELECT id_user, pass, rol FROM users WHERE username = ?"; // <- aggiunto rol
+        String sql = """
+        SELECT id_user, pass, rol
+        FROM users
+        WHERE username = ?"""; // <- aggiunto rol
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
@@ -65,7 +68,9 @@ public class UserDAO {
 
 
     public boolean registerUser(String username, String password, String role, String email, String phone) {
-        String sql = "INSERT INTO users (username, pass, rol, email, phone) VALUES (?, ?, ?, ?, ?)";
+        String sql = """
+        INSERT INTO users (username, pass, rol, email, phone)
+        VALUES (?, ?, ?, ?, ?)""";
 
         try {
             Connection conn = DatabaseConnection.getInstance();
@@ -89,7 +94,10 @@ public class UserDAO {
     }
 
     public boolean isUsernameTaken(String username) {
-        String sql = "SELECT username FROM users WHERE username = ?";
+        String sql = """
+        SELECT username
+        FROM users
+        WHERE username = ?""";
 
         try {
             Connection conn = DatabaseConnection.getInstance();
@@ -105,7 +113,10 @@ public class UserDAO {
     }
 
     public boolean isEmailTaken(String email) {
-        String sql = "SELECT email FROM users WHERE email = ?";
+        String sql = """
+        SELECT email
+        FROM users
+        WHERE email = ?""";
 
         try {
             Connection conn = DatabaseConnection.getInstance();
@@ -121,7 +132,11 @@ public class UserDAO {
     }
 
     public static Integer findUserIdByUsername(String username) throws SQLException {
-        final String sql = "SELECT id_user FROM users WHERE username = ?";
+        final String sql = """
+        SELECT id_user
+        FROM users
+        WHERE username = ?""";
+
         Connection conn = DatabaseConnection.getInstance(); // NON chiudere
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -132,8 +147,11 @@ public class UserDAO {
     }
 
     public static void addInWishList(String username, long productId, int idShop, String pSize) throws SQLException {
-        String sql = "INSERT IGNORE INTO wishlist(username, product_id, id_shop, p_size) VALUES(?, ?, ?, ?) " +
-                "ON DUPLICATE KEY UPDATE p_size = VALUES(p_size)";
+        String sql = """
+                INSERT IGNORE INTO wishlist(username, product_id, id_shop, p_size)
+                VALUES(?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE p_size = VALUES(p_size)""";
+
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -148,7 +166,10 @@ public class UserDAO {
 
     // Rimuove l’elemento con user+product+shop
     public static void removeInWishlist(String username, long productId, int idShop, String pSize) throws SQLException {
-        String sql = "DELETE FROM wishlist WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ?";
+        String sql = """
+        DELETE FROM wishlist
+        WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ?""";
+
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
@@ -169,17 +190,17 @@ public class UserDAO {
     }
 
     public static List<Product> getFavorites(String username) throws SQLException {
-        String sql =
-                "SELECT p.product_id, p.name_p, p.sport, p.brand, p.category, " +
-                        "       w.id_shop, w.p_size, s.name_s, pa.price, p.image_data " +
-                        "FROM wishlist w " +
-                        "JOIN products p ON p.product_id = w.product_id " +
-                        "JOIN shops s    ON s.id_shop = w.id_shop " +
-                        "LEFT JOIN product_availability pa " +
-                        "  ON pa.product_id = w.product_id " +
-                        " AND pa.id_shop    = w.id_shop " +
-                        " AND pa.size       = w.p_size " +
-                        "WHERE w.username = ?";
+        String sql = """
+                        SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                               w.id_shop, w.p_size, s.name_s, pa.price, p.image_data
+                        FROM wishlist w
+                        JOIN products p ON p.product_id = w.product_id
+                        JOIN shops s    ON s.id_shop = w.id_shop
+                        LEFT JOIN product_availability pa
+                          ON pa.product_id = w.product_id
+                         AND pa.id_shop    = w.id_shop
+                         AND pa.size       = w.p_size
+                        WHERE w.username = ?""";
 
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {

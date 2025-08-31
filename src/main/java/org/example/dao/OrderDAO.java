@@ -15,13 +15,13 @@ public final class OrderDAO {
     }
 
     // === SQL ===
-    private static final String INSERT_ORDER_SQL =
-            "INSERT INTO orders_client (id_user, date_order, date_order_update, state_order) " +
-                    "VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione')";
+    private static final String INSERT_ORDER_SQL = """
+                    INSERT INTO orders_client (id_user, date_order, date_order_update, state_order)
+                    VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione')""";
 
-    private static final String INSERT_DETAIL_SQL =
-            "INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price) " +
-                    "VALUES (?, ?, ?, ?, ?, ?)";
+    private static final String INSERT_DETAIL_SQL = """
+                    INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price)
+                    VALUES (?, ?, ?, ?, ?, ?)""";
 
     private static final String LOCK_STOCK_SQL = """
         SELECT quantity
@@ -258,7 +258,7 @@ public final class OrderDAO {
                 d.id_shop,
                 d.size,
                 d.quantity,
-                d.price,              -- prezzo unitario al momento dell'ordine
+                d.price,
                 p.name_p AS product_name,
                 s.name_s AS shop_name
             FROM details_order d
