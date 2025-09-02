@@ -2,7 +2,6 @@ package org.example.models;
 
 import javafx.scene.image.Image;
 
-
 public class Product {
 
     private long productId;
@@ -18,6 +17,7 @@ public class Product {
     private String size;
     private Image image;
     private Object createdAt;
+    private byte[] imageData;
 
     private int idShop;
 
@@ -39,6 +39,7 @@ public class Product {
         this.size = src.getSize();
         this.image = src.getImage();
         this.createdAt = src.getCreatedAt();
+        this.imageData = src.getImageData();
     }
 
     public static Product copyOf(Product src) {
@@ -122,6 +123,10 @@ public class Product {
     public void setCreatedAt(Object createdAt) {
         this.createdAt = createdAt;
     }
+
+    public byte[] getImageData() {return imageData;}
+
+    public void setImageData(byte[] imageData) {this.imageData = imageData;}
 
     public int getIdShop() {
         return idShop;

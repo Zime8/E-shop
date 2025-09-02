@@ -30,7 +30,7 @@ public class SavedCardsController {
     private static final String STYLE_TEXT_DARK = "-fx-text-fill: #444;";
     private static final String STYLE_OPACITY_HOVER = "-fx-opacity: 0.85;";
 
-    // Stili centralizzati (elimina duplicazioni)
+    // Stili centralizzati
     private static final String CANCEL_BTN_STYLE =
             "-fx-background-color: white;" +
                     "-fx-border-color: #d32f2f;" +

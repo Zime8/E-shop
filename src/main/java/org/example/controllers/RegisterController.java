@@ -71,14 +71,7 @@ public class RegisterController {
             showAlert("Registrazione completata!");
 
             // Torna al login
-            try {
-                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
-                Stage stage = (Stage) usernameField.getScene().getWindow();
-                stage.setScene(new Scene(root));
-            } catch (IOException e) {
-                logger.log(Level.SEVERE, "Errore nel caricamento della schermata di login", e);
-                showAlert("Errore durante il caricamento della schermata di login.");
-            }
+            onBack();
         } else {
             showAlert("Errore durante la registrazione. Username già esistente o problema nel database.");
         }

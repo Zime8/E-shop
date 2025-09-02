@@ -6,13 +6,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import org.example.database.DatabaseConnection;
+import org.example.dao.UserDAO;
 import org.example.util.Session;
-import org.mindrot.jbcrypt.BCrypt;
-
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -31,35 +26,31 @@ public class ProfileDetailsController {
 
     @FXML
     public void initialize() {
-        loadUserData();
 
         // Campi non editabili all'avvio
         usernameField.setEditable(false);
         passwordField.setEditable(false);
         emailField.setEditable(false);
         phoneField.setEditable(false);
+
+        loadUserData();
     }
 
     private void loadUserData() {
         String username = Session.getUser();
         if (username == null) return;
 
-        try (Connection conn = DatabaseConnection.getInstance()) {
-            String sql = "SELECT username, email, phone FROM users WHERE username = ?";
-            PreparedStatement ps = conn.prepareStatement(sql);
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                usernameField.setText(rs.getString("username"));
-                passwordField.setText("******");
-                emailField.setText(rs.getString("email"));
-                phoneField.setText(rs.getString("phone"));
-            }
-            rs.close();
-            ps.close();
+        try {
+            var u = UserDAO.findByUsername(username);
+            if (u == null) return;
+
+            usernameField.setText(u.getUsername());
+            passwordField.setText("******"); // placeholder UI
+            emailField.setText(u.getEmail());
+            phoneField.setText(u.getPhone());
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore durante il caricamento dei dati utente", e);
-            showAlert("Errore durante il caricamento dei dati dell'utente: " + usernameField);
+            showAlert("Errore durante il caricamento dei dati dell'utente: " + username);
         }
     }
 
@@ -71,7 +62,7 @@ public class ProfileDetailsController {
 
     // gestione della modifica delle informazioni del profilo
     public void onEdit() {
-        editMode = !editMode; // Inverte la modalità
+        editMode = !editMode;
 
         usernameField.setEditable(editMode);
         passwordField.setEditable(editMode);
@@ -80,64 +71,45 @@ public class ProfileDetailsController {
 
         if (editMode) {
             editBtn.setText("Salva");
-            passwordField.setText(""); // Svuota per permettere nuovo inserimento (se vuole cambiare)
-        } else {
-            editBtn.setText("Modifica dati");
-            // Prendi dati dai campi
-            String newUsername = usernameField.getText();
-            String newPassword = passwordField.getText();
-            String newEmail = emailField.getText();
-            String newPhone = phoneField.getText();
+            passwordField.setText(""); // sblocca per nuovo inserimento
+            return;
+        }
 
-            // Esegui update solo se i dati sono validi
-            updateUserData(newUsername, newPassword, newEmail, newPhone);
+        // Salvataggio
+        editBtn.setText("Modifica dati");
 
-            // Torna modalità view
+        String current = Session.getUser();
+        String newUsername = usernameField.getText().trim();
+        String newEmail    = emailField.getText().trim();
+        String newPhone    = phoneField.getText().trim();
+        String newPwd      = passwordField.getText(); // vuota = non cambiare
+
+        try {
+            // (opzionale) validazioni base + univocità
+            // if (!newUsername.equals(current) && UserDAO.isUsernameTaken(newUsername)) { ... }
+
+            if (newPwd != null && !newPwd.isBlank()) {
+                UserDAO.updateProfileWithPassword(current, newUsername, newEmail, newPhone, newPwd);
+            } else {
+                UserDAO.updateProfile(current, newUsername, newEmail, newPhone);
+            }
+
+            // aggiorna sessione se username cambiato
+            Session.setUser(newUsername);
+
+            // UI back to view
             passwordField.setText("******");
             usernameField.setEditable(false);
             passwordField.setEditable(false);
             emailField.setEditable(false);
             phoneField.setEditable(false);
-        }
-    }
 
-    private void updateUserData(String username, String password, String email, String phone) {
-        String userCorrente = Session.getUser();
-        if (userCorrente == null) return;
+            showAlert("Profilo aggiornato correttamente.");
 
-        try (Connection conn = DatabaseConnection.getInstance()) {
-            if (password != null && !password.isEmpty()) {
-                String hashedPwd = hashPassword(password); // implementa hashPassword in modo sicuro!
-                String sql = "UPDATE users SET username=?, email=?, pass=?, phone=? WHERE username=?";
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setString(1, username);
-                ps.setString(2, email);
-                ps.setString(3, hashedPwd);
-                ps.setString(4, phone);
-                ps.setString(5, userCorrente);
-                ps.executeUpdate();
-                ps.close();
-            } else {
-                String sql = "UPDATE users SET username=?, email=?, phone=? WHERE username=?";
-                PreparedStatement ps = conn.prepareStatement(sql);
-                ps.setString(1, username);
-                ps.setString(2, email);
-                ps.setString(3, phone);
-                ps.setString(4, userCorrente);
-                ps.executeUpdate();
-                ps.close();
-            }
-            // Aggiorna anche la sessione se username cambiato
-            Session.setUser(username);
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore durante l'aggiornamento dei dati utente", e);
-            showAlert("Errore durante l'aggiornamento dei dati dell'utente: " + username);
+            showAlert("Errore durante l'aggiornamento: " + e.getMessage());
         }
-    }
-
-    // Esempio di placeholder per hashPassword
-    private String hashPassword(String pwd) {
-        return BCrypt.hashpw(pwd, BCrypt.gensalt(12));
     }
 
     private void showAlert(String msg) {

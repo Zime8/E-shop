@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
@@ -13,6 +14,7 @@ import org.example.dao.UserDAO;
 import org.example.models.Product;
 import org.example.util.Session;
 
+import java.io.ByteArrayInputStream;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
@@ -46,72 +48,55 @@ public class ProductDetailController {
 
     public void setProduct(Product p) throws SQLException {
         this.product = p;
-        bigPhoto.setImage(p.getImage());
+        byte[] data = p.getImageData();
+        if (data != null && data.length > 0) {
+            bigPhoto.setImage(new Image(new ByteArrayInputStream(data)));
+        } else {
+            bigPhoto.setImage(null);
+        }
         nameLbl.setText(p.getName());
         nameShop.setText(p.getNameShop());
         priceLbl.setText(String.format(EUR_PRICE_FMT, p.getPrice()));
         qtySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
         qtySpinner.setEditable(true);
 
-        // 1) Popola taglie disponibili per (product_id, shop)
         try {
             List<String> sizes = ProductDAO.getAvailableSizes(p.getProductId(), p.getIdShop());
             sizeCombo.getItems().setAll(sizes);
+
             if (!sizes.isEmpty()) {
                 sizeCombo.getSelectionModel().selectFirst();
                 String sel = sizeCombo.getValue();
-                product.setSize(sel); // tieni la taglia nel model
+                product.setSize(sel);
+                refreshForSelectedSize(sel); // ✅ niente più duplicati qui
 
-                // 2) Aggiorna prezzo in base alla taglia selezionata
-                double priceSel = ProductDAO.getPriceFor(p.getProductId(), p.getIdShop(), sel);
-                product.setPrice(priceSel);
-                priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
+                // Listener: ogni cambio taglia → un solo punto di verità
+                sizeCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newSel) -> {
+                    if (newSel == null) return;
+                    product.setSize(newSel);
+                    try {
+                        refreshForSelectedSize(newSel);
+                    } catch (SQLException e) {
+                        logger.log(Level.WARNING, e,
+                                () -> "Errore aggiornando prezzo/stato preferiti per taglia " + newSel);
+                    }
+                });
 
-                // 3) Aggiorna stato bottone “Preferiti” per la taglia selezionata
-                boolean alreadyWishedBySize =
-                        ProductDAO.existsWish(Session.getUser(), p.getProductId(), p.getIdShop(), sel);
-                updateWishButton(alreadyWishedBySize);
-
-                updateStockAndQtyRange();
             } else {
-                sizeCombo.setDisable(true); // nessuna taglia disponibile
+                sizeCombo.setDisable(true);
                 updateStockAndQtyRange();
             }
         } catch (SQLException ex) {
             logger.log(Level.WARNING, "Errore caricando taglie/prezzo", ex);
         }
 
-        // controllo se è già nella wishlist
+        // stato wishlist “senza taglia” (se lo mantieni come logica)
         boolean alreadyWished = ProductDAO.existsWish(Session.getUser(),
                 product.getProductId(),
                 product.getIdShop());
-        if (alreadyWished) {
-            addToWishListBtn.setText(TXT_ADDED_TO_WISHLIST);
-            addToWishListBtn.setDisable(true);
-        }
-
-        // Listener: quando cambia la taglia, aggiorna prezzo e stato preferiti
-        sizeCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, sel) -> {
-            if (sel == null) return;
-            product.setSize(sel);
-            try {
-                double priceSel = ProductDAO.getPriceFor(product.getProductId(), product.getIdShop(), sel);
-                product.setPrice(priceSel);
-                priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
-
-                boolean wished = ProductDAO.existsWish(Session.getUser(),
-                        product.getProductId(), product.getIdShop(), sel);
-                updateWishButton(wished);
-
-                updateStockAndQtyRange();
-            } catch (SQLException e) {
-                logger.log(Level.WARNING, e,
-                        () -> "Errore aggiornando prezzo/stato preferiti per taglia " + sel);
-
-            }
-        });
-
+        updateWishButton(alreadyWished);
     }
+
 
     private void updateWishButton(boolean already) {
         if (already) {
@@ -228,9 +213,8 @@ public class ProductDetailController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ListReview.fxml"));
             Parent root = loader.load();
-
             ListReviewController ctrl = loader.getController();
-            ctrl.init(product); // passa il prodotto da mostrare
+            ctrl.init(product);
 
             Stage stage = new Stage();
             stage.setTitle("Recensioni prodotto");
@@ -240,45 +224,60 @@ public class ProductDetailController {
             stage.showAndWait();
 
         } catch (Exception ex) {
-            Logger.getLogger(ProductDetailController.class.getName())
-                    .log(Level.WARNING, "Errore aprendo la lista recensioni", ex);
-            new Alert(Alert.AlertType.ERROR,
-                    "Impossibile aprire le recensioni:\n" + ex.getMessage()).showAndWait();
+            showError("Impossibile aprire le recensioni:\n" + ex.getMessage(), ex);
         }
     }
 
     @FXML
     private void addToWishList() {
         try {
+            if (!ensureSizeSelectedOrWarn()) return;
 
-            String selSize = (sizeCombo != null) ? sizeCombo.getValue() : null;
-            if (selSize == null || selSize.isBlank()) {
-                Alert a = new Alert(Alert.AlertType.WARNING);
-                a.setTitle("Taglia mancante");
-                a.setHeaderText(null);
-                a.setContentText("Seleziona una taglia prima di aggiungere ai preferiti.");
-                a.showAndWait();
-                return;
-            }
-            product.setSize(selSize);
+            UserDAO.addInWishList(Session.getUser(), product.getProductId(),
+                    product.getIdShop(), product.getSize());
 
-            // 1. Inserisci in DB
-            UserDAO.addInWishList(Session.getUser(), product.getProductId(), product.getIdShop(), product.getSize());
-
-            // 2. Feedback all’utente
             addToWishListBtn.setDisable(true);
             addToWishListBtn.setText(TXT_ADDED_TO_WISHLIST);
 
         } catch (SQLException e) {
-            // Gestione dell’errore
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Errore");
-            alert.setHeaderText("Impossibile aggiungere alla lista dei preferiti");
-            alert.setContentText(e.getMessage());
-            alert.showAndWait();
+            showError("Impossibile aggiungere ai preferiti:\n" + e.getMessage(), e);
         }
-
     }
+
+    private void refreshForSelectedSize(String sel) throws SQLException {
+        // aggiorna prezzo
+        double priceSel = ProductDAO.getPriceFor(product.getProductId(), product.getIdShop(), sel);
+        product.setPrice(priceSel);
+        priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
+
+        // aggiorna stato “preferiti” per taglia
+        boolean wished = ProductDAO.existsWish(Session.getUser(),
+                product.getProductId(), product.getIdShop(), sel);
+        updateWishButton(wished);
+
+        // aggiorna disponibilità e range quantità
+        updateStockAndQtyRange();
+    }
+
+    private boolean ensureSizeSelectedOrWarn() {
+        String selSize = (sizeCombo != null) ? sizeCombo.getValue() : null;
+        if (selSize == null || selSize.isBlank()) {
+            Alert a = new Alert(Alert.AlertType.WARNING);
+            a.setTitle("Taglia mancante");
+            a.setHeaderText(null);
+            a.setContentText("Seleziona una taglia prima di procedere.");
+            a.showAndWait();
+            return false;
+        }
+        product.setSize(selSize);
+        return true;
+    }
+
+    private void showError(String message, Throwable t) {
+        Logger.getLogger(getClass().getName()).log(Level.WARNING, message, t);
+        new Alert(Alert.AlertType.ERROR, message).showAndWait();
+    }
+
 
     @FXML
     private void onClose() {

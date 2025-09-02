@@ -1,10 +1,8 @@
 package org.example.dao;
 
-import javafx.scene.image.Image;
 import org.example.database.DatabaseConnection;
 import org.example.models.Product;
 
-import java.io.ByteArrayInputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -127,12 +125,12 @@ public class ProductDAO {
             else { stmt.setString(i++, brandVal); stmt.setString(i++, brandVal); }
 
             // shopId: ( ? IS NULL OR s.id_shop = ? )
-            if (shopId == null)  { stmt.setNull(i++, Types.INTEGER); stmt.setNull(i++, Types.INTEGER); }
+            if (shopId == null) { stmt.setNull(i++, Types.INTEGER); stmt.setNull(i++, Types.INTEGER); }
             else { stmt.setInt(i++, shopId); stmt.setInt(i++, shopId); }
 
             // category: ( ? IS NULL OR p.category = ? )
             if (categoryVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i, Types.VARCHAR); }
-            else { stmt.setString(i++, categoryVal); stmt.setString(i, categoryVal); }
+            else { stmt.setString(i++, categoryVal); stmt.setString(i++, categoryVal); }
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -168,15 +166,7 @@ public class ProductDAO {
         byte[] imgBytes = rs.getBytes("image_data");
         logger.log(Level.INFO, "ImgBytes length for {0} = {1}", new Object[]{p.getProductId(), (imgBytes == null ? 0 : imgBytes.length)});
 
-        if (imgBytes != null && imgBytes.length > 0) {
-            Image img = new Image(new ByteArrayInputStream(imgBytes));
-            if (img.isError()) {
-                logger.log(Level.SEVERE, "Errore caricamento immagine", img.getException());
-            } else {
-                logger.log(Level.INFO, "Image pronta: {0}×{1}", new Object[]{img.getWidth(), img.getHeight()});
-            }
-            p.setImage(img);
-        }
+        p.setImageData(imgBytes);
 
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) {
@@ -224,8 +214,8 @@ public class ProductDAO {
     public static double getPriceFor(long productId, int idShop, String size) throws SQLException {
         String sql = """
                 SELECT price
-                "FROM product_availability
-                "WHERE product_id = ? AND id_shop = ? AND size = ?""";
+                FROM product_availability
+                WHERE product_id = ? AND id_shop = ? AND size = ?""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -256,40 +246,39 @@ public class ProductDAO {
     }
 
 
-    public static boolean existsWish(String username, long productId, int idShop, String size) throws SQLException {
+    // unico entry-point pubblico: se non ti serve la size, passa null
+    public static boolean existsWish(String username, long productId, int shopId, String size)
+            throws SQLException {
         String sql = """
-                SELECT 1
-                FROM wishlist
-                WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ? LIMIT 1""";
+        SELECT 1
+        FROM wishlist
+        WHERE username = ? AND product_id = ? AND id_shop = ?
+          AND ( ? IS NULL OR p_size = ? )
+        LIMIT 1
+        """;
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.setLong(2, productId);
-            ps.setInt(3, idShop);
-            ps.setString(4, size);
+            int i = 1;
+            ps.setString(i++, username);
+            ps.setLong(i++, productId);
+            ps.setInt(i++, shopId);
+            if (size == null) {
+                ps.setNull(i++, Types.VARCHAR);
+                ps.setNull(i,   Types.VARCHAR);
+            } else {
+                ps.setString(i++, size);
+                ps.setString(i,   size);
+            }
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
             }
         }
     }
 
-    /** Restituisce true se esiste già una riga per user+product+shop */
+    // overload comodo per le chiamate senza size (resta compatibile)
     public static boolean existsWish(String username, long productId, int shopId)
             throws SQLException {
-        String sql = """
-                SELECT 1
-                FROM wishlist
-                WHERE username = ? AND product_id = ? AND id_shop = ?
-                LIMIT 1""";
-        try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.setLong(2, productId);
-            ps.setInt(3, shopId);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next();
-            }
-        }
+        return existsWish(username, productId, shopId, null);
     }
 
 }

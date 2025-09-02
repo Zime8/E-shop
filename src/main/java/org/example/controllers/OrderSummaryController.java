@@ -32,7 +32,6 @@ public class OrderSummaryController {
     private List<CartItem> items;
     private BigDecimal total;
 
-    // OrderSummaryController.java
     private Runnable onCartUpdated;
 
     private static final Logger logger = Logger.getLogger(OrderSummaryController.class.getName());

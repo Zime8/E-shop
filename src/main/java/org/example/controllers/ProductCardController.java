@@ -14,6 +14,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.example.models.Product;
+import org.example.util.ImageUtils;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -39,9 +40,7 @@ public class ProductCardController {
         if(p == null) return;
         this.product = p;
 
-        if (p.getImage() != null) {
-            photo.setImage(p.getImage());
-        }
+        ImageUtils.setImage(photo, p.getImageData());
         nameLbl.setText(p.getName());
         nameShopLbl.setText(p.getNameShop());
         priceLbl.setText(String.format("€ %.2f", p.getPrice()));

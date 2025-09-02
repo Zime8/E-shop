@@ -3,6 +3,7 @@ package org.example.dao;
 import javafx.scene.image.Image;
 import org.example.database.DatabaseConnection;
 import org.example.models.Product;
+import org.example.models.User;
 import org.mindrot.jbcrypt.BCrypt;
 
 import java.io.ByteArrayInputStream;
@@ -137,7 +138,7 @@ public class UserDAO {
         FROM users
         WHERE username = ?""";
 
-        Connection conn = DatabaseConnection.getInstance(); // NON chiudere
+        Connection conn = DatabaseConnection.getInstance();
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
             try (ResultSet rs = ps.executeQuery()) {
@@ -146,47 +147,84 @@ public class UserDAO {
         }
     }
 
-    public static void addInWishList(String username, long productId, int idShop, String pSize) throws SQLException {
+    public static User findByUsername(String username) throws SQLException {
         String sql = """
-                INSERT IGNORE INTO wishlist(username, product_id, id_shop, p_size)
-                VALUES(?, ?, ?, ?)
-                ON DUPLICATE KEY UPDATE p_size = VALUES(p_size)""";
-
+        SELECT username, email, phone, pass
+        FROM users
+        WHERE username = ?
+    """;
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, username);
-            ps.setLong   (2, productId);
-            ps.setInt   (3, idShop);
-            ps.setString(4, pSize);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return null;
+                User u = new User();
+                u.setUsername(rs.getString("username"));
+                u.setEmail(rs.getString("email"));
+                u.setPhone(rs.getString("phone"));
+                u.setPasswordHash(rs.getString("pass"));
+                return u;
+            }
+        }
+    }
 
+    public static void updateProfile(String currentUsername, String newUsername, String email, String phone) throws SQLException {
+        String sql = "UPDATE users SET username = ?, email = ?, phone = ? WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newUsername);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setString(4, currentUsername);
             ps.executeUpdate();
         }
     }
 
+    public static void updateProfileWithPassword(String currentUsername, String newUsername,
+                                                 String email, String phone, String plainPassword) throws SQLException {
+        String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
+        String sql = "UPDATE users SET username = ?, email = ?, phone = ?, pass = ? WHERE username = ?";
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newUsername);
+            ps.setString(2, email);
+            ps.setString(3, phone);
+            ps.setString(4, hashedPwd);
+            ps.setString(5, currentUsername);
+            ps.executeUpdate();
+        }
+    }
 
-    // Rimuove l’elemento con user+product+shop
+    public static void addInWishList(String username, long productId, int idShop, String pSize) throws SQLException {
+        String sql = """
+        INSERT IGNORE INTO wishlist(username, product_id, id_shop, p_size)
+        VALUES(?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE p_size = VALUES(p_size)
+        """;
+        runUpdate(sql, ps -> {
+            ps.setString(1, username);
+            ps.setLong  (2, productId);
+            ps.setInt   (3, idShop);
+            ps.setString(4, pSize);
+        });
+    }
+
     public static void removeInWishlist(String username, long productId, int idShop, String pSize) throws SQLException {
         String sql = """
         DELETE FROM wishlist
-        WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ?""";
-
-        try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        WHERE username = ? AND product_id = ? AND id_shop = ? AND p_size = ?
+        """;
+        runUpdate(sql, ps -> {
             ps.setString(1, username);
-            ps.setLong(2, productId);
-            ps.setInt(3, idShop);
+            ps.setLong  (2, productId);
+            ps.setInt   (3, idShop);
             ps.setString(4, pSize);
-            ps.executeUpdate();
-        }
+        });
     }
 
     public static void clearWishlist(String username) throws SQLException {
         String sql = "DELETE FROM wishlist WHERE username = ?";
-        try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, username);
-            ps.executeUpdate();
-        }
+        runUpdate(sql, ps -> ps.setString(1, username));
     }
 
     public static List<Product> getFavorites(String username) throws SQLException {
@@ -214,6 +252,18 @@ public class UserDAO {
         }
     }
 
+    @FunctionalInterface
+    private interface SqlBinder {
+        void bind(PreparedStatement ps) throws SQLException;
+    }
+
+    private static void runUpdate(String sql, SqlBinder binder) throws SQLException {
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            binder.bind(ps);
+            ps.executeUpdate();
+        }
+    }
 
     private static Product mapRowToProduct(ResultSet rs) throws SQLException {
         Product p = new Product();

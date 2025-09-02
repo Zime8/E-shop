@@ -144,13 +144,21 @@ public class CartController {
         imageView.setFitWidth(40);
         imageView.setFitHeight(40);
         imageView.setPreserveRatio(true);
-        try {
-            imageView.setImage(p.getImage());
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Errore caricamento immagine: {0}", p.getName());
-            logger.log(Level.WARNING, "Exception: ", e);
-        }
+
+        Image img = toImage(p.getImageData());
+        imageView.setImage(img);
+
         return imageView;
+    }
+
+    private static Image toImage(byte[] bytes) {
+        if (bytes == null || bytes.length == 0) return null;
+        try {
+            return new Image(new java.io.ByteArrayInputStream(bytes));
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Impossibile creare l'immagine dal byte[]", e);
+            return null;
+        }
     }
 
     private Label createNameLabel(Product p) {
@@ -250,6 +258,7 @@ public class CartController {
             Product p = agg.sample;
             int qty = agg.qty;
             double priceDouble = p.getPrice();
+            Image img =toImage(p.getImageData());
 
             items.add(new CartItem(
                     p.getProductId(),
@@ -257,7 +266,7 @@ public class CartController {
                     qty,
                     priceDouble,
                     p.getName(),
-                    p.getImage(),
+                    img,
                     p.getSize()
             ));
 
