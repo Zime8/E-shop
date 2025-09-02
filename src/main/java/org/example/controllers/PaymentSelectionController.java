@@ -419,7 +419,7 @@ public class PaymentSelectionController {
     }
 
     private void handlePaymentFailure(Throwable e) {
-        logger.log(Level.SEVERE, "Errore durante il pagamento: " + e.getMessage());
+        logger.log(Level.SEVERE, "Errore durante il pagamento: {0}", e.getMessage());
         Platform.runLater(() -> {
             setProcessing(false);
             String msg = e.getMessage();
