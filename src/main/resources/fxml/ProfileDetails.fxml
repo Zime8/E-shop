@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="org.example.controllers.ProfileDetailsController"
+      spacing="18"
+      style="-fx-padding: 28; -fx-background-color: linear-gradient(to bottom, #ffffff, #fffefe);">
+
+    <!-- Header card -->
+    <StackPane style="-fx-background-color: white; -fx-background-radius: 18;
+                      -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 18, 0.18, 0, 6);
+                      -fx-border-color: #d32f2f; -fx-border-width: 2; -fx-border-radius: 18;">
+        <VBox spacing="8" alignment="CENTER" style="-fx-padding: 16 18 14 18;">
+            <Label text="Dettagli profilo"
+                   style="-fx-font-size: 22; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+        </VBox>
+    </StackPane>
+
+    <!-- Card dei campi -->
+    <StackPane style="-fx-background-color: white; -fx-background-radius: 18;
+                      -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.06), 14, 0.18, 0, 4);
+                      -fx-border-color: #d32f2f; -fx-border-width: 1.5; -fx-border-radius: 18;">
+        <GridPane hgap="14" vgap="12" style="-fx-padding: 20 22 18 22;">
+            <columnConstraints>
+                <ColumnConstraints halignment="RIGHT" minWidth="120"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Username:" GridPane.rowIndex="0" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextField fx:id="usernameField" GridPane.rowIndex="0" GridPane.columnIndex="1" editable="false"
+                       style="-fx-background-color: #fafafa; -fx-background-radius: 10;
+                              -fx-border-color: #e6bcbc; -fx-border-width: 1.2; -fx-border-radius: 10;
+                              -fx-prompt-text-fill: #999; -fx-text-fill: #333; -fx-padding: 7 10;"
+                       promptText="—"/>
+
+            <Label text="Password:" GridPane.rowIndex="1" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <PasswordField fx:id="passwordField" GridPane.rowIndex="1" GridPane.columnIndex="1" editable="false"
+                           style="-fx-background-color: #fafafa; -fx-background-radius: 10;
+                                  -fx-border-color: #e6bcbc; -fx-border-width: 1.2; -fx-border-radius: 10;
+                                  -fx-text-fill: #333; -fx-padding: 7 10;"
+                           promptText="••••••••"/>
+
+            <Label text="Email:" GridPane.rowIndex="2" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextField fx:id="emailField" GridPane.rowIndex="2" GridPane.columnIndex="1" editable="false"
+                       style="-fx-background-color: #fafafa; -fx-background-radius: 10;
+                              -fx-border-color: #e6bcbc; -fx-border-width: 1.2; -fx-border-radius: 10;
+                              -fx-text-fill: #333; -fx-padding: 7 10;"
+                       promptText="nome@dominio.com"/>
+
+            <Label text="Telefono:" GridPane.rowIndex="3" GridPane.columnIndex="0"
+                   style="-fx-font-size:15; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+            <TextField fx:id="phoneField" GridPane.rowIndex="3" GridPane.columnIndex="1" editable="false"
+                       style="-fx-background-color: #fafafa; -fx-background-radius: 10;
+                              -fx-border-color: #e6bcbc; -fx-border-width: 1.2; -fx-border-radius: 10;
+                              -fx-text-fill: #333; -fx-padding: 7 10;"
+                       promptText="+39 …"/>
+        </GridPane>
+    </StackPane>
+
+    <Region VBox.vgrow="ALWAYS"/>
+
+    <!-- Pulsanti in fondo -->
+    <HBox alignment="CENTER" spacing="14">
+        <Button text="Modifica dati" fx:id="editBtn" onAction="#onEdit"
+                style="-fx-font-size: 15; -fx-font-weight: bold;
+                       -fx-text-fill: white; -fx-background-color: #d32f2f;
+                       -fx-background-radius: 12; -fx-padding: 8 22;
+                       -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.18), 12, 0.25, 0, 3);"/>
+        <Button text="Chiudi" onAction="#onClose"
+                style="-fx-font-size: 15; -fx-font-weight: bold;
+                       -fx-text-fill: #d32f2f; -fx-background-color: white;
+                       -fx-background-radius: 12; -fx-border-radius: 12;
+                       -fx-border-color: #d32f2f; -fx-border-width: 2;
+                       -fx-padding: 8 26;"/>
+    </HBox>
+</VBox>

@@ -60,7 +60,7 @@ public class LoginController {
 
     @FXML
     private void onRegisterLink() {
-        navigate("/Register.fxml",
+        navigate("/fxml/Register.fxml",
                 "Registrazione",
                 false,
                 "Errore nel caricamento della schermata Register.fxml",
@@ -68,7 +68,7 @@ public class LoginController {
     }
 
     private void goHome() {
-        navigate("/Home.fxml",
+        navigate("/fxml/Home.fxml",
                 "Home",
                 true,
                 "Errore nel caricamento della schermata Home.fxml",
@@ -77,7 +77,7 @@ public class LoginController {
 
     /** Apertura area venditore (schermata dedicata). */
     private void goSellerHome() {
-        navigate("/SellerHome.fxml",
+        navigate("/fxml/SellerHome.fxml",
                 "Area Venditore",
                 true,
                 "Errore nel caricamento della schermata del venditore",

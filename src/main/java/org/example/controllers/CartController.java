@@ -293,7 +293,7 @@ public class CartController {
     // Apre il riepilogo ordine e ricarica il carrello al termine
     private void openOrderSummary(CheckoutData data) {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/OrderSummary.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/OrderSummary.fxml"));
             Parent root = loader.load();
             OrderSummaryController ctrl = loader.getController();
 

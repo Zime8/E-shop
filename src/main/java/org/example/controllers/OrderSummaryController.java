@@ -168,7 +168,7 @@ public class OrderSummaryController {
     @FXML
     private void onPay() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/PaymentSelection.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PaymentSelection.fxml"));
             Parent root = loader.load();
             PaymentSelectionController ctrl = loader.getController();
 

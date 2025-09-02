@@ -226,7 +226,7 @@ public class ProductDetailController {
     @FXML
     private void onAddReview() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ListReview.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ListReview.fxml"));
             Parent root = loader.load();
 
             ListReviewController ctrl = loader.getController();

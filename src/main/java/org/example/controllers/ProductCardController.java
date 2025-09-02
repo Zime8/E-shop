@@ -52,7 +52,7 @@ public class ProductCardController {
 
         try {
             // 1) Carica la FXML della mini‐pagina
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ProductDetail.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductDetail.fxml"));
             Parent detailRoot = loader.load();
 
             // 2) Passa il prodotto al controller del dettaglio

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.controllers.SavedCardsController"
+            prefWidth="560" prefHeight="600"
+            style="-fx-background-color: #faf6f6;">
+    <VBox alignment="TOP_CENTER" spacing="22"
+          AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"
+          style="-fx-padding: 28 28 24 28;">
+
+        <!-- Header card -->
+        <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
+                          -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.12), 18, 0.18, 0, 6);">
+            <VBox spacing="10" alignment="CENTER"
+                  style="-fx-padding: 18 18 16 18;">
+                <Label text="Carte Salvate"
+                       style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+                <!-- Descrizione grigia piccola -->
+                <Label text="Gestisci le carte salvate per i tuoi pagamenti"
+                       style="-fx-text-fill: #777; -fx-font-size: 12;"/>
+            </VBox>
+        </StackPane>
+
+        <!-- Lista carte in “card” -->
+        <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
+                          -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
+            <VBox spacing="10" style="-fx-padding: 22 20 18 20;">
+                <!-- Barra titolo sezione -->
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="Le tue carte"
+                           style="-fx-text-fill: #d32f2f; -fx-font-size: 20; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                </HBox>
+
+                <!-- separatore sottile -->
+                <Region prefHeight="6"/>
+
+                <ListView fx:id="cardsListView"
+                          prefHeight="380" prefWidth="480"
+                          style="-fx-background-color: transparent; -fx-background-insets: 0;
+                                 -fx-control-inner-background: white;
+                                 -fx-background-radius: 16;">
+                    <!-- stylesheet opzionale della tua app -->
+                    <stylesheets>
+                        <URL value="@/css/style.css"/>
+                    </stylesheets>
+                </ListView>
+
+                <!-- Footer sottile della card -->
+                <HBox alignment="CENTER_LEFT" spacing="8" style="-fx-padding: 6 0 0 0;">
+                    <Label text="Suggerimento:"
+                           style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 12;"/>
+                    <Label text="Mantieni aggiornate le scadenze per evitare errori al checkout."
+                           style="-fx-text-fill: #777; -fx-font-size: 12;"/>
+                </HBox>
+            </VBox>
+        </StackPane>
+
+        <!-- Pulsanti azione -->
+        <HBox alignment="CENTER" spacing="22">
+            <Button text="Chiudi" minWidth="160" onAction="#onClose"
+                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
+                           -fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #d32f2f;
+                           -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 8 18;"/>
+            <Button text="Aggiungi Carta" minWidth="180" onAction="#onAddCard"
+                    style="-fx-background-color: #d32f2f; -fx-font-size: 16; -fx-font-weight: bold;
+                           -fx-text-fill: white; -fx-background-radius: 14; -fx-padding: 9 20;"/>
+        </HBox>
+
+    </VBox>
+</AnchorPane>

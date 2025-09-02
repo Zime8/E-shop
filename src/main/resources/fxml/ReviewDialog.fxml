@@ -8,7 +8,7 @@
            fx:controller="org.example.controllers.ReviewDialogController">
     <stylesheets>
         <!-- usa il tuo file CSS; vedi regole più sotto -->
-        <URL value="@css/review.css"/>
+        <URL value="@/css/review.css"/>
     </stylesheets>
 
     <BorderPane style="-fx-background-color: #ffffff;" prefWidth="520" prefHeight="390">

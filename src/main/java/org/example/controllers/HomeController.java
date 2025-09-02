@@ -165,15 +165,15 @@ public class HomeController implements Initializable {
             Session.clear();
 
             Parent root = FXMLLoader.load(
-                    Objects.requireNonNull(getClass().getResource("/login.fxml")));
+                    Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
 
             // 2. Recupera lo Stage corrente
             Stage stage = (Stage) welcomeLabel.getScene().getWindow();
             stage.setScene(new Scene(root));
 
         } catch (IOException e) {
-            logger.log(Level.SEVERE, "Errore caricamente schermata login", e);
-            showAlert("Si è verificato un errore: " + e.getMessage());
+            logger.log(Level.SEVERE, "Errore caricamento schermata login", e);
+            showAlert("Errore caricamento schermata login: " + e.getMessage());
         }
     }
 
@@ -186,7 +186,7 @@ public class HomeController implements Initializable {
                 return;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Cart.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Cart.fxml"));
             VBox popupContent = loader.load();
             CartController controller = loader.getController();
 
@@ -225,7 +225,7 @@ public class HomeController implements Initializable {
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore nel caricamento del menu carrello", e);
-            showAlert("Errore caricamento menu carrello.");
+            showAlert("Errore caricamento menu carrello: " + e.getMessage());
         }
     }
 
@@ -250,7 +250,7 @@ public class HomeController implements Initializable {
                 return;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Profile.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Profile.fxml"));
             Parent dropdownContent = loader.load();
             ProfileController controller = loader.getController();
 
@@ -284,20 +284,20 @@ public class HomeController implements Initializable {
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore nel caricamento del menu profilo", e);
-            showAlert("Errore caricamento menu profilo.");
+            showAlert("Errore caricamento menu profilo: " + e.getMessage());
         }
     }
 
     private void openProfileDetails() {
-        openSidePanel("ProfileDetails.fxml");
+        openSidePanel("fxml/ProfileDetails.fxml");
     }
 
     private void openPurchaseHistory() {
-        openSidePanel("PurchaseHistory.fxml");
+        openSidePanel("fxml/PurchaseHistory.fxml");
     }
 
     private void openSavedCards() {
-        openSidePanel("SavedCards.fxml");
+        openSidePanel("fxml/SavedCards.fxml");
     }
 
     // gestione click sul pulsante articoli preferiti
@@ -309,7 +309,7 @@ public class HomeController implements Initializable {
                 return;
             }
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/Wishlist.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Wishlist.fxml"));
             VBox popupContent = loader.load();
             WishlistController controller = loader.getController();
 
@@ -334,7 +334,7 @@ public class HomeController implements Initializable {
 
             } catch (IOException e) {
             logger.log(Level.SEVERE,"Errore nel caricamento del menu wishlist", e);
-            showAlert("Impossibile aprire la Wish List.");
+            showAlert("Impossibile aprire la Wish List: " + e.getMessage());
         }
     }
 
@@ -356,7 +356,7 @@ public class HomeController implements Initializable {
             displayProducts(latest);
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore durante il caricamento dei prodotti", e);
-            showAlert("Errore nel caricamento dei prodotti. Riprova più tardi.");
+            showAlert("Errore nel caricamento dei prodotti: " + e.getMessage());
         }
     }
 
@@ -423,7 +423,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         for (Product p : products) {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/ProductCard.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
             Node card = loader.load();
 
             ProductCardController ctrl = loader.getController();
@@ -459,7 +459,7 @@ public class HomeController implements Initializable {
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore caricamento finestra", e);
-            showAlert("Errore caricamento finestra.");
+            showAlert("Errore caricamento finestra: " + e.getMessage());
         }
     }
 
@@ -479,7 +479,7 @@ public class HomeController implements Initializable {
         } else if (fxmlResource.toLowerCase().contains("purchase")) {
             stage.setTitle("Storico Acquisti");
         } else {
-            stage.setTitle("E-commerce");
+            stage.setTitle("E-Shop");
         }
 
         stage.setResizable(false);  // o true se vuoi permettere il resize

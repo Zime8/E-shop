@@ -72,7 +72,7 @@ public class RegisterController {
 
             // Torna al login
             try {
-                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/login.fxml")));
+                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
                 Stage stage = (Stage) usernameField.getScene().getWindow();
                 stage.setScene(new Scene(root));
             } catch (IOException e) {
@@ -87,7 +87,7 @@ public class RegisterController {
     @FXML
     private void onBack() {
         try {
-            Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/login.fxml")));
+            Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
             Stage stage = (Stage) usernameField.getScene().getWindow();
             stage.setScene(new Scene(root));
         } catch (IOException e) {
