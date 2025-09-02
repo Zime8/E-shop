@@ -176,14 +176,14 @@ public class OrderSummaryController {
             // URL/stringa
             case CharSequence cs -> {
                 String s = cs.toString().trim();
-                if (!s.isEmpty()) return new Image(s, true);
+                return s.isEmpty() ? null : new Image(s, true);
             }
-            default -> Logger.getLogger(OrderSummaryController.class.getName())
+            default -> {
+                Logger.getLogger(OrderSummaryController.class.getName())
                         .fine(() -> "Unsupported image source type: " + src.getClass());
-
+                return null;
+            }
         }
-
-        return null;
     }
 
     @FXML
