@@ -258,7 +258,6 @@ public class CartController {
             Product p = agg.sample;
             int qty = agg.qty;
             double priceDouble = p.getPrice();
-            Image img =toImage(p.getImageData());
 
             items.add(new CartItem(
                     p.getProductId(),
@@ -266,7 +265,7 @@ public class CartController {
                     qty,
                     priceDouble,
                     p.getName(),
-                    img,
+                    p.getImageData(),
                     p.getSize()
             ));
 

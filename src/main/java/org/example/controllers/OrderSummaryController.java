@@ -16,6 +16,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.models.CartItem;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -137,25 +138,54 @@ public class OrderSummaryController {
         itemsBox.getChildren().add(grid);
 
         total = totalSum;
-        totalLabel.setText(fmt.format(totalSum)); // evita doppia "€"
+        totalLabel.setText(fmt.format(totalSum));
     }
 
-    private static ImageView getImageView(CartItem it) {
+    private ImageView getImageView(CartItem it) {
         ImageView iv = new ImageView();
         iv.setFitWidth(56);
         iv.setFitHeight(56);
         iv.setPreserveRatio(true);
         iv.setSmooth(true);
+
         try {
-            Object imgObj = it.getProductImage(); // Image o String URL
-            if (imgObj instanceof Image image) {
-                iv.setImage(image);
-            }
+            Object imgObj = it.getProductImage();
+            iv.setImage(toImage(imgObj));
         } catch (Exception e) {
-            logger.log(Level.WARNING, String.format("Errore nel caricamento immagine prodotto '%s'", it.getProductName()), e);
+            logger.log(Level.WARNING,
+                    String.format("Errore nel caricamento immagine prodotto '%s'", it.getProductName()), e);
+        }
+        return iv;
+    }
+
+    private static Image toImage(Object src) {
+
+        switch (src) {
+            case null -> {
+                return null;
+            }
+
+            // già un'Image
+            case Image img -> {
+                return img;
+            }
+
+            // byte[]
+            case byte[] bytes -> {
+                if (bytes.length == 0) return null;
+                return new Image(new ByteArrayInputStream(bytes));
+            }
+
+            // URL/stringa
+            case CharSequence cs -> {
+                String s = cs.toString().trim();
+                if (!s.isEmpty()) return new Image(s, true);
+            }
+            default -> {
+            }
         }
 
-        return iv;
+        return null;
     }
 
     @FXML

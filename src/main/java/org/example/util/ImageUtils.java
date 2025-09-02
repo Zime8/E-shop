@@ -1,4 +1,3 @@
-// org.example.ui.ImageUtils (solo nello strato UI)
 package org.example.util;
 
 import javafx.scene.image.Image;
