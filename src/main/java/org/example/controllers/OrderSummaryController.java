@@ -164,25 +164,23 @@ public class OrderSummaryController {
             case null -> {
                 return null;
             }
-
             // già un'Image
             case Image img -> {
                 return img;
             }
-
             // byte[]
             case byte[] bytes -> {
                 if (bytes.length == 0) return null;
                 return new Image(new ByteArrayInputStream(bytes));
             }
-
             // URL/stringa
             case CharSequence cs -> {
                 String s = cs.toString().trim();
                 if (!s.isEmpty()) return new Image(s, true);
             }
-            default -> {
-            }
+            default -> Logger.getLogger(OrderSummaryController.class.getName())
+                        .fine(() -> "Unsupported image source type: " + src.getClass());
+
         }
 
         return null;
@@ -216,7 +214,7 @@ public class OrderSummaryController {
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore durante l'apertura della schermata di pagamento", e);
-            new Alert(Alert.AlertType.ERROR, "Errore nell'apertura della schermata di pagamento: " + e.getMessage());
+            new Alert(Alert.AlertType.ERROR, "Errore nell'apertura della schermata di pagamento: " + e.getMessage()).showAndWait();
         }
     }
 
