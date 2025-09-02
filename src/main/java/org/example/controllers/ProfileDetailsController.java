@@ -85,8 +85,6 @@ public class ProfileDetailsController {
         String newPwd      = passwordField.getText(); // vuota = non cambiare
 
         try {
-            // (opzionale) validazioni base + univocità
-            // if (!newUsername.equals(current) && UserDAO.isUsernameTaken(newUsername)) { ... }
 
             if (newPwd != null && !newPwd.isBlank()) {
                 UserDAO.updateProfileWithPassword(current, newUsername, newEmail, newPhone, newPwd);
