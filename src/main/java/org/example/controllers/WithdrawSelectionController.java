@@ -15,6 +15,7 @@ import org.example.models.Card;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
@@ -57,10 +58,9 @@ public class WithdrawSelectionController {
 
     private Stage stage;
     private Runnable onWithdrawDone;
-    private Long userId;
 
     private BigDecimal available = BigDecimal.ZERO;
-    private final NumberFormat CURRENCY = NumberFormat.getCurrencyInstance(Locale.ITALY);
+    private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
     public void setStage(Stage stage) { this.stage = stage; }
     public void setOnWithdrawDone(Runnable r) { this.onWithdrawDone = r; }
@@ -134,17 +134,17 @@ public class WithdrawSelectionController {
     }
 
     private void loadData() {
-        Integer userId = Session.getUserId();
-        if (userId == null) return;
+        Integer currentUserId = Session.getUserId();
+        if (currentUserId == null) return;
 
         try {
             // saldo disponibile
-            available = ShopDAO.getBalance(userId);
-            availableLabel.setText("€ " + CURRENCY.format(available));
+            available = ShopDAO.getBalance(currentUserId);
+            availableLabel.setText("€ " + currency.format(available));
 
             // carte salvate dell'utente (venditore)
             cards.clear();
-            List<SavedCardsDAO.Row> rows = dao.findByUser(userId);
+            List<SavedCardsDAO.Row> rows = dao.findByUser(currentUserId);
             for (SavedCardsDAO.Row r : rows) {
                 Card c = new Card(r.getId(), r.getHolder(), r.getCardNumber(), r.getExpiry(), r.getCardType());
                 cards.add(c);
@@ -158,8 +158,8 @@ public class WithdrawSelectionController {
 
     @FXML
     private void onAddInline() {
-        Integer userId = Session.getUserId();
-        if (userId == null) { showInfo("Devi effettuare il login"); return; }
+        Integer currentUserId = Session.getUserId();
+        if (currentUserId == null) { showInfo("Devi effettuare il login"); return; }
 
         String holder = safe(holderField);
         String number = safe(numberField);
@@ -180,7 +180,7 @@ public class WithdrawSelectionController {
         }
 
         try {
-            Optional<Integer> maybeId = dao.insertIfAbsentReturningId(userId, holder, number, expiry, type);
+            Optional<Integer> maybeId = dao.insertIfAbsentReturningId(currentUserId, holder, number, expiry, type);
             if (maybeId.isPresent()) {
                 Card c = new Card(maybeId.get(), holder, number, expiry, type);
                 cards.addFirst(c);
@@ -206,8 +206,8 @@ public class WithdrawSelectionController {
 
     @FXML
     private void onConfirm() {
-        Integer userId = Session.getUserId();
-        if (userId == null) { showInfo("Devi effettuare il login."); return; }
+        Integer currentUserId = Session.getUserId();
+        if (currentUserId == null) { showInfo("Devi effettuare il login."); return; }
 
         Card selected = cardsTable.getSelectionModel().getSelectedItem();
         if (selected == null) { showInfo("Seleziona una carta salvata."); return; }
@@ -218,12 +218,12 @@ public class WithdrawSelectionController {
         BigDecimal amount;
         try {
             String raw = safe(amountField).replace(".", "").replace(',', '.'); // accetta "1.234,56"
-            amount = new BigDecimal(raw).setScale(2);
+            amount = new BigDecimal(raw).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception ex) {
             showInfo("Importo non valido."); return;
         }
         if (amount.signum() <= 0 || amount.compareTo(available) > 0) {
-            showInfo("Importo non valido ( importo disponibile : " + CURRENCY.format(available) + " )");
+            showInfo("Importo non valido ( importo disponibile : " + currency.format(available) + " )");
             return;
         }
 
@@ -232,14 +232,14 @@ public class WithdrawSelectionController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                ShopDAO.requestWithdraw(userId, selected.getId(), amount, cvv);
+                ShopDAO.requestWithdraw(currentUserId, selected.getId(), amount, cvv);
                 return null;
             }
         };
 
         task.setOnSucceeded(evt -> Platform.runLater(() -> {
             setProcessing(false);
-            Alert ok = new Alert(Alert.AlertType.INFORMATION, "Prelievo effettuato: € " + CURRENCY.format(amount));
+            Alert ok = new Alert(Alert.AlertType.INFORMATION, "Prelievo effettuato: € " + currency.format(amount));
             ok.setHeaderText(null);
             ok.showAndWait();
             if (onWithdrawDone != null) onWithdrawDone.run(); // per ricaricare saldo nell'header padre
@@ -323,11 +323,13 @@ public class WithdrawSelectionController {
             setGraphic(tf);
         }
         private Card getCurrentRowCard() {
-            return (getTableRow() == null) ? null : (Card) getTableRow().getItem();
+            return (getTableRow() == null) ? null : getTableRow().getItem();
         }
     }
-    public void setUserId(long userId) {
-        this.userId = userId;
+    public void setUserId(long sellerUserId) {
+        if (Session.getUserId() == null) {
+            Session.setUserId((int) sellerUserId);
+        }
         if (availableLabel != null) {
             loadData();
         }

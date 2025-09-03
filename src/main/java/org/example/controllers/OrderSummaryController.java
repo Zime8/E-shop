@@ -69,7 +69,9 @@ public class OrderSummaryController {
                 try {
                     Number u = it.getUnitPrice();
                     unit = (u == null) ? BigDecimal.ZERO : BigDecimal.valueOf(u.doubleValue());
-                } catch (Exception ignore) {}
+                } catch (Exception e) {
+                    logger.log(Level.INFO, "Errore nel riepilogo ordine: {0}", e.getMessage());
+                }
                 rows.add(new ItemView(
                         it.getProductName(),
                         it.getSize(),
@@ -116,14 +118,14 @@ public class OrderSummaryController {
             }
             setData(opt.get());
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore nel caricamento dell'ordine #" + orderId, e);
+            logger.log(Level.SEVERE, e,()-> "Errore nel caricamento dell'ordine #" + orderId);
             itemsBox.getChildren().setAll(new Label("Impossibile caricare l'ordine."));
             totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
         }
     }
 
     // 4) Nuovo: subito dopo placeOrderWithStockDecrement(...) — passami CreationResult e userId
-    public void setData(OrderDAO.CreationResult creation, int userId) {
+    public void setData(OrderDAO.CreationResult creation) {
         if (creation == null || creation.orderIds() == null || creation.orderIds().isEmpty()) {
             itemsBox.getChildren().setAll(new Label("Nessun ordine generato."));
             totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));

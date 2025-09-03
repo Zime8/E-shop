@@ -4,7 +4,6 @@ import org.example.models.Card;
 import org.example.models.Order;
 import org.example.models.Product;
 import org.example.models.Review;
-import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.List;
 import java.util.Map;
@@ -35,13 +34,7 @@ public final class DemoData {
     public static void ensureLoaded() {
         if (!INIT.compareAndSet(false, true)) return;
 
-        // Utenti demo (password: "demo")
-        USERS.put("demo", new User(0, "demo",
-                BCrypt.hashpw("demo", BCrypt.gensalt(10)),
-                "utente", "demo@example.com", "000"));
-        USERS.put("venditore_demo", new User(1, "venditore_demo",
-                BCrypt.hashpw("demo", BCrypt.gensalt(10)),
-                "venditore", "vend@example.com", "000"));
+        USERS.putIfAbsent("seed-demo", new User(0, "seed-demo", null, "utente", "demo@example.com", "000"));
 
         // Qualche prodotto di esempio
         PRODUCTS.put(prodKey(1001, 1, "42"), makeProduct(1001, "Scarpa Demo Run", "Running", "BrandX", "Scarpe", 59.90, "42"));
@@ -69,10 +62,6 @@ public final class DemoData {
     public static List<Review> reviewsOf(long productId, int idShop) {
         String key = reviewKey(productId, idShop);
         return REVIEWS.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
-    }
-
-    public static List<Card> cardsOf(int userId) {
-        return SAVED_CARDS.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
     }
 
     public static void clearUserDemoReviews(Integer userId, String username) {

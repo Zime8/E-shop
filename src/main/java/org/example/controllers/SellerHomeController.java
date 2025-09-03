@@ -21,9 +21,7 @@ import org.example.util.Session;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -85,8 +83,7 @@ public class SellerHomeController {
     @FXML private TabPane tabPane;
     @FXML private Label balanceLabel;
     @FXML private Button withdrawButton;
-    private long shopId;
-    private final NumberFormat CURRENCY_IT = NumberFormat.getCurrencyInstance(Locale.ITALY);
+    private static final NumberFormat currencyIt = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
     // Catalogo
     @FXML private TextField productSearchField;
@@ -122,14 +119,11 @@ public class SellerHomeController {
 
     private Integer currentShopId;
 
-    private final Locale LOCALE_IT = Locale.ITALY;
-
-
     private final DateTimeFormatter dateFmt =
             DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault());
 
     @FXML
-    private void initialize() throws SQLException {
+    private void initialize() {
         if (!ensureUserLoggedIn()) return;
         if (!loadSellerShop()) return;
 
@@ -1143,7 +1137,7 @@ public class SellerHomeController {
 
         try{
             BigDecimal bal = ShopDAO.getBalance(userId);
-            balanceLabel.setText(CURRENCY_IT.format(bal));
+            balanceLabel.setText(currencyIt.format(bal));
             withdrawButton.setDisable(bal.compareTo(BigDecimal.ZERO) <= 0);
         }catch (SQLException e) {
             logger.info( "Aggiornamento saldo fallito");
@@ -1192,23 +1186,6 @@ public class SellerHomeController {
             new Alert(Alert.AlertType.ERROR,
                     "Impossibile aprire la finestra di prelievo: " + e.getMessage()).showAndWait();
         }
-    }
-
-
-    private BigDecimal parseEuroToBigDecimal(String raw) throws ParseException {
-        String text = raw.trim();
-        if (text.isEmpty()) throw new ParseException("vuoto", 0);
-
-        // usa NumberFormat con BigDecimal
-        DecimalFormat df = (DecimalFormat) NumberFormat.getNumberInstance(LOCALE_IT);
-        df.setParseBigDecimal(true);
-        if (text.contains(".") && !text.contains(",")) {
-
-            DecimalFormat dfDot = (DecimalFormat) NumberFormat.getNumberInstance(Locale.US);
-            dfDot.setParseBigDecimal(true);
-            return (BigDecimal) dfDot.parse(text);
-        }
-        return (BigDecimal) df.parse(text);
     }
 
 }
