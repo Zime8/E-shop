@@ -1,27 +1,32 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
+import org.example.demo.DemoData;
 import org.example.models.CartItem;
+import org.example.models.Order;
+import org.example.models.OrderStatus;
+import org.example.models.Product;
+import org.example.util.Session;
 
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 
 public final class OrderDAO {
 
-    // Impedisci l'istanziazione (utility class)
     private OrderDAO() {
         throw new AssertionError("Utility class, no instances allowed");
     }
 
-    // === SQL ===
+    // === SQL (produzione) ===
     private static final String INSERT_ORDER_SQL = """
-                    INSERT INTO orders_client (id_user, date_order, date_order_update, state_order)
-                    VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione')""";
+        INSERT INTO orders_client (id_user, date_order, date_order_update, state_order)
+        VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione')""";
 
     private static final String INSERT_DETAIL_SQL = """
-                    INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price)
-                    VALUES (?, ?, ?, ?, ?, ?)""";
+        INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price)
+        VALUES (?, ?, ?, ?, ?, ?)""";
 
     private static final String LOCK_STOCK_SQL = """
         SELECT quantity
@@ -40,20 +45,144 @@ public final class OrderDAO {
             List<Integer> orderIds,
             Map<Integer, Integer> shopToOrderId
     ) {
-        // Canonical constructor per copiare difensivamente (immutabilità di riferimento)
         public CreationResult {
             orderIds = List.copyOf(orderIds);
             shopToOrderId = Map.copyOf(shopToOrderId);
         }
     }
 
+    /* ============================================================
+       UTIL DEMO
+       ============================================================ */
+    private static String stockKey(long productId, int shopId, String size) {
+        return DemoData.stockKey(productId, shopId, size);
+    }
 
-    /**
-     * Crea tanti ordini quanti sono gli shop presenti nella lista items.
-     * Ogni ordine avrà le sue righe in details_order.
-     */
+    private static void ensureDemoSeed() {
+        DemoData.ensureLoaded();
+        // Inizializza stock demo se mancante (es. 5 per variante)
+        for (Product p : DemoData.PRODUCTS.values()) {
+            DemoData.STOCK.putIfAbsent(stockKey(p.getProductId(), p.getIdShop(), p.getSize()), 5);
+        }
+    }
+
+    /* ============================================================
+       CREAZIONE ORDINI (con gestione stock)
+       ============================================================ */
+    public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items) throws SQLException {
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Lista articoli vuota");
+        }
+
+        if (Session.isDemo()) {
+            ensureDemoSeed();
+
+            // 1) Aggrega fabbisogno per chiave
+            final Map<String, Integer> need = new LinkedHashMap<>();
+            for (CartItem it : items) {
+                String k = stockKey(it.getProductId(), it.getShopId(), it.getSize());
+                need.merge(k, it.getQuantity(), Integer::sum);
+            }
+
+            // 2) Validazione stock
+            for (var e : need.entrySet()) {
+                int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
+                int required = e.getValue();
+                if (available < required) {
+                    String[] parts = e.getKey().split("\\|");
+                    long pid = Long.parseLong(parts[0]);
+                    int sid = Integer.parseInt(parts[1]);
+                    String sz = parts[2];
+                    throw new SQLException("Stock insufficiente (demo) per product=" + pid
+                            + ", shop=" + sid + ", size=" + sz
+                            + " (richiesto " + required + ", disponibile " + available + ")");
+                }
+            }
+
+            // 3) Crea ordini per shop (model)
+            final Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
+            for (CartItem it : items) {
+                byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
+            }
+
+            List<Integer> createdIds = new ArrayList<>();
+            Map<Integer, Integer> shopToOrderId = new LinkedHashMap<>();
+            LocalDateTime now = LocalDateTime.now();
+
+            for (var entry : byShop.entrySet()) {
+                int shopId = entry.getKey();
+                List<CartItem> group = entry.getValue();
+
+                int orderId = DemoData.DEMO_ORDER_ID.incrementAndGet();
+                shopToOrderId.put(shopId, orderId);
+                createdIds.add(orderId);
+
+                Order ord = new Order(orderId, userId, now, OrderStatus.IN_ELABORAZIONE);
+                for (CartItem it : group) {
+                    String prodKey = DemoData.prodKey(it.getProductId(), it.getShopId(), it.getSize());
+                    Product p = DemoData.PRODUCTS.get(prodKey);
+                    String productName = p != null ? p.getName() : ("Prodotto #" + it.getProductId());
+                    String shopName = p != null ? p.getNameShop() : ("Shop #" + it.getShopId());
+                    BigDecimal price = BigDecimal.valueOf(it.getUnitPrice());
+
+                    ord.addLine(new org.example.models.OrderLine(
+                            orderId,
+                            it.getProductId(),
+                            it.getShopId(),
+                            productName,
+                            shopName,
+                            it.getSize(),
+                            it.getQuantity(),
+                            price
+                    ));
+                }
+                DemoData.ORDERS.computeIfAbsent(userId, k -> new java.util.concurrent.CopyOnWriteArrayList<>()).add(ord);
+            }
+
+            // 4) Scala stock demo
+            for (var e : need.entrySet()) {
+                int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
+                DemoData.STOCK.put(e.getKey(), available - e.getValue());
+            }
+
+            return new CreationResult(createdIds, shopToOrderId);
+        }
+
+        // ===== PRODUZIONE (DB) — invariato =====
+        final Connection conn = DatabaseConnection.getInstance();
+        final boolean oldAuto = conn.getAutoCommit();
+        CreationResult result;
+        SQLException toThrow = null;
+
+        try {
+            conn.setAutoCommit(false);
+            result = createOrdersPerShop(conn, userId, items);
+            decrementStockForItems(conn, items);
+            conn.commit();
+            return result;
+
+        } catch (SQLException e) {
+            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            toThrow = e;
+        } catch (RuntimeException e) {
+            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            toThrow = new SQLException("Errore durante la transazione ordine/stock", e);
+        } catch (Exception e) {
+            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            toThrow = new SQLException("Errore generico durante la transazione ordine/stock", e);
+        } finally {
+            try { conn.setAutoCommit(oldAuto); }
+            catch (SQLException e) {
+                if (toThrow != null) toThrow.addSuppressed(e);
+                else toThrow = e;
+            }
+        }
+        throw toThrow;
+    }
+
+    // ======== HELPER DB (originali) ========
+
     private static CreationResult createOrdersPerShop(Connection conn, int userId, List<CartItem> items) throws SQLException {
-        // Manteniamo l'ordine di primo incontro degli shop per allinearlo alle generated keys
         final Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
         for (CartItem it : items) {
             byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
@@ -66,16 +195,12 @@ public final class OrderDAO {
         try (PreparedStatement psOrder = conn.prepareStatement(INSERT_ORDER_SQL, Statement.RETURN_GENERATED_KEYS);
              PreparedStatement psDetail = conn.prepareStatement(INSERT_DETAIL_SQL)) {
 
-            // userId è invariante: set una volta e aggiungi al batch per ogni shop
             psOrder.setInt(1, userId);
             for (int i = 0; i < shopIdsInOrder.size(); i++) {
                 psOrder.addBatch();
             }
-
-            // Esegui tutti gli INSERT in una sola chiamata
             psOrder.executeBatch();
 
-            // Allinea generated keys agli shop nella stessa sequenza
             try (ResultSet rsKeys = psOrder.getGeneratedKeys()) {
                 int idx = 0;
                 while (rsKeys.next()) {
@@ -90,7 +215,6 @@ public final class OrderDAO {
                 }
             }
 
-            // Inserisci TUTTI i dettagli in batch (uno per ogni item, associato al suo orderId)
             for (int shopId : shopIdsInOrder) {
                 int orderId = shopToOrderId.get(shopId);
 
@@ -104,7 +228,7 @@ public final class OrderDAO {
                     psDetail.addBatch();
                 }
             }
-            psDetail.executeBatch(); // unica esecuzione
+            psDetail.executeBatch();
             psDetail.clearBatch();
         }
 
@@ -112,7 +236,6 @@ public final class OrderDAO {
     }
 
     private static void decrementStockForItems(Connection conn, List<CartItem> items) throws SQLException {
-        // aggrega quantità per chiave (productId|shopId|size) mantenendo l'ordine d'inserimento
         final Map<String, Integer> need = new LinkedHashMap<>();
         for (CartItem it : items) {
             final String key = it.getProductId() + "|" + it.getShopId() + "|" + it.getSize();
@@ -122,7 +245,6 @@ public final class OrderDAO {
         try (PreparedStatement psLock = conn.prepareStatement(LOCK_STOCK_SQL);
              PreparedStatement psUpd  = conn.prepareStatement(UPDATE_STOCK_SQL)) {
 
-            // 1) Lock + Validazione disponibilità
             for (Map.Entry<String, Integer> e : need.entrySet()) {
                 final String[] parts = e.getKey().split("\\|");
                 final long   productId = Long.parseLong(parts[0]);
@@ -149,7 +271,6 @@ public final class OrderDAO {
                             " (richiesto " + qtyNeeded + ", disponibile " + available + ")");
                 }
 
-                // 2) Prepara l'UPDATE in batch
                 psUpd.setInt(1, qtyNeeded);
                 psUpd.setLong(2, productId);
                 psUpd.setInt(3, shopId);
@@ -157,68 +278,47 @@ public final class OrderDAO {
                 psUpd.addBatch();
             }
 
-            // 3) Esegui tutti gli update in una volta
             psUpd.executeBatch();
             psUpd.clearBatch();
         }
     }
 
-    public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items) throws SQLException {
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("Lista articoli vuota");
+    // ======== LETTURA ORDINI / DETTAGLI (compatibilità esistente) ========
+
+    /** Riga tabella ORDINI */
+    public record OrderSummary(int idOrder, Timestamp dateOrder, String stateOrder, BigDecimal totalAmount) { }
+
+    /** Riga tabella DETTAGLIO (attenzione: nome collide con il model, qui è record interno) */
+    public record OrderLine(int orderId, long productId, int shopId, String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {
+        public BigDecimal getSubtotal() {
+            return (unitPrice == null) ? BigDecimal.ZERO : unitPrice.multiply(BigDecimal.valueOf(quantity));
         }
-
-        final Connection conn = DatabaseConnection.getInstance();
-        final boolean oldAuto = conn.getAutoCommit();
-        CreationResult result;
-        SQLException toThrow = null;
-
-        try {
-            conn.setAutoCommit(false);
-
-            // Crea ordini per shop
-            result = createOrdersPerShop(conn, userId, items);
-
-            // Scala lo stock
-            decrementStockForItems(conn, items);
-
-            conn.commit();
-            return result;
-
-        } catch (SQLException e) {
-            // rollback per errori SQL
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
-            toThrow = e; // rimanderemo dopo il finally
-        } catch (RuntimeException e) {
-            // rollback anche per errori runtime
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
-            // mantieni la semantica: rilancia come SQLException (metodo dichiara throws SQLException)
-            toThrow = new SQLException("Errore durante la transazione ordine/stock", e);
-        } catch (Exception e) {
-            // qualunque altra checked (improbabile qui, ma sicuro)
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
-            toThrow = new SQLException("Errore generico durante la transazione ordine/stock", e);
-        } finally {
-            try {
-                conn.setAutoCommit(oldAuto);
-            } catch (SQLException e) {
-                if (toThrow != null) {
-                    toThrow.addSuppressed(e);
-                } else {
-                    // nessuna eccezione principale: propaga il problema di ripristino
-                    toThrow = e;
-                }
-            }
-        }
-
-        // se siamo qui, c'è un'eccezione da rilanciare
-        throw toThrow;
     }
 
-    // ======== LETTURA ORDINI / DETTAGLI ========
-
-    /** Tutti gli ordini dell'utente con totale calcolato dalle righe (quantity*price). */
+    /** Tutti gli ordini dell'utente (totale calcolato). */
     public static List<OrderSummary> getOrdersByUser(int userId) throws SQLException {
+        if (Session.isDemo()) {
+            ensureDemoSeed();
+            var list = DemoData.ORDERS.getOrDefault(userId, Collections.emptyList());
+            List<OrderSummary> out = new ArrayList<>(list.size());
+            for (Order o : list) {
+                BigDecimal total = o.getLines().stream()
+                        .map(org.example.models.OrderLine::getSubtotal)
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+                out.add(new OrderSummary(
+                        o.getId(),
+                        o.getCreatedAt() != null ? Timestamp.valueOf(o.getCreatedAt()) : new Timestamp(System.currentTimeMillis()),
+                        o.getStatus() != null ? o.getStatus().toDb() : OrderStatus.IN_ELABORAZIONE.toDb(),
+                        total
+                ));
+            }
+            out.sort((a, b) -> {
+                int c = b.dateOrder().compareTo(a.dateOrder());
+                return (c != 0) ? c : Integer.compare(b.idOrder(), a.idOrder());
+            });
+            return out;
+        }
+
         final String SQL = """
             SELECT
                 o.id_order AS id_order,
@@ -249,8 +349,33 @@ public final class OrderDAO {
         }
     }
 
-    /** Righe di un ordine con nome prodotto (products.name_p) e nome negozio (shops.name_s). */
+    /** Righe di un ordine con nome prodotto/negozio. */
     public static List<OrderLine> getOrderItems(int orderId) throws SQLException {
+        if (Session.isDemo()) {
+            ensureDemoSeed();
+            for (var entry : DemoData.ORDERS.entrySet()) {
+                for (Order o : entry.getValue()) {
+                    if (o.getId() == orderId) {
+                        List<OrderLine> list = new ArrayList<>();
+                        for (org.example.models.OrderLine l : o.getLines()) {
+                            list.add(new OrderLine(
+                                    orderId,
+                                    l.getProductId(),
+                                    l.getShopId(),
+                                    l.getProductName(),
+                                    l.getShopName(),
+                                    l.getSize(),
+                                    l.getQuantity(),
+                                    l.getUnitPrice() == null ? BigDecimal.ZERO : l.getUnitPrice()
+                            ));
+                        }
+                        return list;
+                    }
+                }
+            }
+            return Collections.emptyList();
+        }
+
         final String SQL = """
             SELECT
                 d.id_order,
@@ -289,20 +414,163 @@ public final class OrderDAO {
         }
     }
 
-    // ======== DTO per la UI ========
+    // ======== NUOVI METODI comodi: restituiscono direttamente i MODEL ========
 
-    /**
-     * Riga tabella ORDINI
-     */
-    public record OrderSummary(int idOrder, Timestamp dateOrder, String stateOrder, BigDecimal totalAmount) { }
-
-    /**
-     * Riga tabella DETTAGLIO
-     */
-        public record OrderLine(int orderId, long productId, int shopId, String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {
-            public BigDecimal getSubtotal() {
-                return (unitPrice == null) ? BigDecimal.ZERO : unitPrice.multiply(BigDecimal.valueOf(quantity));
+    /** Ordini completi (con righe) come model `Order`. */
+    public static List<Order> listOrdersModel(int userId) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            var src = DemoData.ORDERS.getOrDefault(userId, Collections.emptyList());
+            // ritorna copia profonda
+            List<Order> out = new ArrayList<>(src.size());
+            for (Order o : src) {
+                Order copy = new Order(o.getId(), o.getUserId(), o.getCreatedAt(), o.getStatus());
+                for (org.example.models.OrderLine l : o.getLines()) {
+                    copy.addLine(new org.example.models.OrderLine(
+                            l.getOrderId(), l.getProductId(), l.getShopId(),
+                            l.getProductName(), l.getShopName(), l.getSize(),
+                            l.getQuantity(), l.getUnitPrice()
+                    ));
+                }
+                out.add(copy);
             }
+            out.sort((a, b) -> {
+                int c = b.getCreatedAt().compareTo(a.getCreatedAt());
+                return (c != 0) ? c : Integer.compare(b.getId(), a.getId());
+            });
+            return out;
         }
 
+        // PRODUZIONE: header + righe
+        final String H_SQL = """
+            SELECT id_order, id_user, date_order, state_order
+            FROM orders_client
+            WHERE id_user = ?
+            ORDER BY date_order DESC, id_order DESC
+        """;
+        final String L_SQL_TMPL = """
+            SELECT d.id_order, d.id_product, d.id_shop, d.size, d.quantity, d.price,
+                   p.name_p AS product_name, s.name_s AS shop_name
+            FROM details_order d
+            JOIN products p ON p.product_id = d.id_product
+            JOIN shops    s ON s.id_shop    = d.id_shop
+            WHERE d.id_order IN (%s)
+            ORDER BY d.id_order ASC, p.name_p ASC, d.id_product ASC
+        """;
+
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement psH = conn.prepareStatement(H_SQL)) {
+
+            psH.setInt(1, userId);
+            List<Order> orders = new ArrayList<>();
+            try (ResultSet rs = psH.executeQuery()) {
+                while (rs.next()) {
+                    orders.add(new Order(
+                            rs.getInt("id_order"),
+                            rs.getInt("id_user"),
+                            rs.getTimestamp("date_order").toLocalDateTime(),
+                            OrderStatus.fromDb(rs.getString("state_order"))
+                    ));
+                }
+            }
+            if (orders.isEmpty()) return orders;
+
+            String in = String.join(",", Collections.nCopies(orders.size(), "?"));
+            try (PreparedStatement psL = conn.prepareStatement(L_SQL_TMPL.formatted(in))) {
+                int idx = 1;
+                for (Order o : orders) psL.setInt(idx++, o.getId());
+
+                try (ResultSet rs = psL.executeQuery()) {
+                    Map<Integer, List<org.example.models.OrderLine>> grouped = new HashMap<>();
+                    while (rs.next()) {
+                        org.example.models.OrderLine l = new org.example.models.OrderLine(
+                                rs.getInt("id_order"),
+                                rs.getLong("id_product"),
+                                rs.getInt("id_shop"),
+                                rs.getString("product_name"),
+                                rs.getString("shop_name"),
+                                rs.getString("size"),
+                                rs.getInt("quantity"),
+                                rs.getBigDecimal("price")
+                        );
+                        grouped.computeIfAbsent(l.getOrderId(), k -> new ArrayList<>()).add(l);
+                    }
+                    for (Order o : orders) {
+                        o.getLines().addAll(grouped.getOrDefault(o.getId(), List.of()));
+                    }
+                }
+            }
+            return orders;
+        }
+    }
+
+    /** Un singolo ordine completo come model `Order`. */
+    public static Optional<Order> getOrderModel(int orderId) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            for (var entry : DemoData.ORDERS.entrySet()) {
+                for (Order o : entry.getValue()) {
+                    if (o.getId() == orderId) {
+                        Order copy = new Order(o.getId(), o.getUserId(), o.getCreatedAt(), o.getStatus());
+                        for (org.example.models.OrderLine l : o.getLines()) {
+                            copy.addLine(new org.example.models.OrderLine(
+                                    l.getOrderId(), l.getProductId(), l.getShopId(),
+                                    l.getProductName(), l.getShopName(), l.getSize(),
+                                    l.getQuantity(), l.getUnitPrice()
+                            ));
+                        }
+                        return Optional.of(copy);
+                    }
+                }
+            }
+            return Optional.empty();
+        }
+
+        final String H_SQL = """
+            SELECT id_order, id_user, date_order, state_order
+            FROM orders_client WHERE id_order = ?
+        """;
+        final String L_SQL = """
+            SELECT d.id_order, d.id_product, d.id_shop, d.size, d.quantity, d.price,
+                   p.name_p AS product_name, s.name_s AS shop_name
+            FROM details_order d
+            JOIN products p ON p.product_id = d.id_product
+            JOIN shops    s ON s.id_shop    = d.id_shop
+            WHERE d.id_order = ?
+            ORDER BY p.name_p ASC, d.id_product ASC
+        """;
+
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement psH = conn.prepareStatement(H_SQL)) {
+            psH.setInt(1, orderId);
+            try (ResultSet rs = psH.executeQuery()) {
+                if (!rs.next()) return Optional.empty();
+                Order o = new Order(
+                        rs.getInt("id_order"),
+                        rs.getInt("id_user"),
+                        rs.getTimestamp("date_order").toLocalDateTime(),
+                        OrderStatus.fromDb(rs.getString("state_order"))
+                );
+
+                try (PreparedStatement psL = conn.prepareStatement(L_SQL)) {
+                    psL.setInt(1, orderId);
+                    try (ResultSet rsl = psL.executeQuery()) {
+                        while (rsl.next()) {
+                            o.addLine(new org.example.models.OrderLine(
+                                    rsl.getInt("id_order"),
+                                    rsl.getLong("id_product"),
+                                    rsl.getInt("id_shop"),
+                                    rsl.getString("product_name"),
+                                    rsl.getString("shop_name"),
+                                    rsl.getString("size"),
+                                    rsl.getInt("quantity"),
+                                    rsl.getBigDecimal("price")
+                            ));
+                        }
+                    }
+                }
+                return Optional.of(o);
+            }
+        }
+    }
 }

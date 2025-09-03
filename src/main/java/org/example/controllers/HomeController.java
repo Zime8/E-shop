@@ -16,6 +16,7 @@ import javafx.stage.Popup;
 import javafx.stage.Stage;
 import org.controlsfx.control.RangeSlider;
 import org.example.dao.ProductDAO;
+import org.example.demo.DemoData;
 import org.example.models.Product;
 import org.example.util.Session;
 
@@ -162,6 +163,12 @@ public class HomeController implements Initializable {
         logger.info("Logout effettuato");
 
         try {
+            if (Session.isDemo()) {
+                DemoData.clearUserDemoReviews(
+                        Session.getUserId(),
+                        Session.getUser()
+                );
+            }
             Session.clear();
 
             Parent root = FXMLLoader.load(

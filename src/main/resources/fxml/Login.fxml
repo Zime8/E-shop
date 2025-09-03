@@ -95,6 +95,13 @@
                        GridPane.rowIndex="4" GridPane.columnIndex="0" GridPane.columnSpan="2"
                        style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-underline: true;"
                        GridPane.halignment="CENTER"/>
+
+            <!-- Link per demo -->
+            <Hyperlink text="Entra come ospite"
+                       onAction="#onDemoMode"
+                       GridPane.rowIndex="5" GridPane.columnIndex="0" GridPane.columnSpan="2"
+                       style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-underline: true;"
+                       GridPane.halignment="CENTER"/>
         </GridPane>
     </VBox>
 </StackPane>

@@ -10,6 +10,7 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import org.example.dao.UserDAO;
+import org.example.demo.DemoData;
 import org.example.util.Session;
 
 import java.io.IOException;
@@ -25,8 +26,13 @@ public class LoginController {
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
 
+    @FXML public void initialize() {
+        Session.setDemo(false);
+    }
+
     @FXML
     private void onLogin() {
+
         String user = usernameField.getText() == null ? "" : usernameField.getText().trim();
         String pass = passwordField.getText() == null ? "" : passwordField.getText();
 
@@ -82,6 +88,36 @@ public class LoginController {
                 true,
                 "Errore nel caricamento della schermata del venditore",
                 "Errore durante il caricamento della schermata venditore. ");
+    }
+
+    @FXML
+    private void onDemoMode() {
+        try {
+            // 1) nuova identità guest univoca
+            String guest = "ospite-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
+            // opzionale: contatore id demo (aggiungi in DemoData: AtomicInteger NEXT_DEMO_USER_ID = new AtomicInteger(-1000);)
+            int demoId = DemoData.NEXT_DEMO_USER_ID.getAndDecrement();
+
+            // 2) pulisci sessione precedente
+            org.example.util.Session.clear();
+
+            // 3) attiva demo e setta credenziali guest
+            org.example.util.Session.setDemo(true);
+            org.example.util.Session.setUser(guest);
+            org.example.util.Session.setUserId(demoId);
+
+            // 4) (facoltativo) registra il guest in DemoData.USERS per mostrare il nome in giro (recensioni, ecc.)
+            org.example.demo.DemoData.ensureLoaded();
+            org.example.demo.DemoData.USERS.putIfAbsent(
+                    guest, new org.example.demo.DemoData.User(demoId, guest, null, "utente", null, null)
+            );
+
+            goHome();
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Errore nell'attivazione della modalità demo", e);
+            showAlert(Alert.AlertType.ERROR, "Impossibile avviare la modalità demo.");
+        }
     }
 
     /** Metodo riutilizzabile per caricare un FXML, impostare scena/titolo e gestire errori. */

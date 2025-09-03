@@ -1,4 +1,3 @@
-// org.example.models.User
 package org.example.models;
 
 public class User {

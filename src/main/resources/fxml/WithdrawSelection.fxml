@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.PaymentSelectionController"
+            fx:controller="org.example.controllers.WithdrawSelectionController"
             prefWidth="700" prefHeight="620"
             style="-fx-background-color: #faf6f6;">
     <VBox alignment="TOP_CENTER" spacing="22"
@@ -11,30 +11,27 @@
           AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"
           style="-fx-padding: 28 28 24 28;">
 
-        <!-- Header card -->
+        <!-- Header -->
         <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                           -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.12), 18, 0.18, 0, 6);">
-            <VBox spacing="8" alignment="CENTER"
-                  style="-fx-padding: 18 18 16 18;">
-                <Label text="Seleziona metodo di pagamento"
+            <VBox spacing="8" alignment="CENTER" style="-fx-padding: 18 18 16 18;">
+                <Label text="Seleziona metodo di prelievo"
                        style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
                 <Label text="Scegli una carta salvata oppure aggiungine una nuova"
                        style="-fx-text-fill: #777; -fx-font-size: 12;"/>
             </VBox>
         </StackPane>
 
-        <!-- Card contenuti: tabella + form inline -->
+        <!-- Card contenuti: tabella + form inline (uguale all'acquisto) -->
         <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                           -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
             <VBox spacing="12" style="-fx-padding: 22 20 18 20;">
-                <!-- Titolo sezione -->
                 <HBox alignment="CENTER_LEFT" spacing="10">
                     <Label text="Carte salvate"
                            style="-fx-text-fill: #d32f2f; -fx-font-size: 20; -fx-font-weight: bold;"/>
                     <Region HBox.hgrow="ALWAYS"/>
                 </HBox>
 
-                <!-- Tabella carte (stessi fx:id/colonne) -->
                 <TableView fx:id="cardsTable" prefHeight="260" VBox.vgrow="ALWAYS"
                            style="-fx-background-color: transparent; -fx-background-insets: 0;">
                     <columns>
@@ -47,16 +44,13 @@
                     </columns>
                 </TableView>
 
-                <!-- Divider sottile -->
                 <Region prefHeight="6"/>
 
-                <!-- Sottotitolo form -->
                 <HBox alignment="CENTER_LEFT" spacing="8">
                     <Label text="Aggiungi nuova carta"
                            style="-fx-text-fill:#d32f2f; -fx-font-weight: bold; -fx-font-size: 14;"/>
                 </HBox>
 
-                <!-- FORM INLINE (stessi fx:id) -->
                 <GridPane hgap="10" vgap="10">
                     <columnConstraints>
                         <ColumnConstraints percentWidth="15"/>
@@ -71,11 +65,11 @@
                     <Label text="Numero:" GridPane.rowIndex="0" GridPane.columnIndex="2"/>
                     <TextField fx:id="numberField" promptText="Numero carta" GridPane.rowIndex="0" GridPane.columnIndex="3"/>
 
-                    <Label text="Scadenza:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <Label text="Scadenza (MM/YY):" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                     <TextField fx:id="expiryField" promptText="MM/YY" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-        <Label text="Tipo:" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
-        <ComboBox fx:id="typeCombo" promptText="Seleziona tipo" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+                    <Label text="Tipo:" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                    <ComboBox fx:id="typeCombo" promptText="Seleziona tipo" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
 
                     <HBox spacing="8" GridPane.rowIndex="2" GridPane.columnIndex="3" alignment="CENTER_RIGHT">
                         <Button text="Aggiungi" onAction="#onAddInline"
@@ -86,18 +80,24 @@
             </VBox>
         </StackPane>
 
-        <!-- Bottom actions (stessi fx:id/handler) -->
-        <HBox spacing="16" alignment="CENTER_RIGHT">
+        <HBox spacing="12" alignment="CENTER_RIGHT">
             <ProgressIndicator fx:id="progress" visible="false" prefWidth="24" prefHeight="24"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Label text="Totale:" style="-fx-font-weight:bold;"/>
-            <Label fx:id="totalLabel" text="€ 0.00"
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Label text="Disponibile:"  minWidth="90" style="-fx-font-weight:bold;"/>
+            <Label fx:id="availableLabel" text="€ 0,00"  minWidth="130" prefWidth="130" alignment="CENTER_RIGHT"
                    style="-fx-text-fill:#d32f2f; -fx-font-weight:bold; -fx-font-size:16;"/>
-            <Button fx:id="backBtn" text="Indietro" onAction="#onBack" minWidth="140"
+
+            <Label text="Importo:" minWidth="70"/>
+            <TextField fx:id="amountField" promptText="€" prefWidth="140" minWidth="140"/>
+
+            <Button fx:id="backBtn" text="Indietro" onAction="#onBack" minWidth="120"
                     style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
                            -fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #d32f2f;
                            -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 8 18;"/>
-            <Button fx:id="confirmBtn" text="Conferma ordine" onAction="#onConfirm" minWidth="180"
+            <Button fx:id="confirmBtn" text="Conferma prelievo" onAction="#onConfirm" minWidth="160"
                     style="-fx-background-color: #d32f2f; -fx-font-size: 16; -fx-font-weight: bold;
                            -fx-text-fill: white; -fx-background-radius: 14; -fx-padding: 9 20;"/>
         </HBox>

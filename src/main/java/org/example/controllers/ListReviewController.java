@@ -18,9 +18,11 @@ import javafx.stage.Stage;
 import org.example.dao.ReviewDAO;
 import org.example.dao.UserDAO;
 import org.example.models.Product;
+import org.example.models.Review;        // ⬅️ usa il model
 import org.example.util.Session;
 
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.logging.Level;
@@ -51,20 +53,17 @@ public class ListReviewController {
         reviewsBox.getChildren().clear();
         progress.setVisible(true);
 
-        // semplice caricamento sincrono; se hai molte recensioni, spostalo in Task<>
         try {
-            List<ReviewDAO.Review> list =
-                    ReviewDAO.listByProductShop(product.getProductId(), product.getIdShop());
+            List<Review> list = ReviewDAO.listByProductShop(product.getProductId(), product.getIdShop());
 
-            // header: media + conteggio
-            double avg = list.stream().mapToInt(ReviewDAO.Review::rating).average().orElse(0.0);
+            double avg = list.stream().mapToInt(Review::getRating).average().orElse(0.0);
             int count = list.size();
             avgLabel.setText(String.format("Voto medio: %.1f/5", avg));
             countLabel.setText("(" + count + " recensioni)");
 
             DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-            for (ReviewDAO.Review r : list) {
+            for (Review r : list) {
                 reviewsBox.getChildren().add(buildRow(r, df));
             }
 
@@ -81,7 +80,7 @@ public class ListReviewController {
         }
     }
 
-    private HBox buildRow(ReviewDAO.Review r, DateTimeFormatter df) {
+    private HBox buildRow(Review r, DateTimeFormatter df) {
         HBox row = new HBox(12);
         row.setAlignment(Pos.TOP_LEFT);
         row.setPadding(new Insets(10));
@@ -90,22 +89,21 @@ public class ListReviewController {
                 + "-fx-border-width: 1.2; -fx-border-radius: 10; -fx-background-radius: 10;");
         row.setFillHeight(true);
 
-        // stelle unicode
-        int rating = r.rating();
+        int rating = r.getRating();
         String stars = "★★★★★".substring(0, rating) + "☆☆☆☆☆".substring(0, 5 - rating);
         Label starsLbl = new Label(stars);
         starsLbl.setStyle("-fx-text-fill:#d32f2f; -fx-font-size:14; -fx-font-weight:bold;");
 
-        Label title = new Label(r.title() != null ? r.title() : "");
+        Label title = new Label(r.getTitle() != null ? r.getTitle() : "");
         title.setStyle("-fx-font-weight:bold; -fx-font-size:13;");
 
-        Label meta = new Label(
-                (r.username() != null ? r.username() : "utente") +
-                        (r.createdAt() != null ? " • " + df.format(r.createdAt().toLocalDateTime()) : "")
-        );
+        LocalDateTime created = r.getCreatedAt();
+        String metaTxt = (r.getUsername() != null ? r.getUsername() : "utente")
+                + (created != null ? " • " + df.format(created) : "");
+        Label meta = new Label(metaTxt);
         meta.setStyle("-fx-text-fill:#777; -fx-font-size:11;");
 
-        Label comment = new Label(r.comment() != null ? r.comment() : "");
+        Label comment = new Label(r.getComment() != null ? r.getComment() : "");
         comment.setWrapText(true);
 
         VBox center = new VBox(2, starsLbl, title, meta, comment);
@@ -123,19 +121,25 @@ public class ListReviewController {
     @FXML
     private void onAdd() {
         try {
-            // check login
             String username = Session.getUser();
             if (username == null || username.isBlank()) {
                 new Alert(Alert.AlertType.WARNING, "Effettua l'accesso per lasciare una recensione.").showAndWait();
                 return;
             }
-            Integer userId = UserDAO.findUserIdByUsername(username);
+
+            // usa prima l'id già in sessione (funziona anche in demo: -1), poi il lookup DB come fallback
+            Integer userId = Session.getUserId();
+            if (userId == null) {
+                userId = UserDAO.findUserIdByUsername(username);
+            }
+            if (userId == null && Session.isDemo()) {
+                userId = -1; // id fittizio per l’ospite demo
+            }
             if (userId == null) {
                 new Alert(Alert.AlertType.ERROR, "Utente corrente non trovato.").showAndWait();
                 return;
             }
 
-            // apri la tua dialog (ReviewDialog.fxml)
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReviewDialog.fxml"));
             Parent root = loader.load();
 
@@ -149,7 +153,6 @@ public class ListReviewController {
             st.setScene(new Scene(root));
             st.showAndWait();
 
-            // risultato
             var res = dialogCtrl.getResult();
             if (res.isEmpty()) return;
 
@@ -164,7 +167,7 @@ public class ListReviewController {
             );
 
             new Alert(Alert.AlertType.INFORMATION, "Grazie! La tua recensione è stata salvata.").showAndWait();
-            loadReviews(); // ricarica elenco
+            loadReviews();
 
         } catch (Exception ex) {
             logger.log(Level.WARNING, "Errore durante inserimento recensione", ex);

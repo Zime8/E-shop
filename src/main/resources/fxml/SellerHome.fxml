@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import java.net.URL?>
+
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="org.example.controllers.SellerHomeController"
+            prefWidth="1100" prefHeight="720"
+            style="-fx-background-color: #faf6f6;">
+
+    <VBox alignment="TOP_CENTER" spacing="22"
+          AnchorPane.topAnchor="0" AnchorPane.leftAnchor="0"
+          AnchorPane.rightAnchor="0" AnchorPane.bottomAnchor="0"
+          style="-fx-padding: 28 28 24 28;">
+
+        <!-- Header -->
+        <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
+                          -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.12), 18, 0.18, 0, 6);">
+            <HBox alignment="CENTER_LEFT" spacing="12" style="-fx-padding: 18 18 16 18;">
+                <Label text="Area Venditore"
+                       style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
+            </HBox>
+            <HBox alignment="CENTER">
+                <Label fx:id="shopNameLabel" style="-fx-text-fill:#d32f2f; -fx-font-size:30; -fx-font-weight: bold;"/>
+            </HBox>
+
+            <HBox alignment="CENTER_RIGHT" spacing="12" style="-fx-padding: 18 18 16 18;">
+            <Label text="Saldo:"
+                   style="-fx-text-fill:#777; -fx-font-weight:bold; -fx-font-size:14;"/>
+
+            <!-- Valore saldo -->
+            <Label fx:id="balanceLabel" text="€ 0,00"
+                   style="-fx-background-color: #fff7f7; -fx-text-fill:#d32f2f; -fx-font-weight:bold;
+                      -fx-background-radius: 14; -fx-padding: 4 10;"/>
+
+            <Button fx:id="withdrawButton" onAction="#onWithdraw"
+                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
+                       -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 4 8;">
+                <tooltip>
+                    <Tooltip text="Preleva saldo"/>
+                </tooltip>
+                <graphic>
+                    <ImageView fitWidth="22" fitHeight="22" preserveRatio="true">
+                        <Image url="@/icons/wallet.png"/>
+                    </ImageView>
+                </graphic>
+            </Button>
+
+                <Button fx:id="logoutButton" text="Logout" onAction="#onLogout" alignment="CENTER"
+                        style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
+                               -fx-font-weight: bold; -fx-text-fill: #d32f2f;
+                               -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 6 14;"/>
+            </HBox>
+        </StackPane>
+
+        <!-- Contenuto a schede -->
+        <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE"
+                 style="-fx-background-color: transparent;">
+            <!-- ======================== CATALOGO ======================== -->
+            <Tab text="Catalogo Prodotti">
+                <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
+                                  -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
+                    <VBox spacing="12" style="-fx-padding: 22 20 18 20;">
+
+                        <!-- Barra titolo / cerca -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Catalogo Prodotti"
+                                   style="-fx-text-fill: #d32f2f; -fx-font-size: 20; -fx-font-weight: bold;"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <ComboBox fx:id="brandFilter" promptText="Marca" />
+                            <ComboBox fx:id="categoryFilter" promptText="Categoria" />
+                            <TextField fx:id="productSearchField" promptText="Cerca per nome" prefWidth="260"/>
+                            <Button text="Cerca" onAction="#onSearchProduct"
+                                    style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-background-radius: 10;
+                                           -fx-padding: 6 12; -fx-font-weight: bold;"/>
+                            <Button text="Reset" onAction="#onResetProductSearch"
+                                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2; -fx-font-weight: bold;
+                                           -fx-text-fill: #d32f2f; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 6 12;"/>
+                        </HBox>
+
+                        <!-- Tabella prodotti -->
+                        <TableView fx:id="productsTable"
+                                   prefHeight="420"
+                                   style="-fx-background-color: transparent; -fx-background-insets: 0;
+                                          -fx-control-inner-background: white; -fx-background-radius: 16;">
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                            <columns>
+                                <TableColumn fx:id="colProdId"       text="ID" minWidth="60"  maxWidth="100"/>
+                                <TableColumn fx:id="colProdName"     text="Nome" prefWidth="200"/>
+                                <TableColumn fx:id="colSport"        text="Sport" prefWidth="120"/>
+                                <TableColumn fx:id="colBrand"        text="Marca" prefWidth="120"/>
+                                <TableColumn fx:id="colCategory"     text="Categoria" prefWidth="140"/>
+                                <TableColumn fx:id="colSize"         text="Taglia" minWidth="90" maxWidth="130"/>
+                                <TableColumn fx:id="colPrice"        text="Prezzo (€)" minWidth="110" maxWidth="160"/>
+                                <TableColumn fx:id="colQuantity"     text="Quantità" minWidth="80" maxWidth="120"/>
+                            </columns>
+                            <stylesheets>
+                                <URL value="@/css/style.css"/>
+                            </stylesheets>
+                        </TableView>
+
+                        <!-- Azioni catalogo -->
+                        <HBox alignment="CENTER_RIGHT" spacing="12">
+                            <Button text="Modifica Prodotto" onAction="#onEditProduct"
+                                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
+                                           -fx-font-weight: bold; -fx-text-fill: #d32f2f;
+                                           -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 8 16;"/>
+                            <Button text="Aggiungi Prodotto" onAction="#onAddProduct"
+                                    style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold;
+                                           -fx-background-radius: 14; -fx-padding: 8 16;"/>
+                            <Button text="Rimuovi Prodotto" onAction="#onDeleteProduct"
+                                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2;
+                                           -fx-font-weight: bold; -fx-text-fill: #d32f2f;
+                                           -fx-background-radius: 14; -fx-border-radius: 14; -fx-padding: 8 16;"/>
+                        </HBox>
+
+                        <!-- Nota -->
+                        <HBox alignment="CENTER_LEFT" spacing="8">
+                            <Label text="Suggerimento:" style="-fx-text-fill:#d32f2f; -fx-font-weight:bold; -fx-font-size:12;"/>
+                            <Label text="Seleziona il prodotto se desideri modificarlo o rimuoverlo."
+                                   style="-fx-text-fill:#777; -fx-font-size:12;"/>
+                        </HBox>
+                    </VBox>
+                </StackPane>
+            </Tab>
+
+            <!-- ======================== ORDINI ======================== -->
+            <Tab text="Ordini del Negozio">
+                <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
+                                  -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
+                    <VBox spacing="12" style="-fx-padding: 22 20 18 20;">
+
+                        <!-- Filtri ordini -->
+                        <HBox alignment="CENTER_LEFT" spacing="10">
+                            <Label text="Ordini del Negozio"
+                                   style="-fx-text-fill: #d32f2f; -fx-font-size: 20; -fx-font-weight: bold;"/>
+                            <Region HBox.hgrow="ALWAYS"/>
+                            <Label text="Stato:" style="-fx-text-fill:#777;"/>
+                            <ComboBox fx:id="orderStateFilter" promptText="Tutti"/>
+                            <Button text="Applica" onAction="#onApplyOrderFilters"
+                                    style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-background-radius: 10;
+                                            -fx-padding: 6 12; -fx-font-weight: bold;"/>
+                            <Button text="Reset" onAction="#onResetOrderFilters"
+                                    style="-fx-background-color: white; -fx-border-color: #d32f2f; -fx-border-width: 2; -fx-font-weight: bold;
+                                           -fx-text-fill: #d32f2f; -fx-background-radius: 10; -fx-border-radius: 10; -fx-padding: 6 12;"/>
+                        </HBox>
+
+                        <!-- Tavole ordini + righe -->
+                        <VBox spacing="10">
+                            <TableView fx:id="sellerOrdersTable"
+                                       prefHeight="260"
+                                       style="-fx-background-color: transparent; -fx-background-insets: 0;
+                                              -fx-control-inner-background: white; -fx-background-radius: 16;">
+                                <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                </columnResizePolicy>
+                                <columns>
+                                    <TableColumn fx:id="colOrderIdS"     text="ID Ordine" minWidth="100" maxWidth="160"/>
+                                    <TableColumn fx:id="colOrderDateS"   text="Data" prefWidth="220"/>
+                                    <TableColumn fx:id="colOrderStateS"  text="Stato" prefWidth="180"/>
+                                    <TableColumn fx:id="colOrderTotalS"  text="Totale (€)" prefWidth="180"/>
+                                    <TableColumn fx:id="colCustomerS"    text="Cliente" prefWidth="200"/>
+                                </columns>
+                                <stylesheets>
+                                    <URL value="@/css/style.css"/>
+                                </stylesheets>
+                            </TableView>
+
+                            <HBox alignment="CENTER_LEFT">
+                                <Label text="Dettaglio Ordine" style="-fx-text-fill: #d32f2f; -fx-font-size: 20; -fx-font-weight: bold;"/>
+                            </HBox>
+
+                            <TableView fx:id="orderItemsTable"
+                                       prefHeight="220"
+                                       style="-fx-background-color: transparent; -fx-background-insets: 0;
+                                              -fx-control-inner-background: white; -fx-background-radius: 16;">
+                                <columnResizePolicy>
+                                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                                </columnResizePolicy>
+                                <columns>
+                                    <TableColumn fx:id="colItemNameS"     text="Articolo" prefWidth="200"/>
+                                    <TableColumn fx:id="colItemSizeS"     text="Taglia" minWidth="90" maxWidth="130"/>
+                                    <TableColumn fx:id="colItemQtyS"      text="Quantità" minWidth="80" maxWidth="120"/>
+                                    <TableColumn fx:id="colItemPriceS"    text="Prezzo (€)" minWidth="110" maxWidth="160"/>
+                                    <TableColumn fx:id="colItemSubtotalS" text="Totale (€)" minWidth="110" maxWidth="160"/>
+                                </columns>
+                                <stylesheets>
+                                    <URL value="@/css/style.css"/>
+                                </stylesheets>
+                            </TableView>
+                        </VBox>
+
+                        <!-- Cambio stato ordine -->
+                        <HBox alignment="CENTER_RIGHT" spacing="10">
+                            <Label text="Cambia stato:" style="-fx-text-fill:#777;"/>
+                            <ComboBox fx:id="orderStateCombo" promptText="Seleziona stato"/>
+                            <Button text="Aggiorna Stato" onAction="#onUpdateOrderStatus"
+                                    style="-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold;
+                                           -fx-background-radius: 14; -fx-padding: 8 16;"/>
+                        </HBox>
+
+                        <!-- Nota -->
+                        <HBox alignment="CENTER_LEFT" spacing="8">
+                            <Label text="Suggerimento:" style="-fx-text-fill:#d32f2f; -fx-font-weight:bold; -fx-font-size:12;"/>
+                            <Label text="Seleziona un ordine per vedere i dettagli e modificarne lo stato."
+                                   style="-fx-text-fill:#777; -fx-font-size:12;"/>
+                        </HBox>
+                    </VBox>
+                </StackPane>
+            </Tab>
+        </TabPane>
+
+    </VBox>
+</AnchorPane>
+

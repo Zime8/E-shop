@@ -2,6 +2,8 @@ package org.example.models;
 
 import javafx.scene.image.Image;
 
+import java.time.LocalDateTime;
+
 public class Product {
 
     private long productId;
@@ -16,7 +18,7 @@ public class Product {
     private double price;
     private String size;
     private Image image;
-    private Object createdAt;
+    private LocalDateTime createdAt;
     private byte[] imageData;
 
     private int idShop;
@@ -116,11 +118,11 @@ public class Product {
 
     public int getQuantity() {return quantity;}
 
-    public Object getCreatedAt() {
+    public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(Object createdAt) {
+    public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
 

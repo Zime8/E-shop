@@ -1,63 +1,85 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
+import org.example.demo.DemoData;
 import org.example.models.Product;
+import org.example.util.Session;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class ProductDAO {
 
     private static final Logger logger = Logger.getLogger(ProductDAO.class.getName());
 
-    // Query costante con filtri opzionali parametrici
-    private static final String SEARCH_BY_FILTERS_SQL = """ 
-                    SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-                    MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
-                    FROM products p
-                    JOIN product_availability pa ON p.product_id = pa.product_id
-                    JOIN shops s ON pa.id_shop = s.id_shop
-                    WHERE pa.price BETWEEN ? AND ?
-                    AND ( ? IS NULL OR p.sport = ? )
-                    AND ( ? IS NULL OR p.brand = ? )
-                    AND ( ? IS NULL OR s.id_shop = ? )
-                    AND ( ? IS NULL OR p.category = ? )
-                    GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
-                    ORDER BY p.created_at DESC""";
+    // Query costante con filtri opzionali parametrici (solo DB)
+    private static final String SEARCH_BY_FILTERS_SQL = """
+        SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+               MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
+        FROM products p
+        JOIN product_availability pa ON p.product_id = pa.product_id
+        JOIN shops s ON pa.id_shop = s.id_shop
+        WHERE pa.price BETWEEN ? AND ?
+          AND ( ? IS NULL OR p.sport = ? )
+          AND ( ? IS NULL OR p.brand = ? )
+          AND ( ? IS NULL OR s.id_shop = ? )
+          AND ( ? IS NULL OR p.category = ? )
+        GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
+        ORDER BY p.created_at DESC
+        """;
 
-
+    /* =========================
+       LATEST
+       ========================= */
     public List<Product> findLatest(int limit) {
-        String sql = """
-                SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-                       pa.price AS price, p.image_data, p.created_at,
-                       s.name_s AS shop_name, pa.quantity, pa.size, s.id_shop
-                FROM products p
-                JOIN product_availability pa ON pa.product_id = p.product_id
-                JOIN shops s ON s.id_shop = pa.id_shop
-                LEFT JOIN product_availability pa2
-                  ON pa2.product_id = pa.product_id AND pa2.id_shop = pa.id_shop
-                 AND (pa2.price < pa.price
-                      OR (pa2.price = pa.price AND pa2.size < pa.size))
-                WHERE pa2.product_id IS NULL
-                  AND pa.quantity > 0
-                ORDER BY p.created_at DESC, p.product_id DESC, s.id_shop ASC
-                LIMIT ?""";
-
-        try {
-            Connection conn = DatabaseConnection.getInstance();
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setInt(1, limit);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    List<Product> list = new ArrayList<>();
-                    while (rs.next()) {
-                        list.add(mapRow(rs));
+        if (Session.isDemo()) {
+            try {
+                DemoData.ensureLoaded();
+                // In demo: ordina per createdAt se disponibile, altrimenti per productId DESC
+                List<Product> all = new ArrayList<>(DemoData.PRODUCTS.values());
+                all.sort((a, b) -> {
+                    if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                        int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                        if (cmp != 0) return cmp;
                     }
-                    return list;
+                    // fallback: productId desc
+                    return Long.compare(b.getProductId(), a.getProductId());
+                });
+                return all.stream().limit(Math.max(0, limit)).collect(Collectors.toList());
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Errore durante findLatest (demo)", e);
+                return Collections.emptyList();
+            }
+        }
+
+        String sql = """
+            SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                   pa.price AS price, p.image_data, p.created_at,
+                   s.name_s AS shop_name, pa.quantity, pa.size, s.id_shop
+            FROM products p
+            JOIN product_availability pa ON pa.product_id = p.product_id
+            JOIN shops s ON s.id_shop = pa.id_shop
+            LEFT JOIN product_availability pa2
+              ON pa2.product_id = pa.product_id AND pa2.id_shop = pa.id_shop
+             AND (pa2.price < pa.price
+                  OR (pa2.price = pa.price AND pa2.size < pa.size))
+            WHERE pa2.product_id IS NULL
+              AND pa.quantity > 0
+            ORDER BY p.created_at DESC, p.product_id DESC, s.id_shop ASC
+            LIMIT ?""";
+
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, limit);
+            try (ResultSet rs = stmt.executeQuery()) {
+                List<Product> list = new ArrayList<>();
+                while (rs.next()) {
+                    list.add(mapRow(rs));
                 }
+                return list;
             }
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore durante findLatest", e);
@@ -65,22 +87,35 @@ public class ProductDAO {
         }
     }
 
+    /* =========================
+       SEARCH BY NAME
+       ========================= */
     public static List<Product> searchByName(String name) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            String q = name == null ? "" : name.toLowerCase();
+            return DemoData.PRODUCTS.values().stream()
+                    .filter(p -> {
+                        String n = p.getName() == null ? "" : p.getName().toLowerCase();
+                        return n.contains(q);
+                    })
+                    .collect(Collectors.toList());
+        }
+
         List<Product> products = new ArrayList<>();
-
         String sql = """
-                SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-                MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
-                FROM products p
-                JOIN product_availability pa ON p.product_id = pa.product_id
-                JOIN shops s ON pa.id_shop = s.id_shop
-                WHERE LOWER(p.name_p) LIKE ?
-                GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
-                ORDER BY p.created_at DESC""";
+            SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
+                   MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
+            FROM products p
+            JOIN product_availability pa ON p.product_id = pa.product_id
+            JOIN shops s ON pa.id_shop = s.id_shop
+            WHERE LOWER(p.name_p) LIKE ?
+            GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
+            ORDER BY p.created_at DESC""";
 
-        Connection conn = DatabaseConnection.getInstance();
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, "%" + name.toLowerCase() + "%");
+        try (Connection conn = DatabaseConnection.getInstance();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, "%" + (name == null ? "" : name.toLowerCase()) + "%");
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
                     products.add(mapRow(rs));
@@ -90,12 +125,38 @@ public class ProductDAO {
             logger.log(Level.SEVERE, "Errore durante la ricerca per nome: {0}", name);
             throw new SQLException("Errore durante la ricerca per nome: " + name, e);
         }
-
         return products;
     }
 
+    /* =========================
+       SEARCH BY FILTERS
+       ========================= */
     public List<Product> searchByFilters(String sport, String brand, String shop, String category,
                                          double minPrice, double maxPrice) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            String sportVal = blankToNull(sport);
+            String brandVal = blankToNull(brand);
+            String categoryVal = blankToNull(category);
+            String shopVal = blankToNull(shop);
+
+            return DemoData.PRODUCTS.values().stream()
+                    .filter(p -> p.getPrice() >= minPrice && p.getPrice() <= maxPrice)
+                    .filter(p -> sportVal == null || Objects.equals(p.getSport(), sportVal))
+                    .filter(p -> brandVal == null || Objects.equals(p.getBrand(), brandVal))
+                    .filter(p -> categoryVal == null || Objects.equals(p.getCategory(), categoryVal))
+                    .filter(p -> shopVal == null || (p.getNameShop() != null && p.getNameShop().equals(shopVal)))
+                    .sorted((a, b) -> {
+                        // se available, ordina per createdAt desc
+                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+                            int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+                            if (cmp != 0) return cmp;
+                        }
+                        return Long.compare(b.getProductId(), a.getProductId());
+                    })
+                    .collect(Collectors.toList());
+        }
+
         List<Product> products = new ArrayList<>();
 
         // Calcolo shopId solo se "shop" è non vuoto (stessa logica di prima)
@@ -116,19 +177,19 @@ public class ProductDAO {
             stmt.setDouble(i++, minPrice);
             stmt.setDouble(i++, maxPrice);
 
-            // sport: ( ? IS NULL OR p.sport = ? )
+            // sport
             if (sportVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i++, Types.VARCHAR); }
             else { stmt.setString(i++, sportVal); stmt.setString(i++, sportVal); }
 
-            // brand: ( ? IS NULL OR p.brand = ? )
+            // brand
             if (brandVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i++, Types.VARCHAR); }
             else { stmt.setString(i++, brandVal); stmt.setString(i++, brandVal); }
 
-            // shopId: ( ? IS NULL OR s.id_shop = ? )
+            // shopId
             if (shopId == null) { stmt.setNull(i++, Types.INTEGER); stmt.setNull(i++, Types.INTEGER); }
             else { stmt.setInt(i++, shopId); stmt.setInt(i++, shopId); }
 
-            // category: ( ? IS NULL OR p.category = ? )
+            // category
             if (categoryVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i, Types.VARCHAR); }
             else { stmt.setString(i++, categoryVal); stmt.setString(i++, categoryVal); }
 
@@ -153,6 +214,9 @@ public class ProductDAO {
         return (s == null || s.isBlank()) ? null : s;
     }
 
+    /* =========================
+       MAPPING (solo DB)
+       ========================= */
     private static Product mapRow(ResultSet rs) throws SQLException {
         Product p = new Product();
         p.setProductId(rs.getLong("product_id"));
@@ -163,20 +227,33 @@ public class ProductDAO {
         p.setCategory(rs.getString("category"));
         p.setPrice(rs.getDouble("price"));
         p.setIdShop(rs.getInt("id_shop"));
-        byte[] imgBytes = rs.getBytes("image_data");
-        logger.log(Level.INFO, "ImgBytes length for {0} = {1}", new Object[]{p.getProductId(), (imgBytes == null ? 0 : imgBytes.length)});
 
+        byte[] imgBytes = rs.getBytes("image_data");
+        logger.log(Level.INFO, "ImgBytes length for {0} = {1}",
+                new Object[]{p.getProductId(), (imgBytes == null ? 0 : imgBytes.length)});
         p.setImageData(imgBytes);
 
         Timestamp ts = rs.getTimestamp("created_at");
         if (ts != null) {
             p.setCreatedAt(ts.toLocalDateTime());
         }
-
         return p;
     }
 
+    /* =========================
+       SHOP ID LOOKUP
+       ========================= */
     public static int getShopIdByName(String shopName) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            // Deriva l'id dal seed: prendi un prodotto che appartiene allo shop
+            return DemoData.PRODUCTS.values().stream()
+                    .filter(p -> p.getNameShop() != null && p.getNameShop().equals(shopName))
+                    .findFirst()
+                    .map(Product::getIdShop)
+                    .orElseThrow(() -> new SQLException("Shop not found (demo): " + shopName));
+        }
+
         String sql = "SELECT id_shop FROM shops WHERE name_s = ?";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -191,13 +268,28 @@ public class ProductDAO {
         }
     }
 
+    /* =========================
+       SIZES / PRICE / STOCK
+       ========================= */
     // Restituisce le taglie disponibili per (product, shop) con quantità > 0
     public static List<String> getAvailableSizes(long productId, int idShop) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            // In demo: tutte le varianti presenti nel seed per (productId, idShop)
+            return DemoData.PRODUCTS.values().stream()
+                    .filter(p -> p.getProductId() == productId && p.getIdShop() == idShop)
+                    .map(Product::getSize)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .sorted()
+                    .collect(Collectors.toList());
+        }
+
         String sql = """
-                SELECT size
-                FROM product_availability
-                WHERE product_id = ? AND id_shop = ? AND quantity > 0
-                ORDER BY size ASC""";
+            SELECT size
+            FROM product_availability
+            WHERE product_id = ? AND id_shop = ? AND quantity > 0
+            ORDER BY size ASC""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -212,10 +304,18 @@ public class ProductDAO {
 
     // Prezzo per specifica taglia
     public static double getPriceFor(long productId, int idShop, String size) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            String key = DemoData.prodKey(productId, idShop, size);
+            Product p = DemoData.PRODUCTS.get(key);
+            if (p != null) return p.getPrice();
+            throw new SQLException("Prezzo non trovato (demo) per la taglia " + size);
+        }
+
         String sql = """
-                SELECT price
-                FROM product_availability
-                WHERE product_id = ? AND id_shop = ? AND size = ?""";
+            SELECT price
+            FROM product_availability
+            WHERE product_id = ? AND id_shop = ? AND size = ?""";
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -228,12 +328,19 @@ public class ProductDAO {
         }
     }
 
-    // metodo per tornare la massima quantità disponibile del singolo prodotto
+    // Massima quantità disponibile
     public static Integer getStockFor(long productId, int shopId, String size) throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            // In demo: se esiste la variante, considera stock "minimo positivo"
+            String key = DemoData.prodKey(productId, shopId, size);
+            return DemoData.PRODUCTS.containsKey(key) ? 1 : 0;
+        }
+
         String sql = """
-        SELECT quantity
-        FROM product_availability
-        WHERE product_id = ? AND id_shop = ? AND size = ?""";
+            SELECT quantity
+            FROM product_availability
+            WHERE product_id = ? AND id_shop = ? AND size = ?""";
         try (Connection c = DatabaseConnection.getInstance();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setLong(1, productId);
@@ -245,17 +352,30 @@ public class ProductDAO {
         }
     }
 
-
+    /* =========================
+       WISHLIST CHECK
+       ========================= */
     // unico entry-point pubblico: se non ti serve la size, passa null
     public static boolean existsWish(String username, long productId, int shopId, String size)
             throws SQLException {
+        if (Session.isDemo()) {
+            DemoData.ensureLoaded();
+            List<Product> list = DemoData.WISHLISTS.getOrDefault(username, Collections.emptyList());
+            final String sz = size; // cattura effettivamente final
+            return list.stream().anyMatch(p ->
+                    p.getProductId() == productId &&
+                            p.getIdShop() == shopId &&
+                            (sz == null || Objects.equals(p.getSize(), sz))
+            );
+        }
+
         String sql = """
-        SELECT 1
-        FROM wishlist
-        WHERE username = ? AND product_id = ? AND id_shop = ?
-          AND ( ? IS NULL OR p_size = ? )
-        LIMIT 1
-        """;
+            SELECT 1
+            FROM wishlist
+            WHERE username = ? AND product_id = ? AND id_shop = ?
+              AND ( ? IS NULL OR p_size = ? )
+            LIMIT 1
+            """;
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             int i = 1;
@@ -275,10 +395,8 @@ public class ProductDAO {
         }
     }
 
-    // overload comodo per le chiamate senza size (resta compatibile)
-    public static boolean existsWish(String username, long productId, int shopId)
-            throws SQLException {
+    // overload comodo per le chiamate senza size
+    public static boolean existsWish(String username, long productId, int shopId) throws SQLException {
         return existsWish(username, productId, shopId, null);
     }
-
 }
