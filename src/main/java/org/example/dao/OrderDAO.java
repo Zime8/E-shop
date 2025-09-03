@@ -69,115 +69,150 @@ public final class OrderDAO {
     /* ============================================================
        CREAZIONE ORDINI (con gestione stock)
        ============================================================ */
+    // == ENTRY POINT semplificato ==
     public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items) throws SQLException {
-        if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("Lista articoli vuota");
+        validateItems(items);
+        return Session.isDemo()
+                ? placeOrderDemo(userId, items)
+                : placeOrderDb(userId, items);
+    }
+
+    /* ========================== DEMO ========================== */
+
+    private static CreationResult placeOrderDemo(int userId, List<CartItem> items) throws SQLException {
+        ensureDemoSeed();
+
+        // 1) aggrega fabbisogno e 2) valida stock
+        Map<String, Integer> need = aggregateNeed(items);
+        validateDemoStock(need);
+
+        // 3) crea ordini per shop
+        Map<Integer, List<CartItem>> byShop = groupByShop(items);
+        CreationResult res = createDemoOrders(userId, byShop);
+
+        // 4) scala stock
+        decrementDemoStock(need);
+        return res;
+    }
+
+    private static Map<String, Integer> aggregateNeed(List<CartItem> items) {
+        Map<String, Integer> need = new LinkedHashMap<>();
+        for (CartItem it : items) {
+            String key = stockKey(it.getProductId(), it.getShopId(), it.getSize());
+            need.merge(key, it.getQuantity(), Integer::sum);
         }
+        return need;
+    }
 
-        if (Session.isDemo()) {
-            ensureDemoSeed();
-
-            // 1) Aggrega fabbisogno per chiave
-            final Map<String, Integer> need = new LinkedHashMap<>();
-            for (CartItem it : items) {
-                String k = stockKey(it.getProductId(), it.getShopId(), it.getSize());
-                need.merge(k, it.getQuantity(), Integer::sum);
+    private static void validateDemoStock(Map<String, Integer> need) throws SQLException {
+        for (var e : need.entrySet()) {
+            int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
+            int required = e.getValue();
+            if (available < required) {
+                String[] parts = e.getKey().split("\\|");
+                long pid = Long.parseLong(parts[0]);
+                int sid  = Integer.parseInt(parts[1]);
+                String sz = parts[2];
+                throw new SQLException("Stock insufficiente (demo) per product=" + pid
+                        + ", shop=" + sid + ", size=" + sz
+                        + " (richiesto " + required + ", disponibile " + available + ")");
             }
-
-            // 2) Validazione stock
-            for (var e : need.entrySet()) {
-                int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
-                int required = e.getValue();
-                if (available < required) {
-                    String[] parts = e.getKey().split("\\|");
-                    long pid = Long.parseLong(parts[0]);
-                    int sid = Integer.parseInt(parts[1]);
-                    String sz = parts[2];
-                    throw new SQLException("Stock insufficiente (demo) per product=" + pid
-                            + ", shop=" + sid + ", size=" + sz
-                            + " (richiesto " + required + ", disponibile " + available + ")");
-                }
-            }
-
-            // 3) Crea ordini per shop (model)
-            final Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
-            for (CartItem it : items) {
-                byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
-            }
-
-            List<Integer> createdIds = new ArrayList<>();
-            Map<Integer, Integer> shopToOrderId = new LinkedHashMap<>();
-            LocalDateTime now = LocalDateTime.now();
-
-            for (var entry : byShop.entrySet()) {
-                int shopId = entry.getKey();
-                List<CartItem> group = entry.getValue();
-
-                int orderId = DemoData.DEMO_ORDER_ID.incrementAndGet();
-                shopToOrderId.put(shopId, orderId);
-                createdIds.add(orderId);
-
-                Order ord = new Order(orderId, userId, now, OrderStatus.IN_ELABORAZIONE);
-                for (CartItem it : group) {
-                    String prodKey = DemoData.prodKey(it.getProductId(), it.getShopId(), it.getSize());
-                    Product p = DemoData.PRODUCTS.get(prodKey);
-                    String productName = p != null ? p.getName() : ("Prodotto #" + it.getProductId());
-                    String shopName = p != null ? p.getNameShop() : ("Shop #" + it.getShopId());
-                    BigDecimal price = BigDecimal.valueOf(it.getUnitPrice());
-
-                    ord.addLine(new org.example.models.OrderLine(
-                            orderId,
-                            it.getProductId(),
-                            it.getShopId(),
-                            productName,
-                            shopName,
-                            it.getSize(),
-                            it.getQuantity(),
-                            price
-                    ));
-                }
-                DemoData.ORDERS.computeIfAbsent(userId, k -> new java.util.concurrent.CopyOnWriteArrayList<>()).add(ord);
-            }
-
-            // 4) Scala stock demo
-            for (var e : need.entrySet()) {
-                int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
-                DemoData.STOCK.put(e.getKey(), available - e.getValue());
-            }
-
-            return new CreationResult(createdIds, shopToOrderId);
         }
+    }
 
-        // ===== PRODUZIONE (DB) — invariato =====
-        final Connection conn = DatabaseConnection.getInstance();
-        final boolean oldAuto = conn.getAutoCommit();
-        CreationResult result;
+    private static Map<Integer, List<CartItem>> groupByShop(List<CartItem> items) {
+        Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
+        for (CartItem it : items) {
+            byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
+        }
+        return byShop;
+    }
+
+    private static CreationResult createDemoOrders(int userId, Map<Integer, List<CartItem>> byShop) {
+        List<Integer> createdIds = new ArrayList<>();
+        Map<Integer, Integer> shopToOrderId = new LinkedHashMap<>();
+        LocalDateTime now = LocalDateTime.now();
+
+        for (var entry : byShop.entrySet()) {
+            int shopId = entry.getKey();
+            List<CartItem> group = entry.getValue();
+
+            int orderId = DemoData.DEMO_ORDER_ID.incrementAndGet();
+            shopToOrderId.put(shopId, orderId);
+            createdIds.add(orderId);
+
+            Order ord = new Order(orderId, userId, now, org.example.models.OrderStatus.IN_ELABORAZIONE);
+            for (CartItem it : group) {
+                String prodKey = DemoData.prodKey(it.getProductId(), it.getShopId(), it.getSize());
+                Product p = DemoData.PRODUCTS.get(prodKey);
+                String productName = (p != null) ? p.getName()     : ("Prodotto #" + it.getProductId());
+                String shopName    = (p != null) ? p.getNameShop() : ("Shop #" + it.getShopId());
+
+                ord.addLine(new org.example.models.OrderLine(
+                        orderId,
+                        it.getProductId(),
+                        it.getShopId(),
+                        productName,
+                        shopName,
+                        it.getSize(),
+                        it.getQuantity(),
+                        java.math.BigDecimal.valueOf(it.getUnitPrice())
+                ));
+            }
+            DemoData.ORDERS
+                    .computeIfAbsent(userId, k -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                    .add(ord);
+        }
+        return new CreationResult(createdIds, shopToOrderId);
+    }
+
+    private static void decrementDemoStock(Map<String, Integer> need) {
+        for (var e : need.entrySet()) {
+            int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
+            DemoData.STOCK.put(e.getKey(), available - e.getValue());
+        }
+    }
+
+    /* ======================== PRODUZIONE ======================== */
+
+    private static CreationResult placeOrderDb(int userId, List<CartItem> items) throws SQLException {
+        Connection conn = DatabaseConnection.getInstance();
+        boolean oldAuto = conn.getAutoCommit();
         SQLException toThrow = null;
 
         try {
             conn.setAutoCommit(false);
-            result = createOrdersPerShop(conn, userId, items);
+            CreationResult result = createOrdersPerShop(conn, userId, items);
             decrementStockForItems(conn, items);
             conn.commit();
             return result;
 
         } catch (SQLException e) {
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            rollbackQuiet(conn, e);
             toThrow = e;
         } catch (RuntimeException e) {
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            rollbackQuiet(conn, e);
             toThrow = new SQLException("Errore durante la transazione ordine/stock", e);
         } catch (Exception e) {
-            try { conn.rollback(); } catch (SQLException rbEx) { e.addSuppressed(rbEx); }
+            rollbackQuiet(conn, e);
             toThrow = new SQLException("Errore generico durante la transazione ordine/stock", e);
         } finally {
             try { conn.setAutoCommit(oldAuto); }
-            catch (SQLException e) {
-                if (toThrow != null) toThrow.addSuppressed(e);
-                else toThrow = e;
-            }
+            catch (SQLException e) { if (toThrow != null) toThrow.addSuppressed(e); else toThrow = e; }
         }
         throw toThrow;
+    }
+
+    private static void rollbackQuiet(Connection conn, Exception cause) {
+        try { conn.rollback(); } catch (SQLException rbEx) { cause.addSuppressed(rbEx); }
+    }
+
+    /* ======================== VALIDAZIONE ======================== */
+
+    private static void validateItems(List<CartItem> items) {
+        if (items == null || items.isEmpty()) {
+            throw new IllegalArgumentException("Lista articoli vuota");
+        }
     }
 
     // ======== HELPER DB (originali) ========
