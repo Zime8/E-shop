@@ -3,7 +3,6 @@ package org.example.controllers;
 import javafx.application.Platform;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
-import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -12,12 +11,14 @@ import javafx.stage.Stage;
 import org.example.dao.SavedCardsDAO;
 import org.example.dao.ShopDAO;
 import org.example.models.Card;
+import org.example.services.CardsService;
+import org.example.ui.CardUi;
+import org.example.ui.CvvTableCell;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.NumberFormat;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
@@ -51,10 +52,6 @@ public class WithdrawSelectionController {
 
     private static final Logger logger = Logger.getLogger(WithdrawSelectionController.class.getName());
 
-    private static final String CARD_TYPE_DEBITO = "Debito";
-    private static final String CARD_TYPE_CREDITO = "Credito";
-    private static final String DIGITS_ONLY_REGEX = "\\D";
-
     private Stage stage;
     private Runnable onWithdrawDone;
 
@@ -66,28 +63,20 @@ public class WithdrawSelectionController {
 
     @FXML
     private void initialize() {
-        setupTypeCombo();
+        CardUi.setupTypeCombo(typeCombo);
         setupTableColumns();
         setupCvvColumn();
         bindTableAndWidths();
-        setupSelectionHandling();
-        setupConfirmEnablement();
+        CardUi.bindConfirmEnablement(cards, cardsTable, confirmBtn);
         setupProgressIndicator();
         loadData();
-    }
-
-    private void setupTypeCombo() {
-        if (typeCombo != null) {
-            typeCombo.getItems().setAll(CARD_TYPE_DEBITO, CARD_TYPE_CREDITO);
-            typeCombo.setValue(CARD_TYPE_DEBITO);
-        }
     }
 
     private void setupTableColumns() {
         if (colId != null)      colId.setCellValueFactory(cell -> cell.getValue().idProperty());
         if (colHolder != null)  colHolder.setCellValueFactory(cell -> cell.getValue().holderProperty());
         if (colNumber != null)  colNumber.setCellValueFactory(cell ->
-                new SimpleStringProperty(maskPan(cell.getValue().getNumber())));
+                new SimpleStringProperty(CardUi.maskPan(cell.getValue().getNumber())));
         if (colExpiry != null)  colExpiry.setCellValueFactory(cell -> cell.getValue().expiryProperty());
         if (colType != null)    colType.setCellValueFactory(cell -> cell.getValue().typeProperty());
     }
@@ -96,7 +85,7 @@ public class WithdrawSelectionController {
         if (colCvv == null) return;
         colCvv.setEditable(true);
         colCvv.setCellValueFactory(cell -> new SimpleStringProperty(""));
-        colCvv.setCellFactory(tc -> new CvvCell());
+        colCvv.setCellFactory(tc -> new CvvTableCell(cardsTable, transientCvvs));
     }
 
     private void bindTableAndWidths() {
@@ -105,27 +94,12 @@ public class WithdrawSelectionController {
         cardsTable.setEditable(true);
         cardsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
-        if (colId != null)     colId.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.06));
-        if (colHolder != null) colHolder.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.34));
-        if (colNumber != null) colNumber.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.30));
-        if (colExpiry != null) colExpiry.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.10));
-        if (colType != null)   colType.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.10));
-        if (colCvv != null)    colCvv.prefWidthProperty().bind(cardsTable.widthProperty().multiply(0.10));
-    }
-
-    private void setupSelectionHandling() {
-        if (cardsTable == null) return;
-        cardsTable.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
-            if (confirmBtn != null) confirmBtn.setDisable(newV == null);
-        });
-    }
-
-    private void setupConfirmEnablement() {
-        if (confirmBtn == null) return;
-        confirmBtn.setDisable(cards.isEmpty());
-        cards.addListener((ListChangeListener<Card>) c ->
-                confirmBtn.setDisable(cards.isEmpty() || cardsTable.getSelectionModel().getSelectedItem() == null)
-        );
+        CardUi.bindWidth(cardsTable, colId,     0.06);
+        CardUi.bindWidth(cardsTable, colHolder, 0.34);
+        CardUi.bindWidth(cardsTable, colNumber, 0.30);
+        CardUi.bindWidth(cardsTable, colExpiry, 0.10);
+        CardUi.bindWidth(cardsTable, colType,   0.10);
+        CardUi.bindWidth(cardsTable, colCvv,    0.10);
     }
 
     private void setupProgressIndicator() {
@@ -139,16 +113,13 @@ public class WithdrawSelectionController {
         try {
             // saldo disponibile
             available = ShopDAO.getBalance(currentUserId);
-            availableLabel.setText("€ " + currency.format(available));
+            // NumberFormat(IT) già include "€"
+            availableLabel.setText(currency.format(available));
 
             // carte salvate dell'utente (venditore)
-            cards.clear();
-            List<SavedCardsDAO.Row> rows = SavedCardsDAO.findByUser(currentUserId);
-            for (SavedCardsDAO.Row r : rows) {
-                Card c = new Card(r.getId(), r.getHolder(), r.getCardNumber(), r.getExpiry(), r.getCardType());
-                cards.add(c);
-            }
+            CardsService.loadSavedCards(currentUserId, cards);
             if (!cards.isEmpty()) cardsTable.getSelectionModel().selectFirst();
+
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore caricamento dati prelievo", e);
             showAlert("Errore nel caricamento: " + e.getMessage());
@@ -169,7 +140,7 @@ public class WithdrawSelectionController {
             showInfo("Compila tutti i campi (titolare, numero, scadenza e tipo).");
             return;
         }
-        if (number.replaceAll(DIGITS_ONLY_REGEX, "").length() < 12 ) {
+        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12 ) {
             showInfo("Compila correttamente il Numero (min 12 cifre).");
             return;
         }
@@ -182,10 +153,10 @@ public class WithdrawSelectionController {
             Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(currentUserId, holder, number, expiry, type);
             if (maybeId.isPresent()) {
                 Card c = new Card(maybeId.get(), holder, number, expiry, type);
-                cards.addFirst(c);
+                cards.addFirst(c); // in cima
                 cardsTable.getSelectionModel().select(c);
                 holderField.clear(); numberField.clear(); expiryField.clear();
-                if (typeCombo != null) typeCombo.setValue(CARD_TYPE_DEBITO);
+                if (typeCombo != null) typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
                 showInfo("Carta aggiunta correttamente.");
             } else {
                 showInfo("Carta già presente.");
@@ -212,7 +183,7 @@ public class WithdrawSelectionController {
         if (selected == null) { showInfo("Seleziona una carta salvata."); return; }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (cvv == null || !cvv.matches("\\d{3}")) { showInfo("Inserisci il CVV (3 cifre)."); return; }
+        if (CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
 
         BigDecimal amount;
         try {
@@ -222,7 +193,7 @@ public class WithdrawSelectionController {
             showInfo("Importo non valido."); return;
         }
         if (amount.signum() <= 0 || amount.compareTo(available) > 0) {
-            showInfo("Importo non valido ( importo disponibile : " + currency.format(available) + " )");
+            showInfo("Importo non valido ( disponibile: " + currency.format(available) + " )");
             return;
         }
 
@@ -238,10 +209,10 @@ public class WithdrawSelectionController {
 
         task.setOnSucceeded(evt -> Platform.runLater(() -> {
             setProcessing(false);
-            Alert ok = new Alert(Alert.AlertType.INFORMATION, "Prelievo effettuato: € " + currency.format(amount));
+            Alert ok = new Alert(Alert.AlertType.INFORMATION, "Prelievo effettuato: " + currency.format(amount));
             ok.setHeaderText(null);
             ok.showAndWait();
-            if (onWithdrawDone != null) onWithdrawDone.run(); // per ricaricare saldo nell'header padre
+            if (onWithdrawDone != null) onWithdrawDone.run();
             onBack();
         }));
 
@@ -261,13 +232,6 @@ public class WithdrawSelectionController {
     }
 
     // ===== util =====
-    private String maskPan(String pan) {
-        if (pan == null) return "";
-        String digits = pan.replaceAll(DIGITS_ONLY_REGEX, "");
-        if (digits.length() <= 4) return digits;
-        String last4 = digits.substring(digits.length() - 4);
-        return "**** **** **** " + last4;
-    }
     private String safe(TextField tf) { return tf == null || tf.getText() == null ? "" : tf.getText().trim(); }
 
     private void showInfo(String s) {
@@ -288,43 +252,6 @@ public class WithdrawSelectionController {
         a.showAndWait();
     }
 
-    private class CvvCell extends TableCell<Card, String> {
-        private final TextField tf = new TextField();
-
-        CvvCell() {
-            tf.setPromptText("CVV");
-            tf.setPrefWidth(70);
-
-            tf.textProperty().addListener((obs, oldV, newV) -> {
-                if (newV == null) return;
-                String digits = newV.replaceAll(DIGITS_ONLY_REGEX, "");
-                if (!digits.equals(newV)) { tf.setText(digits); return; }
-                if (digits.length() > 3) tf.setText(digits.substring(0, 3));
-            });
-
-            tf.textProperty().addListener((obs, oldV, newV) -> {
-                Card row = getCurrentRowCard();
-                if (row == null) return;
-                if (newV == null || newV.isEmpty()) transientCvvs.remove(row.getId());
-                else transientCvvs.put(row.getId(), newV);
-            });
-        }
-
-        @Override
-        protected void updateItem(String item, boolean empty) {
-            super.updateItem(item, empty);
-            if (empty) { setGraphic(null); return; }
-            Card row = getCurrentRowCard();
-            if (row == null) { setGraphic(null); return; }
-            tf.setText(transientCvvs.getOrDefault(row.getId(), ""));
-            boolean selected = cardsTable.getSelectionModel().getSelectedItem() == row;
-            tf.setDisable(!selected);
-            setGraphic(tf);
-        }
-        private Card getCurrentRowCard() {
-            return (getTableRow() == null) ? null : getTableRow().getItem();
-        }
-    }
     public void setUserId(long sellerUserId) {
         if (Session.getUserId() == null) {
             Session.setUserId((int) sellerUserId);
