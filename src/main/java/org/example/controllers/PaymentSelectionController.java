@@ -55,7 +55,6 @@ public class PaymentSelectionController {
     @FXML private ComboBox<String> typeCombo;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
-    private final SavedCardsDAO dao = new SavedCardsDAO();
 
     private static final Logger logger = Logger.getLogger(PaymentSelectionController.class.getName());
 
@@ -173,7 +172,7 @@ public class PaymentSelectionController {
 
         try {
             logger.info(" ******** ESEGUO FINDBYUSER ********");
-            List<SavedCardsDAO.Row> rows = dao.findByUser(userId);
+            List<SavedCardsDAO.Row> rows = SavedCardsDAO.findByUser(userId);
             for (SavedCardsDAO.Row r : rows) {
                 logger.info(" ******** CARTA TROVATA ********");
                 Card c = new Card(r.getId(), r.getHolder(), r.getCardNumber(), r.getExpiry(), r.getCardType());
@@ -214,7 +213,7 @@ public class PaymentSelectionController {
         }
 
         try {
-            Optional<Integer> maybeId = dao.insertIfAbsentReturningId(userId, holder, number, expiry, type);
+            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(userId, holder, number, expiry, type);
             if (maybeId.isPresent()) {
                 Card c = new Card(maybeId.get(), holder, number, expiry, type);
                 //Aggiunt in cima alla tableviw

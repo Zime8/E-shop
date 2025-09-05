@@ -17,6 +17,8 @@ import java.util.logging.Logger;
 
 public final class UserDAO {
 
+    private UserDAO() {}
+
     private static final Logger logger = Logger.getLogger(UserDAO.class.getName());
 
     public enum LoginStatus { SUCCESS, INVALID_CREDENTIALS, ERROR }
@@ -85,7 +87,7 @@ public final class UserDAO {
         }
     }
 
-    public boolean registerUser(String username, String password, String role, String email, String phone) {
+    public static boolean registerUser(String username, String password, String role, String email, String phone) {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
@@ -126,7 +128,7 @@ public final class UserDAO {
         }
     }
 
-    public boolean isUsernameTaken(String username) {
+    public static boolean isUsernameTaken(String username) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             return DemoData.USERS.containsKey(username);
@@ -148,7 +150,7 @@ public final class UserDAO {
         }
     }
 
-    public boolean isEmailTaken(String email) {
+    public static boolean isEmailTaken(String email) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             return DemoData.USERS.values().stream()

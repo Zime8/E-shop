@@ -22,7 +22,6 @@ public final class SellerDAO {
     private static final String COL_BRAND      = "brand";
     private static final String COL_CATEGORY   = "category";
 
-
     /* ============================== DTO/Record ============================== */
 
     /** Riga di catalogo (join products + product_availability) visibile al venditore */
@@ -248,8 +247,6 @@ public final class SellerDAO {
             }
         }
     }
-
-
 
     /* ============================== Ordini per shop ============================== */
 

@@ -24,8 +24,6 @@ public class RegisterController {
     @FXML private PasswordField confirmPasswordField;
     @FXML private TextField emailField;
 
-    private final UserDAO userDAO = new UserDAO();
-
     @FXML
     private void onRegister() {
         String username = usernameField.getText().trim();
@@ -35,12 +33,12 @@ public class RegisterController {
         String phone = phoneField.getText().trim();
         String role = "cliente";
 
-        if (userDAO.isUsernameTaken(username)){
+        if (UserDAO.isUsernameTaken(username)){
             showAlert("L'username è già esistente.");
             return;
         }
 
-        if (userDAO.isEmailTaken(email)){
+        if (UserDAO.isEmailTaken(email)){
             showAlert("L'email è già esistente.");
             return;
         }
@@ -65,7 +63,7 @@ public class RegisterController {
             return;
         }
 
-        boolean success = userDAO.registerUser(username, password, role, email, phone);
+        boolean success = UserDAO.registerUser(username, password, role, email, phone);
 
         if (success) {
             showAlert("Registrazione completata!");
@@ -88,7 +86,6 @@ public class RegisterController {
             showAlert("Errore durante il caricamento della schermata di login.");
         }
     }
-
 
     private void showAlert(String msg) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);

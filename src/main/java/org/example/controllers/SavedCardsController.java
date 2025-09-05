@@ -22,7 +22,6 @@ public class SavedCardsController {
     @FXML private ListView<Card> cardsListView;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
-    private final SavedCardsDAO cardsDao = new SavedCardsDAO();
 
     private static final String CARD_TYPE_CREDITO = "Credito";
     private static final String CARD_TYPE_DEBITO  = "Debito";
@@ -103,7 +102,7 @@ public class SavedCardsController {
             String expiry = validateExpiry(input.getExpiry());
             String type = validateType(input.getType());
 
-            Optional<Integer> insertedId = cardsDao.insertIfAbsentReturningId(Session.getUserId(), holder, rawPan, expiry, type);
+            Optional<Integer> insertedId = SavedCardsDAO.insertIfAbsentReturningId(Session.getUserId(), holder, rawPan, expiry, type);
             if (insertedId.isEmpty()) {
                 showError("Carta già presente", "Questa carta risulta già salvata per il tuo account.");
                 return;
@@ -124,7 +123,7 @@ public class SavedCardsController {
     private void reloadFromDb() {
         cards.clear();
         try {
-            for (SavedCardsDAO.Row r : cardsDao.findByUser(Session.getUserId())) {
+            for (SavedCardsDAO.Row r : SavedCardsDAO.findByUser(Session.getUserId())) {
                 cards.add(new Card(r.getId(), r.getHolder(), r.getCardNumber(), r.getExpiry(), r.getCardType()));
             }
         } catch (SQLException ex) {
@@ -360,7 +359,7 @@ public class SavedCardsController {
                 String validateExpiry = validateExpiry(updated.getExpiry());
                 String validateType = validateType(updated.getType());
 
-                boolean ok = cardsDao.updateCard(card.getId(), Session.getUserId(), validateHolder, rawPan, validateExpiry, validateType);
+                boolean ok = SavedCardsDAO.updateCard(card.getId(), Session.getUserId(), validateHolder, rawPan, validateExpiry, validateType);
                 if (!ok) {
                     showError("Carta già presente", "Una carta con questo numero è già salvata per il tuo account.");
                     return;
@@ -398,7 +397,7 @@ public class SavedCardsController {
             if (res.isEmpty() || res.get() != ButtonType.OK) return;
 
             try {
-                boolean deleted = cardsDao.deleteById(card.getId(), Session.getUserId());
+                boolean deleted = SavedCardsDAO.deleteById(card.getId(), Session.getUserId());
                 if (!deleted) {
                     showError("Errore", "Carta non trovata o già rimossa.");
                     return;

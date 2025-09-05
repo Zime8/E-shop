@@ -47,7 +47,6 @@ public class WithdrawSelectionController {
     @FXML private ProgressIndicator progress;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
-    private final SavedCardsDAO dao = new SavedCardsDAO();
     private final Map<Integer, String> transientCvvs = new ConcurrentHashMap<>();
 
     private static final Logger logger = Logger.getLogger(WithdrawSelectionController.class.getName());
@@ -144,7 +143,7 @@ public class WithdrawSelectionController {
 
             // carte salvate dell'utente (venditore)
             cards.clear();
-            List<SavedCardsDAO.Row> rows = dao.findByUser(currentUserId);
+            List<SavedCardsDAO.Row> rows = SavedCardsDAO.findByUser(currentUserId);
             for (SavedCardsDAO.Row r : rows) {
                 Card c = new Card(r.getId(), r.getHolder(), r.getCardNumber(), r.getExpiry(), r.getCardType());
                 cards.add(c);
@@ -180,7 +179,7 @@ public class WithdrawSelectionController {
         }
 
         try {
-            Optional<Integer> maybeId = dao.insertIfAbsentReturningId(currentUserId, holder, number, expiry, type);
+            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(currentUserId, holder, number, expiry, type);
             if (maybeId.isPresent()) {
                 Card c = new Card(maybeId.get(), holder, number, expiry, type);
                 cards.addFirst(c);

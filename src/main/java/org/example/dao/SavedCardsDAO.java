@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 
 public final class SavedCardsDAO {
 
+    private SavedCardsDAO(){}
+
     public record Row(
             int id,
             String holder,
@@ -31,7 +33,7 @@ public final class SavedCardsDAO {
     }
 
     // Legge tutte le carte dell’utente
-    public List<Row> findByUser(int userId) throws SQLException {
+    public static List<Row> findByUser(int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             var list = DemoData.SAVED_CARDS.getOrDefault(userId, Collections.emptyList());
@@ -67,7 +69,7 @@ public final class SavedCardsDAO {
     }
 
     // Inserisce la carta se assente (ritorna id)
-    public Optional<Integer> insertIfAbsentReturningId(
+    public static Optional<Integer> insertIfAbsentReturningId(
             int userId, String holder, String rawCardNumber, String expiry, String cardType) throws SQLException {
 
         final String normalized = onlyDigits(rawCardNumber);
@@ -115,7 +117,7 @@ public final class SavedCardsDAO {
         }
     }
 
-    public boolean deleteById(int cardId, int userId) throws SQLException {
+    public static boolean deleteById(int cardId, int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             var list = DemoData.SAVED_CARDS.get(userId);
@@ -147,7 +149,7 @@ public final class SavedCardsDAO {
         }
     }
 
-    public boolean updateCard(int cardId, int userId, String holder, String rawCardNumber, String expiry, String cardType)
+    public static boolean updateCard(int cardId, int userId, String holder, String rawCardNumber, String expiry, String cardType)
             throws SQLException {
 
         final String normalized = onlyDigits(rawCardNumber);

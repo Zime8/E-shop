@@ -12,9 +12,9 @@ import java.util.logging.Logger;
 
 public final class ShopDAO {
 
+    private ShopDAO() {}
 
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());
-
 
     public static BigDecimal getBalance(long userId) throws SQLException {
 
@@ -41,7 +41,7 @@ public final class ShopDAO {
         }
 
         try {
-            Thread.sleep(900); //attendiamo 0.9s
+            Thread.sleep(900);
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
         }
