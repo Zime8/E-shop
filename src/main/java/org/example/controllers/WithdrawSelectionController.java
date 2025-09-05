@@ -1,7 +1,6 @@
 package org.example.controllers;
 
 import javafx.application.Platform;
-import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.concurrent.Task;
@@ -13,7 +12,6 @@ import org.example.dao.ShopDAO;
 import org.example.models.Card;
 import org.example.services.CardsService;
 import org.example.ui.CardUi;
-import org.example.ui.CvvTableCell;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -64,42 +62,10 @@ public class WithdrawSelectionController {
     @FXML
     private void initialize() {
         CardUi.setupTypeCombo(typeCombo);
-        setupTableColumns();
-        setupCvvColumn();
-        bindTableAndWidths();
+        CardUi.initCardTable(cardsTable, cards, colId, colHolder, colNumber, colExpiry, colType, colCvv, transientCvvs);
         CardUi.bindConfirmEnablement(cards, cardsTable, confirmBtn);
         setupProgressIndicator();
         loadData();
-    }
-
-    private void setupTableColumns() {
-        if (colId != null)      colId.setCellValueFactory(cell -> cell.getValue().idProperty());
-        if (colHolder != null)  colHolder.setCellValueFactory(cell -> cell.getValue().holderProperty());
-        if (colNumber != null)  colNumber.setCellValueFactory(cell ->
-                new SimpleStringProperty(CardUi.maskPan(cell.getValue().getNumber())));
-        if (colExpiry != null)  colExpiry.setCellValueFactory(cell -> cell.getValue().expiryProperty());
-        if (colType != null)    colType.setCellValueFactory(cell -> cell.getValue().typeProperty());
-    }
-
-    private void setupCvvColumn() {
-        if (colCvv == null) return;
-        colCvv.setEditable(true);
-        colCvv.setCellValueFactory(cell -> new SimpleStringProperty(""));
-        colCvv.setCellFactory(tc -> new CvvTableCell(cardsTable, transientCvvs));
-    }
-
-    private void bindTableAndWidths() {
-        if (cardsTable == null) return;
-        cardsTable.setItems(cards);
-        cardsTable.setEditable(true);
-        cardsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
-
-        CardUi.bindWidth(cardsTable, colId,     0.06);
-        CardUi.bindWidth(cardsTable, colHolder, 0.34);
-        CardUi.bindWidth(cardsTable, colNumber, 0.30);
-        CardUi.bindWidth(cardsTable, colExpiry, 0.10);
-        CardUi.bindWidth(cardsTable, colType,   0.10);
-        CardUi.bindWidth(cardsTable, colCvv,    0.10);
     }
 
     private void setupProgressIndicator() {
@@ -183,7 +149,7 @@ public class WithdrawSelectionController {
         if (selected == null) { showInfo("Seleziona una carta salvata."); return; }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
+        if (!CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
 
         BigDecimal amount;
         try {

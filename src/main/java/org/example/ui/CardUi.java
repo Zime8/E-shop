@@ -1,11 +1,15 @@
 package org.example.ui;
 
-import javafx.collections.ListChangeListener;
+import javafx.beans.InvalidationListener;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import org.example.models.Card;
+
+import java.util.Map;
 
 public final class CardUi {
     private CardUi() {}
@@ -32,7 +36,7 @@ public final class CardUi {
 
     /** CVV valido = 3 cifre. */
     public static boolean isValidCvv(String cvv) {
-        return cvv == null || !cvv.matches("\\d{3}");
+        return cvv != null && cvv.matches("\\d{3}");
     }
 
     /** Collega larghezze colonna alla larghezza della tabella (ratio 0..1). */
@@ -45,13 +49,59 @@ public final class CardUi {
     public static void bindConfirmEnablement(ObservableList<?> items, TableView<?> table, Button confirmBtn) {
         if (confirmBtn == null || table == null || items == null) return;
         confirmBtn.setDisable(items.isEmpty() || table.getSelectionModel().getSelectedItem() == null);
-
-        items.addListener((ListChangeListener<Object>) c ->
-            confirmBtn.setDisable(items.isEmpty() || table.getSelectionModel().getSelectedItem() == null)
+        items.addListener((InvalidationListener) c ->
+                confirmBtn.setDisable(items.isEmpty() || table.getSelectionModel().getSelectedItem() == null)
         );
-
         table.getSelectionModel().selectedItemProperty().addListener((o, oldV, newV) ->
-            confirmBtn.setDisable(newV == null || items.isEmpty())
+                confirmBtn.setDisable(newV == null || items.isEmpty())
         );
+    }
+
+    /**
+     * 🔁 Metodo unico per:
+     * - value factory colonne (id/holder/number/expiry/type)
+     * - colonna CVV (factory + cellFactory)
+     * - items, editable, resize policy
+     * - binding larghezze
+     */
+    public static void initCardTable(
+            TableView<Card> table,
+            ObservableList<Card> items,
+            TableColumn<Card, Number> colId,
+            TableColumn<Card, String> colHolder,
+            TableColumn<Card, String> colNumber,
+            TableColumn<Card, String> colExpiry,
+            TableColumn<Card, String> colType,
+            TableColumn<Card, String> colCvv,
+            Map<Integer, String> transientCvvs
+    ) {
+        if (table == null) return;
+
+        // Items + policy
+        table.setItems(items);
+        table.setEditable(true);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+
+        // Colonne standard
+        if (colId != null)      colId.setCellValueFactory(c -> c.getValue().idProperty());
+        if (colHolder != null)  colHolder.setCellValueFactory(c -> c.getValue().holderProperty());
+        if (colNumber != null)  colNumber.setCellValueFactory(c -> new SimpleStringProperty(maskPan(c.getValue().getNumber())));
+        if (colExpiry != null)  colExpiry.setCellValueFactory(c -> c.getValue().expiryProperty());
+        if (colType != null)    colType.setCellValueFactory(c -> c.getValue().typeProperty());
+
+        // Colonna CVV
+        if (colCvv != null) {
+            colCvv.setEditable(true);
+            colCvv.setCellValueFactory(c -> new SimpleStringProperty(""));
+            colCvv.setCellFactory(tc -> new CvvTableCell(table, transientCvvs));
+        }
+
+        // Larghezze
+        bindWidth(table, colId,     0.06);
+        bindWidth(table, colHolder, 0.34);
+        bindWidth(table, colNumber, 0.30);
+        bindWidth(table, colExpiry, 0.10);
+        bindWidth(table, colType,   0.10);
+        bindWidth(table, colCvv,    0.10);
     }
 }
