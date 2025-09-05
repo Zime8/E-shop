@@ -27,7 +27,7 @@ public final class CardsService {
         }
     }
 
-    public static Optional<Card> addInlineCard(
+    public static void addInlineCard(
             int userId,
             TextField holderField, TextField numberField, TextField expiryField, ComboBox<String> typeCombo,
             ObservableList<Card> cards, TableView<Card> table,
@@ -40,15 +40,15 @@ public final class CardsService {
 
         if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
             onInfo.accept("Compila tutti i campi (titolare, numero, scadenza e tipo).");
-            return Optional.empty();
+            return;
         }
         if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12) {
             onInfo.accept("Compila correttamente il Numero (min 12 cifre).");
-            return Optional.empty();
+            return;
         }
         if (!expiry.matches("^\\d{2}/\\d{2}$")) {
             onInfo.accept("Compila correttamente la Scadenza (MM/YY).");
-            return Optional.empty();
+            return;
         }
 
         try {
@@ -62,15 +62,12 @@ public final class CardsService {
                 if (expiryField != null) expiryField.clear();
                 typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
                 onInfo.accept("Carta aggiunta correttamente.");
-                return Optional.of(c);
             } else {
                 onInfo.accept("Carta già presente.");
-                return Optional.empty();
             }
         } catch (Exception e) {
             if (logger != null) logger.log(Level.SEVERE, "Errore salvataggio carta", e);
             onError.accept("Errore durante il salvataggio della carta.");
-            return Optional.empty();
         }
     }
 
