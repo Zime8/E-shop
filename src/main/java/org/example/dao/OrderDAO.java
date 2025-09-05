@@ -364,13 +364,15 @@ public final class OrderDAO {
             WHERE id_user = ?
             ORDER BY date_order DESC, id_order DESC
         """;
-        final String L_SQL_TMPL = """
+
+        final String L_SQL = """
             SELECT d.id_order, d.id_product, d.id_shop, d.size, d.quantity, d.price,
-                   p.name_p AS product_name, s.name_s AS shop_name
+               p.name_p AS product_name, s.name_s AS shop_name
             FROM details_order d
+            JOIN orders_client o ON o.id_order = d.id_order
             JOIN products p ON p.product_id = d.id_product
             JOIN shops    s ON s.id_shop    = d.id_shop
-            WHERE d.id_order IN (%s)
+            WHERE o.id_user = ?
             ORDER BY d.id_order ASC, p.name_p ASC, d.id_product ASC
         """;
 
@@ -391,11 +393,8 @@ public final class OrderDAO {
             }
             if (orders.isEmpty()) return orders;
 
-            String in = String.join(",", Collections.nCopies(orders.size(), "?"));
-            try (PreparedStatement psL = conn.prepareStatement(L_SQL_TMPL.formatted(in))) {
-                int idx = 1;
-                for (Order o : orders) psL.setInt(idx++, o.getId());
-
+            try (PreparedStatement psL = conn.prepareStatement(L_SQL)) {
+                psL.setInt(1, userId);
                 try (ResultSet rs = psL.executeQuery()) {
                     Map<Integer, List<org.example.models.OrderLine>> grouped = new HashMap<>();
                     while (rs.next()) {
