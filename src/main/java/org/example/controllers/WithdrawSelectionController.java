@@ -7,9 +7,10 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.example.controllers.support.CardScreenHelper;
 import org.example.dao.ShopDAO;
 import org.example.models.Card;
+import org.example.services.CardsService;
+import org.example.ui.CardUi;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -23,7 +24,6 @@ import java.util.logging.Logger;
 
 public class WithdrawSelectionController {
 
-    // Table & colonne
     @FXML private TableView<Card> cardsTable;
     @FXML private TableColumn<Card, Number> colId;
     @FXML private TableColumn<Card, String> colHolder;
@@ -32,21 +32,19 @@ public class WithdrawSelectionController {
     @FXML private TableColumn<Card, String> colType;
     @FXML private TableColumn<Card, String> colCvv;
 
-    // Form per aggiunta rapida
     @FXML private TextField holderField;
     @FXML private TextField numberField;
     @FXML private TextField expiryField;
     @FXML private ComboBox<String> typeCombo;
 
-    // Importo & azioni
     @FXML private Label availableLabel;
     @FXML private TextField amountField;
+    @FXML private Button backBtn;
     @FXML private Button confirmBtn;
     @FXML private ProgressIndicator progress;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
     private final Map<Integer, String> transientCvvs = new ConcurrentHashMap<>();
-    private CardScreenHelper helper;
 
     private static final Logger logger = Logger.getLogger(WithdrawSelectionController.class.getName());
 
@@ -61,16 +59,15 @@ public class WithdrawSelectionController {
 
     @FXML
     private void initialize() {
-        // helper UI condiviso (niente più codice duplicato)
-        helper = new CardScreenHelper(
-                cardsTable, colId, colHolder, colNumber, colExpiry, colType, colCvv,
-                typeCombo, cards, transientCvvs,
-                confirmBtn, progress,
-                logger,
-                this::showInfo, this::showAlert
-        );
-        helper.initUi();
+        CardUi.setupTypeCombo(typeCombo);
+        CardUi.initCardTable(cardsTable, cards, colId, colHolder, colNumber, colExpiry, colType, colCvv, transientCvvs);
+        CardUi.bindConfirmEnablement(cards, cardsTable, confirmBtn);
+        setupProgressIndicator();
         loadData();
+    }
+
+    private void setupProgressIndicator() {
+        if (progress != null) progress.setVisible(false);
     }
 
     private void loadData() {
@@ -80,10 +77,12 @@ public class WithdrawSelectionController {
         try {
             // saldo disponibile
             available = ShopDAO.getBalance(currentUserId);
+            // NumberFormat(IT) già include "€"
             availableLabel.setText(currency.format(available));
 
-            // carte salvate
-            helper.loadSavedCards(currentUserId);
+            // carte salvate dell'utente (venditore)
+            CardsService.loadSavedCards(currentUserId, cards);
+            if (!cards.isEmpty()) cardsTable.getSelectionModel().selectFirst();
 
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore caricamento dati prelievo", e);
@@ -95,12 +94,21 @@ public class WithdrawSelectionController {
     private void onAddInline() {
         Integer currentUserId = Session.getUserId();
         if (currentUserId == null) { showInfo("Devi effettuare il login"); return; }
-        helper.addInlineCard(currentUserId, holderField, numberField, expiryField);
+
+        CardsService.addInlineCard(
+                currentUserId,
+                holderField, numberField, expiryField, typeCombo,
+                cards, cardsTable,
+                this::showInfo, this::showAlert,
+                logger
+        );
     }
 
     @FXML
     private void onBack() {
-        helper.close(stage, cardsTable);
+        if (stage != null) stage.close();
+        else if (cardsTable != null && cardsTable.getScene() != null)
+            ((Stage) cardsTable.getScene().getWindow()).close();
     }
 
     @FXML
@@ -108,33 +116,32 @@ public class WithdrawSelectionController {
         Integer currentUserId = Session.getUserId();
         if (currentUserId == null) { showInfo("Devi effettuare il login."); return; }
 
-        Card selected = helper.getSelectedOrWarn();
-        if (selected == null) return;
+        Card selected = cardsTable.getSelectionModel().getSelectedItem();
+        if (selected == null) { showInfo("Seleziona una carta salvata."); return; }
 
-        String cvv = helper.getValidCvvOrWarn(selected.getId());
-        if (cvv == null) return; // messaggio già mostrato
+        String cvv = transientCvvs.get(selected.getId());
+        if (!CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
 
         BigDecimal amount;
         try {
-            String raw = (amountField.getText() == null ? "" : amountField.getText().trim())
-                    .replace(".", "").replace(',', '.'); // accetta "1.234,56"
+            String raw = safe(amountField).replace(".", "").replace(',', '.'); // accetta "1.234,56"
             amount = new BigDecimal(raw).setScale(2, RoundingMode.HALF_UP);
         } catch (Exception ex) {
             showInfo("Importo non valido."); return;
         }
         if (amount.signum() <= 0 || amount.compareTo(available) > 0) {
-            showInfo("Importo non valido (disponibile: " + currency.format(available) + ").");
+            showInfo("Importo non valido ( disponibile: " + currency.format(available) + " )");
             return;
         }
 
-        helper.setProcessing(true);
+        setProcessing(true);
 
-        Task<Void> task = getTask(currentUserId, amount);
+        Task<Void> task = getVoidTask(currentUserId, amount);
 
         new Thread(task).start();
     }
 
-    private Task<Void> getTask(Integer currentUserId, BigDecimal amount) {
+    private Task<Void> getVoidTask(Integer currentUserId, BigDecimal amount) {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
@@ -144,7 +151,7 @@ public class WithdrawSelectionController {
         };
 
         task.setOnSucceeded(evt -> Platform.runLater(() -> {
-            helper.setProcessing(false);
+            setProcessing(false);
             Alert ok = new Alert(Alert.AlertType.INFORMATION, "Prelievo effettuato: " + currency.format(amount));
             ok.setHeaderText(null);
             ok.showAndWait();
@@ -153,14 +160,22 @@ public class WithdrawSelectionController {
         }));
 
         task.setOnFailed(evt -> Platform.runLater(() -> {
-            helper.setProcessing(false);
+            setProcessing(false);
             String msg = (task.getException() == null) ? "Errore sconosciuto" : task.getException().getMessage();
             showError(msg);
         }));
         return task;
     }
 
-    // ===== util UI locali =====
+    private void setProcessing(boolean processing) {
+        if (progress != null) progress.setVisible(processing);
+        if (confirmBtn != null) confirmBtn.setDisable(processing);
+        if (backBtn != null) backBtn.setDisable(processing);
+    }
+
+    // ===== util =====
+    private String safe(TextField tf) { return tf == null || tf.getText() == null ? "" : tf.getText().trim(); }
+
     private void showInfo(String s) {
         Alert a = new Alert(Alert.AlertType.INFORMATION, s);
         a.setHeaderText(null);
@@ -179,7 +194,6 @@ public class WithdrawSelectionController {
         a.showAndWait();
     }
 
-    // (opzionale) compat: set da chiamate esterne
     public void setUserId(long sellerUserId) {
         if (Session.getUserId() == null) {
             Session.setUserId((int) sellerUserId);
