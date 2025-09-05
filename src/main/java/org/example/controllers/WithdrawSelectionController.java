@@ -60,7 +60,10 @@ public class WithdrawSelectionController {
     @FXML
     private void initialize() {
         CardUi.setupTypeCombo(typeCombo);
-        CardUi.initCardTable(cardsTable, cards, colId, colHolder, colNumber, colExpiry, colType, colCvv, transientCvvs);
+        CardUi.initCardTable(
+                new CardUi.CardTableContext(cardsTable, cards, transientCvvs),
+                new CardUi.CardColumns(colId, colHolder, colNumber, colExpiry, colType, colCvv)
+        );
         CardUi.bindConfirmEnablement(cards, cardsTable, confirmBtn);
         setupProgressIndicator();
         loadData();

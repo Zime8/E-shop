@@ -18,6 +18,23 @@ public final class CardUi {
     public static final String CARD_TYPE_CREDITO = "Credito";
     public static final String DIGITS_ONLY_REGEX = "\\D";
 
+    /** Raggruppa riferimenti “di contesto” della tabella. */
+    public record CardTableContext(
+            TableView<Card> table,
+            ObservableList<Card> items,
+            Map<Integer, String> transientCvvs
+    ) {}
+
+    /** Raggruppa tutte le colonne della tabella carte. */
+    public record CardColumns(
+            TableColumn<Card, Number> colId,
+            TableColumn<Card, String> colHolder,
+            TableColumn<Card, String> colNumber,
+            TableColumn<Card, String> colExpiry,
+            TableColumn<Card, String> colType,
+            TableColumn<Card, String> colCvv
+    ) {}
+
     /** Inizializza la combo del tipo carta (Debito/Credito). */
     public static void setupTypeCombo(ComboBox<String> combo) {
         if (combo == null) return;
@@ -58,50 +75,36 @@ public final class CardUi {
     }
 
     /**
-     * 🔁 Metodo unico per:
-     * - value factory colonne (id/holder/number/expiry/type)
-     * - colonna CVV (factory + cellFactory)
-     * - items, editable, resize policy
-     * - binding larghezze
+     * Inizializzazione completa della tabella carte con 2 parametri (no più di 7).
      */
-    public static void initCardTable(
-            TableView<Card> table,
-            ObservableList<Card> items,
-            TableColumn<Card, Number> colId,
-            TableColumn<Card, String> colHolder,
-            TableColumn<Card, String> colNumber,
-            TableColumn<Card, String> colExpiry,
-            TableColumn<Card, String> colType,
-            TableColumn<Card, String> colCvv,
-            Map<Integer, String> transientCvvs
-    ) {
-        if (table == null) return;
+    public static void initCardTable(CardTableContext ctx, CardColumns cols) {
+        if (ctx == null || ctx.table() == null) return;
 
         // Items + policy
-        table.setItems(items);
-        table.setEditable(true);
-        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
+        ctx.table().setItems(ctx.items());
+        ctx.table().setEditable(true);
+        ctx.table().setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
         // Colonne standard
-        if (colId != null)      colId.setCellValueFactory(c -> c.getValue().idProperty());
-        if (colHolder != null)  colHolder.setCellValueFactory(c -> c.getValue().holderProperty());
-        if (colNumber != null)  colNumber.setCellValueFactory(c -> new SimpleStringProperty(maskPan(c.getValue().getNumber())));
-        if (colExpiry != null)  colExpiry.setCellValueFactory(c -> c.getValue().expiryProperty());
-        if (colType != null)    colType.setCellValueFactory(c -> c.getValue().typeProperty());
+        if (cols.colId()     != null) cols.colId().setCellValueFactory(c -> c.getValue().idProperty());
+        if (cols.colHolder() != null) cols.colHolder().setCellValueFactory(c -> c.getValue().holderProperty());
+        if (cols.colNumber() != null) cols.colNumber().setCellValueFactory(c -> new SimpleStringProperty(maskPan(c.getValue().getNumber())));
+        if (cols.colExpiry() != null) cols.colExpiry().setCellValueFactory(c -> c.getValue().expiryProperty());
+        if (cols.colType()   != null) cols.colType().setCellValueFactory(c -> c.getValue().typeProperty());
 
         // Colonna CVV
-        if (colCvv != null) {
-            colCvv.setEditable(true);
-            colCvv.setCellValueFactory(c -> new SimpleStringProperty(""));
-            colCvv.setCellFactory(tc -> new CvvTableCell(table, transientCvvs));
+        if (cols.colCvv() != null) {
+            cols.colCvv().setEditable(true);
+            cols.colCvv().setCellValueFactory(c -> new SimpleStringProperty(""));
+            cols.colCvv().setCellFactory(tc -> new CvvTableCell(ctx.table(), ctx.transientCvvs()));
         }
 
         // Larghezze
-        bindWidth(table, colId,     0.06);
-        bindWidth(table, colHolder, 0.34);
-        bindWidth(table, colNumber, 0.30);
-        bindWidth(table, colExpiry, 0.10);
-        bindWidth(table, colType,   0.10);
-        bindWidth(table, colCvv,    0.10);
+        bindWidth(ctx.table(), cols.colId(),     0.06);
+        bindWidth(ctx.table(), cols.colHolder(), 0.34);
+        bindWidth(ctx.table(), cols.colNumber(), 0.30);
+        bindWidth(ctx.table(), cols.colExpiry(), 0.10);
+        bindWidth(ctx.table(), cols.colType(),   0.10);
+        bindWidth(ctx.table(), cols.colCvv(),    0.10);
     }
 }
