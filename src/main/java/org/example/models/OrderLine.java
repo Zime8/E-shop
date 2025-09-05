@@ -12,18 +12,21 @@ public class OrderLine {
     private int quantity;
     private BigDecimal unitPrice;
 
-    public OrderLine() {}
+    // Parameter Object per i dettagli
+    public record Details(String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {}
 
-    public OrderLine(int orderId, long productId, int shopId, String productName, String shopName,
-                     String size, int quantity, BigDecimal unitPrice) {
+    // Costruttore con 4 parametri (3 id + oggetto dettagli)
+    public OrderLine(int orderId, long productId, int shopId, Details details) {
         this.orderId = orderId;
         this.productId = productId;
         this.shopId = shopId;
-        this.productName = productName;
-        this.shopName = shopName;
-        this.size = size;
-        this.quantity = quantity;
-        this.unitPrice = unitPrice;
+        if (details != null) {
+            this.productName = details.productName();
+            this.shopName = details.shopName();
+            this.size = details.size();
+            this.quantity = details.quantity();
+            this.unitPrice = details.unitPrice();
+        }
     }
 
     public int getOrderId() { return orderId; }

@@ -41,7 +41,6 @@ public final class Session {
     }
 
     public static boolean isLoggedIn() { return currentUserId != null && !demo; }
-    public static boolean isGuest() { return demo; }
 
     // Carrello
     public static List<Product> getCartItems() { return cartItems; }

@@ -2,10 +2,7 @@ package org.example.dao;
 
 import org.example.database.DatabaseConnection;
 import org.example.demo.DemoData;
-import org.example.models.CartItem;
-import org.example.models.Order;
-import org.example.models.OrderStatus;
-import org.example.models.Product;
+import org.example.models.*;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -152,11 +149,13 @@ public final class OrderDAO {
                         orderId,
                         it.getProductId(),
                         it.getShopId(),
-                        productName,
-                        shopName,
-                        it.getSize(),
-                        it.getQuantity(),
-                        java.math.BigDecimal.valueOf(it.getUnitPrice())
+                        new org.example.models.OrderLine.Details(
+                                productName,
+                                shopName,
+                                it.getSize(),
+                                it.getQuantity(),
+                                BigDecimal.valueOf(it.getUnitPrice())
+                        )
                 ));
             }
             DemoData.orders()
@@ -342,8 +341,14 @@ public final class OrderDAO {
                 for (org.example.models.OrderLine l : o.getLines()) {
                     copy.addLine(new org.example.models.OrderLine(
                             l.getOrderId(), l.getProductId(), l.getShopId(),
-                            l.getProductName(), l.getShopName(), l.getSize(),
-                            l.getQuantity(), l.getUnitPrice()
+                            new org.example.models.OrderLine.Details(
+                                    l.getProductName(),
+                                    l.getShopName(),
+                                    l.getSize(),
+                                    l.getQuantity(),
+                                    l.getUnitPrice()
+                            )
+
                     ));
                 }
                 out.add(copy);
@@ -400,11 +405,13 @@ public final class OrderDAO {
                                 rs.getInt("id_order"),
                                 rs.getLong("id_product"),
                                 rs.getInt("id_shop"),
-                                rs.getString("product_name"),
-                                rs.getString("shop_name"),
-                                rs.getString("size"),
-                                rs.getInt("quantity"),
-                                rs.getBigDecimal("price")
+                                new org.example.models.OrderLine.Details(
+                                        rs.getString("product_name"),
+                                        rs.getString("shop_name"),
+                                        rs.getString("size"),
+                                        rs.getInt("quantity"),
+                                        rs.getBigDecimal("price")
+                                )
                         );
                         grouped.computeIfAbsent(l.getOrderId(), k -> new ArrayList<>()).add(l);
                     }
