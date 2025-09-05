@@ -48,32 +48,58 @@ public final class CardsService {
             ObservableList<Card> cards,
             TableView<Card> table
     ) {
+        // 1) leggi input
         String holder = safe(holderField);
         String number = safe(numberField);
         String expiry = safe(expiryField);
         String type   = (typeCombo != null) ? typeCombo.getValue() : null;
 
-        // Validazioni base
-        if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
-            return new AddCardResult(AddCardStatus.VALIDATION_ERROR,
-                    "Compila tutti i campi (titolare, numero, scadenza e tipo).", null);
-        }
-        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12) {
-            return new AddCardResult(AddCardStatus.VALIDATION_ERROR,
-                    "Compila correttamente il Numero (min 12 cifre).", null);
-        }
-        if (!expiry.matches("^\\d{2}/\\d{2}$")) {
-            return new AddCardResult(AddCardStatus.VALIDATION_ERROR,
-                    "Compila correttamente la Scadenza (MM/YY).", null);
+        // 2) valida in un helper (riduce i rami qui)
+        String validationError = validateInlineInputs(holder, number, expiry, type);
+        if (validationError != null) {
+            return new AddCardResult(AddCardStatus.VALIDATION_ERROR, validationError, null);
         }
 
+        // 3) delega inserimento + aggiornamento UI in un helper
+        return insertCardAndUpdateUI(
+                userId, holder, number, expiry, type,
+                typeCombo, cards, table,
+                holderField, numberField, expiryField
+        );
+    }
+
+    /* ===================== Helpers interni ===================== */
+
+    private static String validateInlineInputs(String holder, String number, String expiry, String type) {
+        if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
+            return "Compila tutti i campi (titolare, numero, scadenza e tipo).";
+        }
+        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12) {
+            return "Compila correttamente il Numero (min 12 cifre).";
+        }
+        if (!expiry.matches("^\\d{2}/\\d{2}$")) {
+            return "Compila correttamente la Scadenza (MM/YY).";
+        }
+        return null;
+    }
+
+    private static AddCardResult insertCardAndUpdateUI(
+            int userId,
+            String holder, String number, String expiry, String type,
+            ComboBox<String> typeCombo,
+            ObservableList<Card> cards,
+            TableView<Card> table,
+            TextField holderField, TextField numberField, TextField expiryField
+    ) {
         try {
             Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(userId, holder, number, expiry, type);
             if (maybeId.isPresent()) {
                 Card c = new Card(maybeId.get(), holder, number, expiry, type);
-                // aggiorna UI list & selezione
+
+                // aggiorna lista + selezione
                 cards.addFirst(c);
                 if (table != null) table.getSelectionModel().select(c);
+
                 // pulisci form
                 if (holderField != null) holderField.clear();
                 if (numberField != null) numberField.clear();
@@ -81,9 +107,9 @@ public final class CardsService {
                 if (typeCombo != null) typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
 
                 return new AddCardResult(AddCardStatus.ADDED, "Carta aggiunta correttamente.", c);
-            } else {
-                return new AddCardResult(AddCardStatus.DUPLICATE, "Carta già presente.", null);
             }
+            return new AddCardResult(AddCardStatus.DUPLICATE, "Carta già presente.", null);
+
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Errore salvataggio carta", e);
             return new AddCardResult(AddCardStatus.ERROR, "Errore durante il salvataggio della carta.", null);
