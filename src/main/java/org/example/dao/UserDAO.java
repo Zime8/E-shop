@@ -32,7 +32,7 @@ public final class UserDAO {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
-                DemoData.User u = DemoData.USERS.get(username);
+                DemoData.User u = DemoData.users().get(username);
                 if (u == null) return new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
                 boolean ok = BCrypt.checkpw(password, u.passHash());
                 return ok
@@ -91,14 +91,14 @@ public final class UserDAO {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
-                if (DemoData.USERS.containsKey(username)) return false;
-                boolean emailTaken = DemoData.USERS.values().stream()
+                if (DemoData.users().containsKey(username)) return false;
+                boolean emailTaken = DemoData.users().values().stream()
                         .anyMatch(u -> email != null && email.equalsIgnoreCase(u.email()));
                 if (emailTaken) return false;
 
-                int newId = DemoData.USERS.size() + 100;
+                int newId = DemoData.users().size() + 100;
                 String hashedPwd = BCrypt.hashpw(password, BCrypt.gensalt(12));
-                DemoData.USERS.put(username, new DemoData.User(newId, username, hashedPwd, role, email, phone));
+                DemoData.users().put(username, new DemoData.User(newId, username, hashedPwd, role, email, phone));
                 return true;
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Errore registrazione (demo)", e);
@@ -131,7 +131,7 @@ public final class UserDAO {
     public static boolean isUsernameTaken(String username) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            return DemoData.USERS.containsKey(username);
+            return DemoData.users().containsKey(username);
         }
 
         String sql = """
@@ -153,7 +153,7 @@ public final class UserDAO {
     public static boolean isEmailTaken(String email) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            return DemoData.USERS.values().stream()
+            return DemoData.users().values().stream()
                     .anyMatch(u -> u.email() != null && u.email().equalsIgnoreCase(email));
         }
 
@@ -176,7 +176,7 @@ public final class UserDAO {
     public static Integer findUserIdByUsername(String username) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            DemoData.User u = DemoData.USERS.get(username);
+            DemoData.User u = DemoData.users().get(username);
             return u != null ? u.id() : null;
         }
 
@@ -197,7 +197,7 @@ public final class UserDAO {
     public static User findByUsername(String username) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            DemoData.User du = DemoData.USERS.get(username);
+            DemoData.User du = DemoData.users().get(username);
             if (du == null) return null;
             User u = new User();
             u.setUsername(du.username());
@@ -230,23 +230,23 @@ public final class UserDAO {
     public static void updateProfile(String currentUsername, String newUsername, String email, String phone) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            DemoData.User old = DemoData.USERS.get(currentUsername);
+            DemoData.User old = DemoData.users().get(currentUsername);
             if (old == null) return;
 
             // se cambia username, controlla unicità e migra wishlist
             if (!Objects.equals(currentUsername, newUsername)) {
-                if (DemoData.USERS.containsKey(newUsername)) {
+                if (DemoData.users().containsKey(newUsername)) {
                     throw new SQLException("Username già esistente (demo)");
                 }
                 // migra wishlist legata all'username
-                List<Product> wl = DemoData.WISHLISTS.remove(currentUsername);
-                if (wl != null) DemoData.WISHLISTS.put(newUsername, wl);
+                List<Product> wl = DemoData.wishlists().remove(currentUsername);
+                if (wl != null) DemoData.wishlists().put(newUsername, wl);
 
                 // rimuovi vecchia entry utente (chiave: username)
-                DemoData.USERS.remove(currentUsername);
+                DemoData.users().remove(currentUsername);
             }
 
-            DemoData.USERS.put(newUsername, new DemoData.User(
+            DemoData.users().put(newUsername, new DemoData.User(
                     old.id(),
                     newUsername,
                     old.passHash(),
@@ -272,21 +272,21 @@ public final class UserDAO {
                                                  String email, String phone, String plainPassword) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            DemoData.User old = DemoData.USERS.get(currentUsername);
+            DemoData.User old = DemoData.users().get(currentUsername);
             if (old == null) return;
 
             String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
 
             if (!Objects.equals(currentUsername, newUsername)) {
-                if (DemoData.USERS.containsKey(newUsername)) {
+                if (DemoData.users().containsKey(newUsername)) {
                     throw new SQLException("Username già esistente (demo)");
                 }
-                List<Product> wl = DemoData.WISHLISTS.remove(currentUsername);
-                if (wl != null) DemoData.WISHLISTS.put(newUsername, wl);
-                DemoData.USERS.remove(currentUsername);
+                List<Product> wl = DemoData.wishlists().remove(currentUsername);
+                if (wl != null) DemoData.wishlists().put(newUsername, wl);
+                DemoData.users().remove(currentUsername);
             }
 
-            DemoData.USERS.put(newUsername, new DemoData.User(
+            DemoData.users().put(newUsername, new DemoData.User(
                     old.id(),
                     newUsername,
                     hashedPwd,
@@ -318,7 +318,7 @@ public final class UserDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             String key = DemoData.prodKey(productId, idShop, pSize);
-            Product p = DemoData.PRODUCTS.get(key);
+            Product p = DemoData.products().get(key);
             if (p == null) {
                 // placeholder sensato se il seed non contiene la combinazione
                 p = new Product();
@@ -332,18 +332,18 @@ public final class UserDAO {
                 p.setCategory("N/D");
                 p.setPrice(0.0);
             }
-            DemoData.WISHLISTS.computeIfAbsent(username, k -> new CopyOnWriteArrayList<>());
+            DemoData.wishlists().computeIfAbsent(username, k -> new CopyOnWriteArrayList<>());
 
             final long pid  = p.getProductId();
             final int shop = p.getIdShop();
             final String sz = p.getSize();
 
             // sostituisci se già presente stessa tripla (product, shop, size)
-            DemoData.WISHLISTS.get(username).removeIf(ex ->
+            DemoData.wishlists().get(username).removeIf(ex ->
                     ex.getProductId() == pid &&
                             ex.getIdShop() == shop &&
                             Objects.equals(ex.getSize(), sz));
-            DemoData.WISHLISTS.get(username).add(p);
+            DemoData.wishlists().get(username).add(p);
             return;
         }
 
@@ -363,7 +363,7 @@ public final class UserDAO {
     public static void removeInWishlist(String username, long productId, int idShop, String pSize) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            List<Product> list = DemoData.WISHLISTS.getOrDefault(username, Collections.emptyList());
+            List<Product> list = DemoData.wishlists().getOrDefault(username, Collections.emptyList());
             list.removeIf(p -> p.getProductId() == productId &&
                     p.getIdShop() == idShop &&
                     Objects.equals(p.getSize(), pSize));
@@ -385,7 +385,7 @@ public final class UserDAO {
     public static void clearWishlist(String username) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            DemoData.WISHLISTS.remove(username);
+            DemoData.wishlists().remove(username);
             return;
         }
 
@@ -396,7 +396,7 @@ public final class UserDAO {
     public static List<Product> getFavorites(String username) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            return new ArrayList<>(DemoData.WISHLISTS.getOrDefault(username, Collections.emptyList()));
+            return new ArrayList<>(DemoData.wishlists().getOrDefault(username, Collections.emptyList()));
         }
 
         String sql = """

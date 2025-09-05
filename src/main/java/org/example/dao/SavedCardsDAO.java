@@ -8,7 +8,6 @@ import org.example.util.Session;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.stream.Collectors;
 
 public final class SavedCardsDAO {
 
@@ -36,7 +35,7 @@ public final class SavedCardsDAO {
     public static List<Row> findByUser(int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            var list = DemoData.SAVED_CARDS.getOrDefault(userId, Collections.emptyList());
+            var list = DemoData.savedCards().getOrDefault(userId, Collections.emptyList());
             // Ordina per id DESC (proxy di created_at)
             return list.stream()
                     .sorted(Comparator.comparingInt(Card::getId).reversed())
@@ -76,7 +75,7 @@ public final class SavedCardsDAO {
 
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            var list = DemoData.SAVED_CARDS.computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
+            var list = DemoData.savedCards().computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
             boolean exists = list.stream().anyMatch(c -> onlyDigits(c.getNumber()).equals(normalized));
             if (exists) return Optional.empty();
 
@@ -120,7 +119,7 @@ public final class SavedCardsDAO {
     public static boolean deleteById(int cardId, int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            var list = DemoData.SAVED_CARDS.get(userId);
+            var list = DemoData.savedCards().get(userId);
             if (list == null) return false;
 
             boolean removed = false;
@@ -132,7 +131,7 @@ public final class SavedCardsDAO {
                     break;
                 }
             }
-            if (list.isEmpty()) DemoData.SAVED_CARDS.remove(userId);
+            if (list.isEmpty()) DemoData.savedCards().remove(userId);
             return removed;
         }
 
@@ -156,7 +155,7 @@ public final class SavedCardsDAO {
 
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            var list = DemoData.SAVED_CARDS.get(userId);
+            var list = DemoData.savedCards().get(userId);
             if (list == null) return false;
 
             boolean dup = list.stream().anyMatch(c ->

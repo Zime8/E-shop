@@ -16,19 +16,31 @@ public final class DemoData {
 
     private DemoData(){}
 
-    public static final Map<String, User> USERS = new ConcurrentHashMap<>();
-    public static final Map<String, List<Product>> WISHLISTS = new ConcurrentHashMap<>();
-    public static final Map<String, Product> PRODUCTS = new ConcurrentHashMap<>(); //
-    public static final Map<Integer, List<Card>> SAVED_CARDS = new ConcurrentHashMap<>();
-    public static final Map<String, List<Review>> REVIEWS = new ConcurrentHashMap<>();
+    // ✅ campi RESI PRIVATI (erano public)
+    private static final Map<String, User> USERS = new ConcurrentHashMap<>();
+    private static final Map<String, List<Product>> WISHLISTS = new ConcurrentHashMap<>();
+    private static final Map<String, Product> PRODUCTS = new ConcurrentHashMap<>();
+    private static final Map<Integer, List<Card>> SAVED_CARDS = new ConcurrentHashMap<>();
+    private static final Map<String, List<Review>> REVIEWS = new ConcurrentHashMap<>();
+    private static final Map<Integer, List<Order>> ORDERS = new ConcurrentHashMap<>();
+    private static final Map<String, Integer> STOCK = new ConcurrentHashMap<>();
+
+    // ✅ getter STATICI per accedere ai dati (stessa semantica di prima)
+    public static Map<String, User> users() { return USERS; }
+    public static Map<String, List<Product>> wishlists() { return WISHLISTS; }
+    public static Map<String, Product> products() { return PRODUCTS; }
+    public static Map<Integer, List<Card>> savedCards() { return SAVED_CARDS; }
+    public static Map<String, List<Review>> reviews() { return REVIEWS; }
+    public static Map<Integer, List<Order>> orders() { return ORDERS; }
+    public static Map<String, Integer> stock() { return STOCK; }
 
     public record User(Integer id, String username, String passHash, String role, String email, String phone) {}
 
     private static final AtomicBoolean INIT = new AtomicBoolean(false);
+
+    // (lascio pubblici gli Atomic per non toccare altro codice; possiamo rifattorizzarli dopo)
     public static final AtomicInteger DEMO_CARD_ID = new AtomicInteger(1);
     public static final AtomicInteger DEMO_ORDER_ID = new AtomicInteger(1000);
-    public static final Map<Integer, List<Order>> ORDERS = new ConcurrentHashMap<>();
-    public static final Map<String, Integer> STOCK = new ConcurrentHashMap<>();
     public static final AtomicInteger NEXT_DEMO_USER_ID = new AtomicInteger(-1000);
 
     public static void ensureLoaded() {
@@ -64,7 +76,7 @@ public final class DemoData {
         return REVIEWS.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());
     }
 
-    public static void clearUserDemoReviews(Integer userId, String username) {
+    public static void clearUserDemoReviews(String username) {
         for (var list : REVIEWS.values()) {
             list.removeIf(r ->
                     r.getUsername() != null && r.getUsername().equalsIgnoreCase(username)
@@ -84,7 +96,6 @@ public final class DemoData {
         p.setNameShop("Negozio Demo");
         p.setPrice(price);
         p.setSize(size);
-        // Immagine: lasciamo null in demo
         return p;
     }
 }

@@ -19,7 +19,7 @@ public final class ReviewDAO {
         if (userId < 0 && Session.getUser() != null) return Session.getUser();
 
         // prova a derivare dal seed utenti
-        return DemoData.USERS.entrySet().stream()
+        return DemoData.users().entrySet().stream()
                 .filter(e -> e.getValue().id() != null && e.getValue().id() == userId)
                 .map(Map.Entry::getKey)
                 .findFirst()
@@ -31,7 +31,7 @@ public final class ReviewDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             // copia ordinata per non esporre la lista interna
-            List<Review> src = DemoData.REVIEWS.getOrDefault(DemoData.reviewKey(productId, idShop), Collections.emptyList());
+            List<Review> src = DemoData.reviews().getOrDefault(DemoData.reviewKey(productId, idShop), Collections.emptyList());
             List<Review> copy = new ArrayList<>(src);
             copy.sort((a, b) -> {
                 LocalDateTime ca = a.getCreatedAt();

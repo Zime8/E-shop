@@ -163,7 +163,6 @@ public class HomeController implements Initializable {
         try {
             if (Session.isDemo()) {
                 DemoData.clearUserDemoReviews(
-                        Session.getUserId(),
                         Session.getUser()
                 );
             }

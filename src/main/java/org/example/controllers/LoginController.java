@@ -109,7 +109,7 @@ public class LoginController {
 
             // 4) (facoltativo) registra il guest in DemoData.USERS per mostrare il nome in giro (recensioni, ecc.)
             org.example.demo.DemoData.ensureLoaded();
-            org.example.demo.DemoData.USERS.putIfAbsent(
+            org.example.demo.DemoData.users().putIfAbsent(
                     guest, new org.example.demo.DemoData.User(demoId, guest, null, "utente", null, null)
             );
 

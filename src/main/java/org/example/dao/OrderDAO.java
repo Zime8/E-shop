@@ -61,8 +61,8 @@ public final class OrderDAO {
     private static void ensureDemoSeed() {
         DemoData.ensureLoaded();
         // Inizializza stock demo se mancante (es. 5 per variante)
-        for (Product p : DemoData.PRODUCTS.values()) {
-            DemoData.STOCK.putIfAbsent(stockKey(p.getProductId(), p.getIdShop(), p.getSize()), 5);
+        for (Product p : DemoData.products().values()) {
+            DemoData.stock().putIfAbsent(stockKey(p.getProductId(), p.getIdShop(), p.getSize()), 5);
         }
     }
 
@@ -106,7 +106,7 @@ public final class OrderDAO {
 
     private static void validateDemoStock(Map<String, Integer> need) throws SQLException {
         for (var e : need.entrySet()) {
-            int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
+            int available = DemoData.stock().getOrDefault(e.getKey(), 0);
             int required = e.getValue();
             if (available < required) {
                 String[] parts = e.getKey().split("\\|");
@@ -144,7 +144,7 @@ public final class OrderDAO {
             Order ord = new Order(orderId, userId, now, org.example.models.OrderStatus.IN_ELABORAZIONE);
             for (CartItem it : group) {
                 String prodKey = DemoData.prodKey(it.getProductId(), it.getShopId(), it.getSize());
-                Product p = DemoData.PRODUCTS.get(prodKey);
+                Product p = DemoData.products().get(prodKey);
                 String productName = (p != null) ? p.getName()     : ("Prodotto #" + it.getProductId());
                 String shopName    = (p != null) ? p.getNameShop() : ("Shop #" + it.getShopId());
 
@@ -159,7 +159,7 @@ public final class OrderDAO {
                         java.math.BigDecimal.valueOf(it.getUnitPrice())
                 ));
             }
-            DemoData.ORDERS
+            DemoData.orders()
                     .computeIfAbsent(userId, k -> new java.util.concurrent.CopyOnWriteArrayList<>())
                     .add(ord);
         }
@@ -168,8 +168,8 @@ public final class OrderDAO {
 
     private static void decrementDemoStock(Map<String, Integer> need) {
         for (var e : need.entrySet()) {
-            int available = DemoData.STOCK.getOrDefault(e.getKey(), 0);
-            DemoData.STOCK.put(e.getKey(), available - e.getValue());
+            int available = DemoData.stock().getOrDefault(e.getKey(), 0);
+            DemoData.stock().put(e.getKey(), available - e.getValue());
         }
     }
 
@@ -334,7 +334,7 @@ public final class OrderDAO {
     public static List<Order> listOrdersModel(int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            var src = DemoData.ORDERS.getOrDefault(userId, Collections.emptyList());
+            var src = DemoData.orders().getOrDefault(userId, Collections.emptyList());
             // ritorna copia profonda
             List<Order> out = new ArrayList<>(src.size());
             for (Order o : src) {

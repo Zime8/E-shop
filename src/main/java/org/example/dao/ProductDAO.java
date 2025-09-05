@@ -46,7 +46,7 @@ public final class ProductDAO {
             try {
                 DemoData.ensureLoaded();
                 // In demo: ordina per createdAt se disponibile, altrimenti per productId DESC
-                List<Product> all = new ArrayList<>(DemoData.PRODUCTS.values());
+                List<Product> all = new ArrayList<>(DemoData.products().values());
                 all.sort(BY_CREATED_DESC_THEN_ID_DESC);
                 return all.stream().limit(Math.max(0, limit)).toList();
             } catch (Exception e) {
@@ -94,7 +94,7 @@ public final class ProductDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             String q = name == null ? "" : name.toLowerCase();
-            return DemoData.PRODUCTS.values().stream()
+            return DemoData.products().values().stream()
                     .filter(p -> {
                         String n = p.getName() == null ? "" : p.getName().toLowerCase();
                         return n.contains(q);
@@ -151,7 +151,7 @@ public final class ProductDAO {
         String categoryVal = blankToNull(category);
         String shopVal     = blankToNull(shop);
 
-        return DemoData.PRODUCTS.values().stream()
+        return DemoData.products().values().stream()
                 .filter(p -> p.getPrice() >= minPrice && p.getPrice() <= maxPrice)
                 .filter(p -> sportVal == null    || Objects.equals(p.getSport(), sportVal))
                 .filter(p -> brandVal == null    || Objects.equals(p.getBrand(), brandVal))
@@ -262,7 +262,7 @@ public final class ProductDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             // Deriva l'id dal seed: prendi un prodotto che appartiene allo shop
-            return DemoData.PRODUCTS.values().stream()
+            return DemoData.products().values().stream()
                     .filter(p -> p.getNameShop() != null && p.getNameShop().equals(shopName))
                     .findFirst()
                     .map(Product::getIdShop)
@@ -291,7 +291,7 @@ public final class ProductDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             // In demo: tutte le varianti presenti nel seed per (productId, idShop)
-            return DemoData.PRODUCTS.values().stream()
+            return DemoData.products().values().stream()
                     .filter(p -> p.getProductId() == productId && p.getIdShop() == idShop)
                     .map(Product::getSize)
                     .filter(Objects::nonNull)
@@ -322,7 +322,7 @@ public final class ProductDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             String key = DemoData.prodKey(productId, idShop, size);
-            Product p = DemoData.PRODUCTS.get(key);
+            Product p = DemoData.products().get(key);
             if (p != null) return p.getPrice();
             throw new SQLException("Prezzo non trovato (demo) per la taglia " + size);
         }
@@ -349,7 +349,7 @@ public final class ProductDAO {
             DemoData.ensureLoaded();
             // In demo: se esiste la variante, considera stock "minimo positivo"
             String key = DemoData.prodKey(productId, shopId, size);
-            return DemoData.PRODUCTS.containsKey(key) ? 1 : 0;
+            return DemoData.products().containsKey(key) ? 1 : 0;
         }
 
         String sql = """
@@ -375,7 +375,7 @@ public final class ProductDAO {
             throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            List<Product> list = DemoData.WISHLISTS.getOrDefault(username, Collections.emptyList());
+            List<Product> list = DemoData.wishlists().getOrDefault(username, Collections.emptyList());
             final String sz = size; // cattura effettivamente final
             return list.stream().anyMatch(p ->
                     p.getProductId() == productId &&
