@@ -8,7 +8,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.example.dao.OrderDAO;
-import org.example.dao.SavedCardsDAO;
 import org.example.gateway.FakePaymentGateway;
 import org.example.gateway.PaymentGateway;
 import org.example.gateway.PaymentResult;
@@ -107,43 +106,16 @@ public class PaymentSelectionController {
 
     @FXML
     private void onAddInline() {
-        Integer userId = Session.getUserId();
-        if (userId == null) { showInfo("Devi effettuare il login"); return; }
+        Integer currentUserId = Session.getUserId();
+        if (currentUserId == null) { showInfo("Devi effettuare il login"); return; }
 
-        String holder = holderField.getText() == null ? "" : holderField.getText().trim();
-        String number = numberField.getText() == null ? "" : numberField.getText().trim();
-        String expiry = expiryField.getText() == null ? "" : expiryField.getText().trim();
-        String type   = (typeCombo != null) ? typeCombo.getValue() : null;
-
-        if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
-            new Alert(Alert.AlertType.WARNING, "Compila tutti i campi (titolare, numero, scadenza e tipo)").showAndWait();
-            return;
-        }
-        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12 ) {
-            showInfo("Compila correttamente il campo Numero (min 12 cifre)");
-            return;
-        }
-        if (!expiry.matches("^\\d{2}/\\d{2}$")) {
-            showInfo("Compila correttamente la Scadenza (MM/YY)");
-            return;
-        }
-
-        try {
-            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(userId, holder, number, expiry, type);
-            if (maybeId.isPresent()) {
-                Card c = new Card(maybeId.get(), holder, number, expiry, type);
-                cards.addFirst(c); // in cima alla TableView
-                cardsTable.getSelectionModel().select(c);
-                holderField.clear(); numberField.clear(); expiryField.clear();
-                if (typeCombo != null) typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
-                showInfo("Carta aggiunta correttamente");
-            } else {
-                showInfo("Carta già presente");
-            }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore durante il salvataggio della carta", e);
-            showAlert("Errore durante il salvataggio della carta.");
-        }
+        CardsService.addInlineCard(
+                currentUserId,
+                holderField, numberField, expiryField, typeCombo,
+                cards, cardsTable,
+                this::showInfo, this::showAlert,
+                logger
+        );
     }
 
     @FXML
@@ -172,6 +144,11 @@ public class PaymentSelectionController {
         paymentData.put("cvv",         cvv);
         logger.log(Level.FINE, "CVV presente: {0}", !cvv.isBlank() ? "***" : "no");
 
+        Task<OrderDAO.CreationResult> task = getCreationResultTask(userId, paymentData, selected);
+        new Thread(task).start();
+    }
+
+    private Task<OrderDAO.CreationResult> getCreationResultTask(Integer userId, Map<String, String> paymentData, Card selected) {
         Task<OrderDAO.CreationResult> task = new Task<>() {
             @Override
             protected OrderDAO.CreationResult call() throws Exception {
@@ -187,7 +164,7 @@ public class PaymentSelectionController {
 
         task.setOnSucceeded(evt -> handlePaymentSuccess(selected.getId(), task.getValue()));
         task.setOnFailed(evt -> handlePaymentFailure(task.getException()));
-        new Thread(task).start();
+        return task;
     }
 
     private void handlePaymentSuccess(int cardId, OrderDAO.CreationResult res) {

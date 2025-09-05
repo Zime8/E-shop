@@ -7,7 +7,6 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.example.dao.SavedCardsDAO;
 import org.example.dao.ShopDAO;
 import org.example.models.Card;
 import org.example.services.CardsService;
@@ -19,7 +18,6 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -97,40 +95,13 @@ public class WithdrawSelectionController {
         Integer currentUserId = Session.getUserId();
         if (currentUserId == null) { showInfo("Devi effettuare il login"); return; }
 
-        String holder = safe(holderField);
-        String number = safe(numberField);
-        String expiry = safe(expiryField);
-        String type   = (typeCombo != null) ? typeCombo.getValue() : null;
-
-        if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
-            showInfo("Compila tutti i campi (titolare, numero, scadenza e tipo).");
-            return;
-        }
-        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12 ) {
-            showInfo("Compila correttamente il Numero (min 12 cifre).");
-            return;
-        }
-        if (!expiry.matches("^\\d{2}/\\d{2}$")) {
-            showInfo("Compila correttamente la Scadenza (MM/YY).");
-            return;
-        }
-
-        try {
-            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(currentUserId, holder, number, expiry, type);
-            if (maybeId.isPresent()) {
-                Card c = new Card(maybeId.get(), holder, number, expiry, type);
-                cards.addFirst(c); // in cima
-                cardsTable.getSelectionModel().select(c);
-                holderField.clear(); numberField.clear(); expiryField.clear();
-                if (typeCombo != null) typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
-                showInfo("Carta aggiunta correttamente.");
-            } else {
-                showInfo("Carta già presente.");
-            }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore salvataggio carta", e);
-            showAlert("Errore durante il salvataggio della carta.");
-        }
+        CardsService.addInlineCard(
+                currentUserId,
+                holderField, numberField, expiryField, typeCombo,
+                cards, cardsTable,
+                this::showInfo, this::showAlert,
+                logger
+        );
     }
 
     @FXML
@@ -165,6 +136,12 @@ public class WithdrawSelectionController {
 
         setProcessing(true);
 
+        Task<Void> task = getVoidTask(currentUserId, amount);
+
+        new Thread(task).start();
+    }
+
+    private Task<Void> getVoidTask(Integer currentUserId, BigDecimal amount) {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
@@ -187,8 +164,7 @@ public class WithdrawSelectionController {
             String msg = (task.getException() == null) ? "Errore sconosciuto" : task.getException().getMessage();
             showError(msg);
         }));
-
-        new Thread(task).start();
+        return task;
     }
 
     private void setProcessing(boolean processing) {
