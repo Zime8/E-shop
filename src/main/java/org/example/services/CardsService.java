@@ -27,6 +27,19 @@ public final class CardsService {
         public boolean ok() { return status == AddCardStatus.ADDED; }
     }
 
+    /** Dati input carta inseriti dall’utente. */
+    private record InlineInputs(String holder, String number, String expiry, String type) {}
+
+    /** Riferimenti UI necessari per aggiornare la schermata. */
+    private record UiRefs(
+            ComboBox<String> typeCombo,
+            ObservableList<Card> cards,
+            TableView<Card> table,
+            TextField holderField,
+            TextField numberField,
+            TextField expiryField
+    ) {}
+
     public static void loadSavedCards(int userId, ObservableList<Card> target) throws SQLException {
         target.clear();
         List<SavedCardsDAO.Row> rows = SavedCardsDAO.findByUser(userId);
@@ -38,10 +51,8 @@ public final class CardsService {
     /**
      * Aggiunge una carta “inline” (se non presente) e aggiorna la TableView.
      * Restituisce un risultato con esito e messaggio da mostrare.
-     *
-     * @return AddCardResult: status + message + card (se creata)
      */
-    public static AddCardResult addInlineCard(
+    public static void addInlineCard(
             int userId,
             TextField holderField, TextField numberField, TextField expiryField,
             ComboBox<String> typeCombo,
@@ -49,74 +60,76 @@ public final class CardsService {
             TableView<Card> table
     ) {
         // 1) leggi input
-        String holder = safe(holderField);
-        String number = safe(numberField);
-        String expiry = safe(expiryField);
-        String type   = (typeCombo != null) ? typeCombo.getValue() : null;
+        InlineInputs inputs = new InlineInputs(
+                safe(holderField),
+                safe(numberField),
+                safe(expiryField),
+                (typeCombo != null) ? typeCombo.getValue() : null
+        );
+        UiRefs ui = new UiRefs(typeCombo, cards, table, holderField, numberField, expiryField);
 
-        // 2) valida in un helper (riduce i rami qui)
-        String validationError = validateInlineInputs(holder, number, expiry, type);
+        // 2) valida
+        String validationError = validateInlineInputs(inputs);
         if (validationError != null) {
-            return new AddCardResult(AddCardStatus.VALIDATION_ERROR, validationError, null);
+            new AddCardResult(AddCardStatus.VALIDATION_ERROR, validationError, null);
+            return;
         }
 
-        // 3) delega inserimento + aggiornamento UI in un helper
-        return insertCardAndUpdateUI(
-                userId, holder, number, expiry, type,
-                typeCombo, cards, table,
-                holderField, numberField, expiryField
-        );
+        // 3) inserisci e aggiorna UI
+        insertCardAndUpdateUI(userId, inputs, ui);
     }
 
     /* ===================== Helpers interni ===================== */
 
-    private static String validateInlineInputs(String holder, String number, String expiry, String type) {
-        if (holder.isEmpty() || number.isEmpty() || expiry.isEmpty() || type == null || type.isBlank()) {
+    private static String validateInlineInputs(InlineInputs in) {
+        if (isBlank(in.holder) || isBlank(in.number) || isBlank(in.expiry) || isBlank(in.type)) {
             return "Compila tutti i campi (titolare, numero, scadenza e tipo).";
         }
-        if (number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12) {
+        if (in.number.replaceAll(CardUi.DIGITS_ONLY_REGEX, "").length() < 12) {
             return "Compila correttamente il Numero (min 12 cifre).";
         }
-        if (!expiry.matches("^\\d{2}/\\d{2}$")) {
+        if (!in.expiry.matches("^\\d{2}/\\d{2}$")) {
             return "Compila correttamente la Scadenza (MM/YY).";
         }
         return null;
     }
 
-    private static AddCardResult insertCardAndUpdateUI(
-            int userId,
-            String holder, String number, String expiry, String type,
-            ComboBox<String> typeCombo,
-            ObservableList<Card> cards,
-            TableView<Card> table,
-            TextField holderField, TextField numberField, TextField expiryField
-    ) {
+    private static void insertCardAndUpdateUI(int userId, InlineInputs in, UiRefs ui) {
         try {
-            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(userId, holder, number, expiry, type);
+            Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(
+                    userId, in.holder, in.number, in.expiry, in.type
+            );
             if (maybeId.isPresent()) {
-                Card c = new Card(maybeId.get(), holder, number, expiry, type);
+                Card c = new Card(maybeId.get(), in.holder, in.number, in.expiry, in.type);
 
                 // aggiorna lista + selezione
-                cards.addFirst(c);
-                if (table != null) table.getSelectionModel().select(c);
+                ui.cards.addFirst(c);
+                if (ui.table != null) ui.table.getSelectionModel().select(c);
 
                 // pulisci form
-                if (holderField != null) holderField.clear();
-                if (numberField != null) numberField.clear();
-                if (expiryField != null) expiryField.clear();
-                if (typeCombo != null) typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
+                clear(ui.holderField);
+                clear(ui.numberField);
+                clear(ui.expiryField);
+                if (ui.typeCombo != null) ui.typeCombo.setValue(CardUi.CARD_TYPE_DEBITO);
 
-                return new AddCardResult(AddCardStatus.ADDED, "Carta aggiunta correttamente.", c);
+                new AddCardResult(AddCardStatus.ADDED, "Carta aggiunta correttamente.", c);
+                return;
             }
-            return new AddCardResult(AddCardStatus.DUPLICATE, "Carta già presente.", null);
+            new AddCardResult(AddCardStatus.DUPLICATE, "Carta già presente.", null);
 
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Errore salvataggio carta", e);
-            return new AddCardResult(AddCardStatus.ERROR, "Errore durante il salvataggio della carta.", null);
+            new AddCardResult(AddCardStatus.ERROR, "Errore durante il salvataggio della carta.", null);
         }
     }
 
     private static String safe(TextField tf) {
         return (tf == null || tf.getText() == null) ? "" : tf.getText().trim();
+    }
+    private static void clear(TextField tf) {
+        if (tf != null) tf.clear();
+    }
+    private static boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 }
