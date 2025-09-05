@@ -18,7 +18,9 @@ import org.example.util.Session;
 import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -48,6 +50,7 @@ public class PurchaseHistoryController {
 
     private final ObservableList<OrderSummary> orders = observableArrayList();
     private final ObservableList<OrderLine> items = observableArrayList();
+    private final Map<Integer, List<OrderLine>> itemsCache = new HashMap<>();
 
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
@@ -127,9 +130,48 @@ public class PurchaseHistoryController {
         setLoading(true);
         new Thread(() -> {
             try {
-                List<OrderSummary> list = OrderDAO.getOrdersByUser(userId);
+                // 1) Prende TUTTI gli ordini con le righe in una sola chiamata
+                List<org.example.models.Order> full = OrderDAO.listOrdersModel(userId);
+
+                // 2) Converte in OrderSummary per la tabella di sinistra
+                List<OrderSummary> summaries = new java.util.ArrayList<>(full.size());
+
+                // 3) Prepara la cache delle righe convertendo in OrderDAO.OrderLine (record del controller)
+                itemsCache.clear();
+
+                for (org.example.models.Order o : full) {
+                    // Calcolo totale
+                    java.math.BigDecimal total = o.getLines().stream()
+                            .map(org.example.models.OrderLine::getSubtotal)
+                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+
+                    // Summary per tabella ordini
+                    summaries.add(new OrderSummary(
+                            o.getId(),
+                            java.sql.Timestamp.valueOf(o.getCreatedAt()),
+                            o.getStatus().toDb(),   // stringa stato
+                            total
+                    ));
+
+                    List<OrderLine> converted = new java.util.ArrayList<>();
+                    for (org.example.models.OrderLine l : o.getLines()) {
+                        converted.add(new OrderLine(
+                                l.getOrderId(),
+                                l.getProductId(),
+                                l.getShopId(),
+                                l.getProductName(),
+                                l.getShopName(),
+                                l.getSize(),
+                                l.getQuantity(),
+                                l.getUnitPrice() == null ? java.math.BigDecimal.ZERO : l.getUnitPrice()
+                        ));
+                    }
+                    itemsCache.put(o.getId(), converted);
+                }
+
+                // 4) UI update
                 Platform.runLater(() -> {
-                    orders.setAll(list);
+                    orders.setAll(summaries);
                     items.clear();
                     setLoading(false);
                     if (!orders.isEmpty()) {
@@ -137,40 +179,29 @@ public class PurchaseHistoryController {
                     }
                     ordersTable.layout();
                 });
+
             } catch (SQLException e) {
-                logger.log(Level.SEVERE, "Errore caricamente ordini", e);
+                logger.log(Level.SEVERE, "Errore caricamento ordini", e);
                 Platform.runLater(() -> {
                     setLoading(false);
-                    showError("Errore caricamento ordini", e.getMessage());
+                    showError(e.getMessage());
                 });
             }
         }).start();
     }
+
 
     private void loadItems(int orderId) {
-        setLoading(true);
-        new Thread(() -> {
-            try {
-                List<OrderLine> list = OrderDAO.getOrderItems(orderId);
-                Platform.runLater(() -> {
-                    items.setAll(list);
-                    setLoading(false);
-                    itemsTable.layout();
-                });
-            } catch (SQLException e) {
-                logger.log(Level.SEVERE, "Errore caricamento dettagli ordine", e);
-                Platform.runLater(() -> {
-                    setLoading(false);
-                    showError("Errore caricamento dettagli ordine", e.getMessage());
-                });
-            }
-        }).start();
+        List<OrderLine> cached = itemsCache.getOrDefault(orderId, java.util.List.of());
+        items.setAll(cached);
+        itemsTable.layout();
     }
 
-    private void showError(String header, String details) {
+
+    private void showError(String details) {
         Alert a = new Alert(Alert.AlertType.ERROR);
         a.setTitle("Errore");
-        a.setHeaderText(header);
+        a.setHeaderText("Errore caricamento ordini");
         a.setContentText(details);
         a.showAndWait();
     }

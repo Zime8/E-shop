@@ -32,7 +32,7 @@ public class OrderSummaryController {
     @FXML private Label totalLabel;
 
     private Stage stage;
-    private List<CartItem> items; // mantenuto per compatibilità con il flusso "carrello -> pagamento"
+    private List<CartItem> items;
     private BigDecimal total;
 
     private Runnable onCartUpdated;
@@ -105,60 +105,6 @@ public class OrderSummaryController {
         }
         this.total = order.getTotal();
         populate(rows);
-    }
-
-    // 3) Nuovo: carica direttamente da un orderId usando OrderDAO.getOrderModel(...)
-    public void setData(int orderId) {
-        try {
-            Optional<Order> opt = OrderDAO.getOrderModel(orderId);
-            if (opt.isEmpty()) {
-                itemsBox.getChildren().setAll(new Label("Ordine #" + orderId + " non trovato."));
-                totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
-                return;
-            }
-            setData(opt.get());
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, e,()-> "Errore nel caricamento dell'ordine #" + orderId);
-            itemsBox.getChildren().setAll(new Label("Impossibile caricare l'ordine."));
-            totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
-        }
-    }
-
-    // 4) Nuovo: subito dopo placeOrderWithStockDecrement(...) — passami CreationResult e userId
-    public void setData(OrderDAO.CreationResult creation) {
-        if (creation == null || creation.orderIds() == null || creation.orderIds().isEmpty()) {
-            itemsBox.getChildren().setAll(new Label("Nessun ordine generato."));
-            totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
-            return;
-        }
-        try {
-            // Recupera tutti gli ordini creati (potrebbero essere più di uno, uno per shop)
-            List<ItemView> rows = new ArrayList<>();
-            BigDecimal grandTotal = BigDecimal.ZERO;
-
-            for (Integer orderId : creation.orderIds()) {
-                Optional<Order> opt = OrderDAO.getOrderModel(orderId);
-                if (opt.isEmpty()) continue;
-                Order o = opt.get();
-                grandTotal = grandTotal.add(o.getTotal());
-                for (OrderLine l : o.getLines()) {
-                    rows.add(new ItemView(
-                            safe(l.getProductName()),
-                            safe(l.getSize()),
-                            l.getQuantity(),
-                            l.getUnitPrice(),
-                            null
-                    ));
-                }
-            }
-            this.total = grandTotal;
-            populate(rows);
-
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore nel caricamento degli ordini generati", e);
-            itemsBox.getChildren().setAll(new Label("Impossibile caricare il riepilogo degli ordini."));
-            totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
-        }
     }
 
     // ======= rendering comune =======

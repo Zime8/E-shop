@@ -221,7 +221,6 @@ public class CartController {
         return removeAll;
     }
 
-
     @FXML
     private void onCheckout() {
         List<Product> products = Session.getCartItems();
