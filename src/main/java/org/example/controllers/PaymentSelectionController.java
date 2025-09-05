@@ -112,9 +112,7 @@ public class PaymentSelectionController {
         CardsService.addInlineCard(
                 currentUserId,
                 holderField, numberField, expiryField, typeCombo,
-                cards, cardsTable,
-                this::showInfo, this::showAlert,
-                logger
+                cards, cardsTable
         );
     }
 
