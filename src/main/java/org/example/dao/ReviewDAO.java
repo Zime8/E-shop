@@ -9,7 +9,9 @@ import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
 
-public class ReviewDAO {
+public final class ReviewDAO {
+
+    private ReviewDAO(){}
 
     // Risale a uno username “umano” in demo a partire da userId
     private static String resolveUsernameDemo(int userId) {

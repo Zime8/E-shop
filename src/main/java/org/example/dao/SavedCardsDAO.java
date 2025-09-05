@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
 
-public class SavedCardsDAO {
+public final class SavedCardsDAO {
 
     public record Row(
             int id,

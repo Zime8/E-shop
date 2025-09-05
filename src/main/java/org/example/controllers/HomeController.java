@@ -54,8 +54,6 @@ public class HomeController implements Initializable {
     @FXML private TilePane productPane;
     @FXML private Label sectionTitle;
 
-    private final ProductDAO productDAO = new ProductDAO();
-
     @FXML
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -356,7 +354,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         // 1. prendi gli ultimi prodotti dal DB
-        List<Product> latest = productDAO.findLatest(40);
+        List<Product> latest = ProductDAO.findLatest(40);
 
         // 2. per ciascun prodotto, carica una “card” via FXML e aggiungila al pane
         try {
@@ -382,7 +380,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         try {
-            List<Product> filteredProducts = productDAO.searchByFilters(
+            List<Product> filteredProducts = ProductDAO.searchByFilters(
                     selectedSport.equals(ALL) ? null : selectedSport,
                     selectedBrand.equals(ALL) ? null : selectedBrand,
                     selectedShop.equals(ALL) ? null : selectedShop,

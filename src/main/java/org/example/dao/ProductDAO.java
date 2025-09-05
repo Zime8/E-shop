@@ -10,7 +10,11 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ProductDAO {
+public final class ProductDAO {
+
+    private ProductDAO() {
+        throw new AssertionError("Utility class, no instances allowed");
+    }
 
     private static final Logger logger = Logger.getLogger(ProductDAO.class.getName());
     private static final Comparator<Product> BY_CREATED_DESC_THEN_ID_DESC = (a, b) -> {
@@ -20,7 +24,6 @@ public class ProductDAO {
         }
         return Long.compare(b.getProductId(), a.getProductId());
     };
-
 
     // Query costante con filtri opzionali parametrici (solo DB)
     private static final String SEARCH_BY_FILTERS_SQL = """
@@ -38,7 +41,7 @@ public class ProductDAO {
         ORDER BY p.created_at DESC
         """;
 
-    public List<Product> findLatest(int limit) {
+    public static List<Product> findLatest(int limit) {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
@@ -125,7 +128,7 @@ public class ProductDAO {
         return products;
     }
 
-    public List<Product> searchByFilters(String sport, String brand, String shop, String category,
+    public static List<Product> searchByFilters(String sport, String brand, String shop, String category,
                                          double minPrice, double maxPrice) throws SQLException {
         if (Session.isDemo()) {
             return searchByFiltersDemo(sport, brand, shop, category, minPrice, maxPrice);
@@ -139,7 +142,7 @@ public class ProductDAO {
         return searchByFiltersDb(sportVal, brandVal, categoryVal, shopId, minPrice, maxPrice);
     }
 
-    private List<Product> searchByFiltersDemo(String sport, String brand, String shop, String category,
+    private static List<Product> searchByFiltersDemo(String sport, String brand, String shop, String category,
                                               double minPrice, double maxPrice) {
         DemoData.ensureLoaded();
 
@@ -158,12 +161,12 @@ public class ProductDAO {
                 .toList();
     }
 
-    private Integer resolveShopId(String shop) throws SQLException {
+    private static Integer resolveShopId(String shop) throws SQLException {
         if (shop == null || shop.isBlank()) return null;
         return getShopIdByName(shop.trim());
     }
 
-    private List<Product> searchByFiltersDb(String sportVal, String brandVal, String categoryVal, Integer shopId,
+    private static List<Product> searchByFiltersDb(String sportVal, String brandVal, String categoryVal, Integer shopId,
                                             double minPrice, double maxPrice) throws SQLException {
         List<Product> products = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getInstance();
@@ -187,7 +190,7 @@ public class ProductDAO {
         return products;
     }
 
-    private void bindFilters(PreparedStatement stmt, double minPrice, double maxPrice,
+    private static void bindFilters(PreparedStatement stmt, double minPrice, double maxPrice,
                              String sportVal, String brandVal, Integer shopId, String categoryVal) throws SQLException {
         int i = 1;
         stmt.setDouble(i++, minPrice);
@@ -195,7 +198,7 @@ public class ProductDAO {
         i = bindOptionalPair(stmt, i, sportVal);
         i = bindOptionalPair(stmt, i, brandVal);
         i = bindOptionalPair(stmt, i, shopId);
-        i = bindOptionalPair(stmt, i, categoryVal);
+        bindOptionalPair(stmt, i, categoryVal);
     }
 
     /** Binder generico per ( ? IS NULL OR col = ? ) – String */

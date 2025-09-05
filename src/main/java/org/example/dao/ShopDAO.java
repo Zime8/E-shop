@@ -10,7 +10,7 @@ import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ShopDAO {
+public final class ShopDAO {
 
 
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());

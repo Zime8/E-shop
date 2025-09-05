@@ -15,7 +15,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class UserDAO {
+public final class UserDAO {
 
     private static final Logger logger = Logger.getLogger(UserDAO.class.getName());
 
