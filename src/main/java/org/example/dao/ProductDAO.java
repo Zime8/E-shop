@@ -9,11 +9,18 @@ import java.sql.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class ProductDAO {
 
     private static final Logger logger = Logger.getLogger(ProductDAO.class.getName());
+    private static final Comparator<Product> BY_CREATED_DESC_THEN_ID_DESC = (a, b) -> {
+        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
+            int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+            if (cmp != 0) return cmp;
+        }
+        return Long.compare(b.getProductId(), a.getProductId());
+    };
+
 
     // Query costante con filtri opzionali parametrici (solo DB)
     private static final String SEARCH_BY_FILTERS_SQL = """
@@ -31,24 +38,14 @@ public class ProductDAO {
         ORDER BY p.created_at DESC
         """;
 
-    /* =========================
-       LATEST
-       ========================= */
     public List<Product> findLatest(int limit) {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
                 // In demo: ordina per createdAt se disponibile, altrimenti per productId DESC
                 List<Product> all = new ArrayList<>(DemoData.PRODUCTS.values());
-                all.sort((a, b) -> {
-                    if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                        int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
-                        if (cmp != 0) return cmp;
-                    }
-                    // fallback: productId desc
-                    return Long.compare(b.getProductId(), a.getProductId());
-                });
-                return all.stream().limit(Math.max(0, limit)).collect(Collectors.toList());
+                all.sort(BY_CREATED_DESC_THEN_ID_DESC);
+                return all.stream().limit(Math.max(0, limit)).toList();
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Errore durante findLatest (demo)", e);
                 return Collections.emptyList();
@@ -99,7 +96,7 @@ public class ProductDAO {
                         String n = p.getName() == null ? "" : p.getName().toLowerCase();
                         return n.contains(q);
                     })
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         List<Product> products = new ArrayList<>();
@@ -128,70 +125,51 @@ public class ProductDAO {
         return products;
     }
 
-    /* =========================
-       SEARCH BY FILTERS
-       ========================= */
     public List<Product> searchByFilters(String sport, String brand, String shop, String category,
                                          double minPrice, double maxPrice) throws SQLException {
         if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            String sportVal = blankToNull(sport);
-            String brandVal = blankToNull(brand);
-            String categoryVal = blankToNull(category);
-            String shopVal = blankToNull(shop);
-
-            return DemoData.PRODUCTS.values().stream()
-                    .filter(p -> p.getPrice() >= minPrice && p.getPrice() <= maxPrice)
-                    .filter(p -> sportVal == null || Objects.equals(p.getSport(), sportVal))
-                    .filter(p -> brandVal == null || Objects.equals(p.getBrand(), brandVal))
-                    .filter(p -> categoryVal == null || Objects.equals(p.getCategory(), categoryVal))
-                    .filter(p -> shopVal == null || (p.getNameShop() != null && p.getNameShop().equals(shopVal)))
-                    .sorted((a, b) -> {
-                        // se available, ordina per createdAt desc
-                        if (a.getCreatedAt() != null && b.getCreatedAt() != null) {
-                            int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
-                            if (cmp != 0) return cmp;
-                        }
-                        return Long.compare(b.getProductId(), a.getProductId());
-                    })
-                    .collect(Collectors.toList());
+            return searchByFiltersDemo(sport, brand, shop, category, minPrice, maxPrice);
         }
 
-        List<Product> products = new ArrayList<>();
-
-        // Calcolo shopId solo se "shop" è non vuoto (stessa logica di prima)
-        Integer shopId = null;
-        if (shop != null && !shop.isBlank()) {
-            shopId = getShopIdByName(shop.trim());
-        }
-
-        // Normalizza stringhe vuote a null per i filtri opzionali
         String sportVal    = blankToNull(sport);
         String brandVal    = blankToNull(brand);
         String categoryVal = blankToNull(category);
+        Integer shopId     = resolveShopId(shop);
 
+        return searchByFiltersDb(sportVal, brandVal, categoryVal, shopId, minPrice, maxPrice);
+    }
+
+    private List<Product> searchByFiltersDemo(String sport, String brand, String shop, String category,
+                                              double minPrice, double maxPrice) {
+        DemoData.ensureLoaded();
+
+        String sportVal    = blankToNull(sport);
+        String brandVal    = blankToNull(brand);
+        String categoryVal = blankToNull(category);
+        String shopVal     = blankToNull(shop);
+
+        return DemoData.PRODUCTS.values().stream()
+                .filter(p -> p.getPrice() >= minPrice && p.getPrice() <= maxPrice)
+                .filter(p -> sportVal == null    || Objects.equals(p.getSport(), sportVal))
+                .filter(p -> brandVal == null    || Objects.equals(p.getBrand(), brandVal))
+                .filter(p -> categoryVal == null || Objects.equals(p.getCategory(), categoryVal))
+                .filter(p -> shopVal == null     || (p.getNameShop() != null && p.getNameShop().equals(shopVal)))
+                .sorted(BY_CREATED_DESC_THEN_ID_DESC)
+                .toList();
+    }
+
+    private Integer resolveShopId(String shop) throws SQLException {
+        if (shop == null || shop.isBlank()) return null;
+        return getShopIdByName(shop.trim());
+    }
+
+    private List<Product> searchByFiltersDb(String sportVal, String brandVal, String categoryVal, Integer shopId,
+                                            double minPrice, double maxPrice) throws SQLException {
+        List<Product> products = new ArrayList<>();
         try (Connection conn = DatabaseConnection.getInstance();
              PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_FILTERS_SQL)) {
 
-            int i = 1;
-            stmt.setDouble(i++, minPrice);
-            stmt.setDouble(i++, maxPrice);
-
-            // sport
-            if (sportVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i++, Types.VARCHAR); }
-            else { stmt.setString(i++, sportVal); stmt.setString(i++, sportVal); }
-
-            // brand
-            if (brandVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i++, Types.VARCHAR); }
-            else { stmt.setString(i++, brandVal); stmt.setString(i++, brandVal); }
-
-            // shopId
-            if (shopId == null) { stmt.setNull(i++, Types.INTEGER); stmt.setNull(i++, Types.INTEGER); }
-            else { stmt.setInt(i++, shopId); stmt.setInt(i++, shopId); }
-
-            // category
-            if (categoryVal == null) { stmt.setNull(i++, Types.VARCHAR); stmt.setNull(i, Types.VARCHAR); }
-            else { stmt.setString(i++, categoryVal); stmt.setString(i++, categoryVal); }
+            bindFilters(stmt, minPrice, maxPrice, sportVal, brandVal, shopId, categoryVal);
 
             try (ResultSet rs = stmt.executeQuery()) {
                 while (rs.next()) {
@@ -200,14 +178,48 @@ public class ProductDAO {
             }
         } catch (SQLException e) {
             logger.log(Level.SEVERE,
-                    "Errore durante la ricerca per filtri: sport={0}, brand={1}, shop={2}, category={3}, min={4}, max={5}",
-                    new Object[]{sport, brand, shop, category, minPrice, maxPrice});
+                    "Errore durante la ricerca per filtri: sport={0}, brand={1}, shopId={2}, category={3}, min={4}, max={5}",
+                    new Object[]{sportVal, brandVal, shopId, categoryVal, minPrice, maxPrice});
             throw new SQLException(String.format(
                     "Errore durante la ricerca per filtri: %s, %s, %s, %s, %.2f, %.2f",
-                    sport, brand, shop, category, minPrice, maxPrice), e);
+                    sportVal, brandVal, (shopId), categoryVal, minPrice, maxPrice), e);
         }
-
         return products;
+    }
+
+    private void bindFilters(PreparedStatement stmt, double minPrice, double maxPrice,
+                             String sportVal, String brandVal, Integer shopId, String categoryVal) throws SQLException {
+        int i = 1;
+        stmt.setDouble(i++, minPrice);
+        stmt.setDouble(i++, maxPrice);
+        i = bindOptionalPair(stmt, i, sportVal);
+        i = bindOptionalPair(stmt, i, brandVal);
+        i = bindOptionalPair(stmt, i, shopId);
+        i = bindOptionalPair(stmt, i, categoryVal);
+    }
+
+    /** Binder generico per ( ? IS NULL OR col = ? ) – String */
+    private static int bindOptionalPair(PreparedStatement ps, int idx, String value) throws SQLException {
+        if (value == null) {
+            ps.setNull(idx++, Types.VARCHAR);
+            ps.setNull(idx++, Types.VARCHAR);
+        } else {
+            ps.setString(idx++, value);
+            ps.setString(idx++, value);
+        }
+        return idx;
+    }
+
+    /** Binder generico per ( ? IS NULL OR col = ? ) – Integer */
+    private static int bindOptionalPair(PreparedStatement ps, int idx, Integer value) throws SQLException {
+        if (value == null) {
+            ps.setNull(idx++, Types.INTEGER);
+            ps.setNull(idx++, Types.INTEGER);
+        } else {
+            ps.setInt(idx++, value);
+            ps.setInt(idx++, value);
+        }
+        return idx;
     }
 
     private static String blankToNull(String s) {
@@ -282,7 +294,7 @@ public class ProductDAO {
                     .filter(Objects::nonNull)
                     .distinct()
                     .sorted()
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         String sql = """

@@ -330,8 +330,6 @@ public final class OrderDAO {
         }
     }
 
-    // ======== NUOVI METODI comodi: restituiscono direttamente i MODEL ========
-
     /** Ordini completi (con righe) come model `Order`. */
     public static List<Order> listOrdersModel(int userId) throws SQLException {
         if (Session.isDemo()) {

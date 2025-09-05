@@ -14,10 +14,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.example.dao.OrderDAO;
 import org.example.models.CartItem;
-import org.example.models.Order;
-import org.example.models.OrderLine;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -81,29 +78,6 @@ public class OrderSummaryController {
                 ));
             }
         }
-        populate(rows);
-    }
-
-    // =======================
-    // 2) Nuovo: dal MODEL Order (prodotto sia in demo che in prod dai nuovi metodi DAO)
-    // =======================
-    public void setData(Order order) {
-        if (order == null) {
-            itemsBox.getChildren().setAll(new Label("Ordine non trovato."));
-            totalLabel.setText(NumberFormat.getCurrencyInstance(Locale.ITALY).format(0));
-            return;
-        }
-        List<ItemView> rows = new ArrayList<>();
-        for (OrderLine l : order.getLines()) {
-            rows.add(new ItemView(
-                    safe(l.getProductName()),
-                    safe(l.getSize()),
-                    l.getQuantity(),
-                    l.getUnitPrice(),
-                    null // il model OrderLine non porta immagine; lasciamo null
-            ));
-        }
-        this.total = order.getTotal();
         populate(rows);
     }
 
@@ -223,10 +197,6 @@ public class OrderSummaryController {
         }
     }
 
-    private static String safe(String s) {
-        return s == null ? "" : s;
-    }
-
     @FXML
     private void onBack() {
         if (stage != null) stage.close();
@@ -251,7 +221,6 @@ public class OrderSummaryController {
             ctrl.setParentStage(this.stage);
             payStage.setScene(new Scene(root));
 
-            // ✅ Manteniamo il flusso storico: passo items/total se sto ancora pagando
             ctrl.setData(items, total);
 
             payStage.showAndWait();
