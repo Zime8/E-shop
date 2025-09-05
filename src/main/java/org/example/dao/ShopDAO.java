@@ -35,7 +35,7 @@ public final class ShopDAO {
         }
     }
 
-    public static void requestWithdraw(long userId, int cardId, BigDecimal amount, String cvv) throws SQLException {
+    public static void requestWithdraw(long userId, BigDecimal amount) throws SQLException {
         if (amount == null || amount.signum() <= 0) {
             throw new SQLException("Importo non valido");
         }

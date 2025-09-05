@@ -231,7 +231,7 @@ public class WithdrawSelectionController {
         Task<Void> task = new Task<>() {
             @Override
             protected Void call() throws Exception {
-                ShopDAO.requestWithdraw(currentUserId, selected.getId(), amount, cvv);
+                ShopDAO.requestWithdraw(currentUserId, amount);
                 return null;
             }
         };

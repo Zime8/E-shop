@@ -41,7 +41,7 @@ public final class SavedCardsDAO {
             return list.stream()
                     .sorted(Comparator.comparingInt(Card::getId).reversed())
                     .map(c -> new Row(c.getId(), c.getHolder(), c.getNumber(), c.getExpiry(), c.getType()))
-                    .collect(Collectors.toList());
+                    .toList();
         }
 
         String sql = """
