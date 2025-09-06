@@ -69,8 +69,6 @@ public class HomeController implements Initializable {
         welcomeLabel.setText("Benvenuto, " + Session.getUser() + "!");
         sectionTitle.setText("Ultimi Arrivi");
 
-        System.out.println("[DAO] Using: " + productDao.getClass().getName());
-
         loadLatestArrivals();
 
         Platform.runLater(() -> {

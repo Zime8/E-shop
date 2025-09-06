@@ -45,6 +45,7 @@ public class CartController {
     private Runnable onCartUpdated;
 
     private static final Logger logger = Logger.getLogger(CartController.class.getName());
+    private static final String MSG_STOCK_UNKNOWN = "Disponibilità non verificabile";
 
     public void setOnCartUpdated(Runnable callback) { this.onCartUpdated = callback; }
 
@@ -193,12 +194,12 @@ public class CartController {
             stock = productDao.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
         } catch (Exception ex) {
             // In caso di errore, comportati in modo prudente: niente incremento
-            logger.log(Level.WARNING, "Impossibile leggere lo stock per " + p.getName(), ex);
+            logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + p.getName());
             qtyLbl.setText(String.valueOf(agg.qty));
             plus.setDisable(true);
-            stockLabelTooltip(plus, "Disponibilità non verificabile");
-            stockLabelTooltip(qtyLbl, "Disponibilità non verificabile");
-            stockLabelTooltip(minus, "Disponibilità non verificabile");
+            stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
+            stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
+            stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
             // listener minus resta valido
             minus.setOnAction(e -> {
                 Session.removeFromCart(p);

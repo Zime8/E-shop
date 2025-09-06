@@ -4,10 +4,7 @@ import org.example.database.DatabaseConnection;
 import org.example.models.Shop;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,11 +15,11 @@ public final class ShopDAO {
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());
 
     public static BigDecimal getBalance(long userId) throws SQLException {
-
-        String sql = """
-        SELECT balance
-        FROM shops s join users u on s.id_shop= u.id_shop
-        WHERE u.id_user=?""";
+        final String sql = """
+            SELECT balance
+            FROM shops s JOIN users u ON s.id_shop = u.id_shop
+            WHERE u.id_user = ?
+        """;
 
         try (Connection c = DatabaseConnection.getInstance();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -31,8 +28,11 @@ public final class ShopDAO {
                 return rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO;
             }
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore durante il recupero del balance", e);
-            return  BigDecimal.ZERO;
+            // Log nel DAO
+            logger.log(Level.WARNING, e, () ->
+                    "Errore durante il recupero del balance per userId=" + userId);
+            // Rilancio: l'Alert verrà mostrato dal controller
+            throw e;
         }
     }
 
@@ -41,17 +41,13 @@ public final class ShopDAO {
             throw new SQLException("Importo non valido");
         }
 
-        try {
-            Thread.sleep(900);
-        } catch (InterruptedException ie) {
-            Thread.currentThread().interrupt();
-        }
+        try { Thread.sleep(900); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
 
         final String SQL_UPDATE_BALANCE = """
-        UPDATE shops s
-        JOIN users u ON u.id_shop = s.id_shop
-        SET s.balance = s.balance - ?
-        WHERE u.id_user = ? AND s.balance >= ?
+            UPDATE shops s
+            JOIN users u ON u.id_shop = s.id_shop
+            SET s.balance = s.balance - ?
+            WHERE u.id_user = ? AND s.balance >= ?
         """;
 
         try (Connection c = DatabaseConnection.getInstance()) {
@@ -61,6 +57,7 @@ public final class ShopDAO {
                 psUpd.setBigDecimal(1, amount);
                 psUpd.setLong(2, userId);
                 psUpd.setBigDecimal(3, amount);
+
                 int changed = psUpd.executeUpdate();
                 if (changed == 0) {
                     c.rollback();
@@ -70,6 +67,10 @@ public final class ShopDAO {
                 c.commit();
             } catch (SQLException e) {
                 c.rollback();
+                // Log nel DAO
+                logger.log(Level.WARNING, e, () ->
+                        "Errore nella richiesta di prelievo: userId=" + userId + ", amount=" + amount);
+                // Rilancio: l'Alert verrà mostrato dal controller
                 throw e;
             } finally {
                 c.setAutoCommit(true);
@@ -80,10 +81,10 @@ public final class ShopDAO {
     /** Restituisce il negozio con via e telefono; null se non trovato. */
     public static Shop getById(long idShop) throws SQLException {
         final String sql = """
-        SELECT id_shop, name_s, street, phone_number
-        FROM shops
-        WHERE id_shop = ?
-    """;
+            SELECT id_shop, name_s, street, phone_number
+            FROM shops
+            WHERE id_shop = ?
+        """;
 
         try (Connection c = DatabaseConnection.getInstance();
              PreparedStatement ps = c.prepareStatement(sql)) {
@@ -100,9 +101,9 @@ public final class ShopDAO {
                 return null;
             }
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore durante il recupero del negozio", e);
+            logger.log(Level.WARNING, e, () ->
+                    "Errore durante il recupero del negozio idShop=" + idShop);
             throw e;
         }
     }
-
 }

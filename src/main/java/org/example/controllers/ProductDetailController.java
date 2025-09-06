@@ -58,6 +58,7 @@ public class ProductDetailController {
     private static final String TXT_ADDED_TO_WISHLIST = "Aggiunto ai preferiti";
 
     private static final Logger logger = Logger.getLogger(ProductDetailController.class.getName());
+    private static final String STYLE = "-fx-font-weight: bold;";
 
     public void setOnAddToCartCallback(Runnable callback) {
         this.onAddToCartCallback = callback;
@@ -149,13 +150,13 @@ public class ProductDetailController {
             ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
             grid.getColumnConstraints().addAll(c1, c2);
 
-            Label lName = new Label("Nome:"); lName.setStyle("-fx-font-weight: bold;");
+            Label lName = new Label("Nome:"); lName.setStyle(STYLE);
             Label vName = new Label(shop.getName() != null ? shop.getName() : nameShop.getText());
 
-            Label lAddress = new Label("Via:"); lAddress.setStyle("-fx-font-weight: bold;");
+            Label lAddress = new Label("Via:"); lAddress.setStyle(STYLE);
             Label vAddress = new Label(shop.getAddress() != null ? shop.getAddress() : "-");
 
-            Label lTel = new Label("Telefono:"); lTel.setStyle("-fx-font-weight: bold;");
+            Label lTel = new Label("Telefono:"); lTel.setStyle(STYLE);
             Label vTel = new Label(shop.getPhone() != null ? shop.getPhone() : "-");
 
             grid.addRow(0, lName, vName);
