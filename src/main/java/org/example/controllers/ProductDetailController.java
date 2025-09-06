@@ -149,17 +149,17 @@ public class ProductDetailController {
             ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
             grid.getColumnConstraints().addAll(c1, c2);
 
-            Label lNome = new Label("Nome:"); lNome.setStyle("-fx-font-weight: bold;");
-            Label vNome = new Label(shop.getName() != null ? shop.getName() : nameShop.getText());
+            Label lName = new Label("Nome:"); lName.setStyle("-fx-font-weight: bold;");
+            Label vName = new Label(shop.getName() != null ? shop.getName() : nameShop.getText());
 
-            Label lVia = new Label("Via:"); lVia.setStyle("-fx-font-weight: bold;");
-            Label vVia = new Label(shop.getAddress() != null ? shop.getAddress() : "-");
+            Label lAddress = new Label("Via:"); lAddress.setStyle("-fx-font-weight: bold;");
+            Label vAddress = new Label(shop.getAddress() != null ? shop.getAddress() : "-");
 
             Label lTel = new Label("Telefono:"); lTel.setStyle("-fx-font-weight: bold;");
             Label vTel = new Label(shop.getPhone() != null ? shop.getPhone() : "-");
 
-            grid.addRow(0, lNome, vNome);
-            grid.addRow(1, lVia, vVia);
+            grid.addRow(0, lName, vName);
+            grid.addRow(1, lAddress, vAddress);
             grid.addRow(2, lTel, vTel);
 
             Button close = new Button("Chiudi");
