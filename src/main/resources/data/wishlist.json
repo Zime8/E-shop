@@ -1,0 +1,14 @@
+[
+  {
+    "username": "Zime8",
+    "items": [
+      { "product_id": 1, "id_shop": 2, "p_size": "42" }
+    ]
+  },
+  {
+    "username": "Sime01",
+    "items": [
+      { "product_id": 3, "id_shop": 1, "p_size": "unique" }
+    ]
+  }
+]

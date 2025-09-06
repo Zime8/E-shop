@@ -1,6 +1,7 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
+import org.example.models.Shop;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
@@ -76,5 +77,32 @@ public final class ShopDAO {
         }
     }
 
+    /** Restituisce il negozio con via e telefono; null se non trovato. */
+    public static Shop getById(long idShop) throws SQLException {
+        final String sql = """
+        SELECT id_shop, name_s, street, phone_number
+        FROM shops
+        WHERE id_shop = ?
+    """;
+
+        try (Connection c = DatabaseConnection.getInstance();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, idShop);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new Shop(
+                            rs.getLong("id_shop"),
+                            rs.getString("name_s"),
+                            rs.getString("street"),
+                            rs.getString("phone_number")
+                    );
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante il recupero del negozio", e);
+            throw e;
+        }
+    }
 
 }

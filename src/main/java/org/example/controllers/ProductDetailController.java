@@ -2,16 +2,24 @@ package org.example.controllers;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.example.dao.ProductDAO;
+import org.example.dao.ProductDaos;
+import org.example.dao.ShopDAO;
 import org.example.dao.UserDAO;
+import org.example.dao.api.ProductDao;
 import org.example.models.Product;
+import org.example.models.Shop;
 import org.example.util.Session;
 
 import java.io.ByteArrayInputStream;
@@ -22,6 +30,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ProductDetailController {
+
+    private final ProductDao productDao;
+    public ProductDetailController(ProductDao productDao) {
+        this.productDao = productDao;
+    }
+
+    public ProductDetailController(){
+        this(ProductDaos.create());
+    }
 
     @FXML private ImageView bigPhoto;
     @FXML private Label nameLbl;
@@ -55,20 +72,25 @@ public class ProductDetailController {
             bigPhoto.setImage(null);
         }
         nameLbl.setText(p.getName());
+
         nameShop.setText(p.getNameShop());
+        nameShop.setStyle("-fx-font-size: 16; -fx-font-weight: bold; -fx-text-fill: #1a73e8; -fx-underline: true; -fx-cursor: hand;");
+        nameShop.setTooltip(new Tooltip("Vedi informazioni negozio"));
+        nameShop.setOnMouseClicked(e -> onShopClick());
+
         priceLbl.setText(String.format(EUR_PRICE_FMT, p.getPrice()));
         qtySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, 1, 1));
         qtySpinner.setEditable(true);
 
         try {
-            List<String> sizes = ProductDAO.getAvailableSizes(p.getProductId(), p.getIdShop());
+            List<String> sizes = productDao.getAvailableSizes(p.getProductId(), p.getIdShop());
             sizeCombo.getItems().setAll(sizes);
 
             if (!sizes.isEmpty()) {
                 sizeCombo.getSelectionModel().selectFirst();
                 String sel = sizeCombo.getValue();
                 product.setSize(sel);
-                refreshForSelectedSize(sel); // ✅ niente più duplicati qui
+                refreshForSelectedSize(sel);
 
                 // Listener: ogni cambio taglia → un solo punto di verità
                 sizeCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newSel) -> {
@@ -91,12 +113,76 @@ public class ProductDetailController {
         }
 
         // stato wishlist “senza taglia” (se lo mantieni come logica)
-        boolean alreadyWished = ProductDAO.existsWish(Session.getUser(),
+        boolean alreadyWished = productDao.existsWish(Session.getUser(),
                 product.getProductId(),
                 product.getIdShop());
         updateWishButton(alreadyWished);
     }
 
+    private void onShopClick() {
+        if (product == null) return;
+
+        try {
+            Shop shop = ShopDAO.getById(product.getIdShop());
+            if (shop == null) {
+                new Alert(Alert.AlertType.INFORMATION, "Informazioni negozio non disponibili.").showAndWait();
+                return;
+            }
+
+            // UI minimale senza FXML (come prima)
+            VBox root = new VBox(12);
+            root.setStyle("""
+            -fx-background-color: #fff;
+            -fx-border-color: #d32f2f;
+            -fx-border-width: 2;
+            -fx-background-radius: 14;
+            -fx-border-radius: 14;
+        """);
+            root.setPadding(new Insets(18));
+
+            Label title = new Label("Informazioni negozio");
+            title.setStyle("-fx-font-size: 18; -fx-font-weight: bold; -fx-text-fill: #d32f2f;");
+
+            GridPane grid = new GridPane();
+            grid.setHgap(8); grid.setVgap(8);
+            ColumnConstraints c1 = new ColumnConstraints(); c1.setMinWidth(90);
+            ColumnConstraints c2 = new ColumnConstraints(); c2.setHgrow(Priority.ALWAYS);
+            grid.getColumnConstraints().addAll(c1, c2);
+
+            Label lNome = new Label("Nome:"); lNome.setStyle("-fx-font-weight: bold;");
+            Label vNome = new Label(shop.getName() != null ? shop.getName() : nameShop.getText());
+
+            Label lVia = new Label("Via:"); lVia.setStyle("-fx-font-weight: bold;");
+            Label vVia = new Label(shop.getAddress() != null ? shop.getAddress() : "-");
+
+            Label lTel = new Label("Telefono:"); lTel.setStyle("-fx-font-weight: bold;");
+            Label vTel = new Label(shop.getPhone() != null ? shop.getPhone() : "-");
+
+            grid.addRow(0, lNome, vNome);
+            grid.addRow(1, lVia, vVia);
+            grid.addRow(2, lTel, vTel);
+
+            Button close = new Button("Chiudi");
+            close.setStyle("-fx-background-color: #d32f2f; -fx-text-fill: white; -fx-font-weight: bold; -fx-background-radius: 10; -fx-padding: 6 14;");
+            close.setAlignment(Pos.CENTER);
+            close.setOnAction(e -> ((Stage) close.getScene().getWindow()).close());
+
+            HBox footer = new HBox(close);
+            footer.setAlignment(Pos.CENTER_RIGHT);
+
+            root.getChildren().addAll(title, grid, footer);
+
+            Stage stage = new Stage();
+            stage.setTitle("Informazioni negozio");
+            stage.initOwner(nameShop.getScene().getWindow());
+            stage.initModality(Modality.WINDOW_MODAL);
+            stage.setScene(new Scene(root));
+            stage.showAndWait();
+
+        } catch (Exception ex) {
+            showError("Impossibile aprire le informazioni del negozio:\n" + ex.getMessage(), ex);
+        }
+    }
 
     private void updateWishButton(boolean already) {
         if (already) {
@@ -113,7 +199,7 @@ public class ProductDetailController {
             Integer stock;
             String sel = (sizeCombo != null) ? sizeCombo.getValue() : null;
 
-            stock = ProductDAO.getStockFor(product.getProductId(), product.getIdShop(), sel);
+            stock = productDao.getStockFor(product.getProductId(), product.getIdShop(), sel);
 
             int max = stock;
 
@@ -246,12 +332,12 @@ public class ProductDetailController {
 
     private void refreshForSelectedSize(String sel) throws SQLException {
         // aggiorna prezzo
-        double priceSel = ProductDAO.getPriceFor(product.getProductId(), product.getIdShop(), sel);
+        double priceSel = productDao.getPriceFor(product.getProductId(), product.getIdShop(), sel);
         product.setPrice(priceSel);
         priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
 
         // aggiorna stato “preferiti” per taglia
-        boolean wished = ProductDAO.existsWish(Session.getUser(),
+        boolean wished = productDao.existsWish(Session.getUser(),
                 product.getProductId(), product.getIdShop(), sel);
         updateWishButton(wished);
 

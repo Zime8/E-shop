@@ -15,7 +15,8 @@ import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import org.controlsfx.control.RangeSlider;
-import org.example.dao.ProductDAO;
+import org.example.dao.ProductDaos;
+import org.example.dao.api.ProductDao;
 import org.example.demo.DemoData;
 import org.example.models.Product;
 import org.example.util.Session;
@@ -29,16 +30,24 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-//TODO: modificare tutti gli showAlert con il tipo di alert e sistemare i log con la corretta forma
-
 public class HomeController implements Initializable {
+
+    // ---- DI del DAO (Opzione 2)
+    private final ProductDao productDao;
+    public HomeController(ProductDao productDao) {      // costruttore per test/DI
+        this.productDao = productDao;
+    }
+
+    public HomeController() {                           // costruttore usato da FXMLLoader
+        this(ProductDaos.create());                     // DB o FS in base alle proprietà
+    }
 
     private static final Logger logger = Logger.getLogger(HomeController.class.getName());
     private static final String ALL = "Tutti";
     private Popup cartPopup;
     private Popup profilePopup;
-
     private Popup wishesPopup;
+
     @FXML private Label cartCountLabel;
     @FXML private Button cartBtn;
     @FXML private Button profileBtn;
@@ -60,85 +69,49 @@ public class HomeController implements Initializable {
         welcomeLabel.setText("Benvenuto, " + Session.getUser() + "!");
         sectionTitle.setText("Ultimi Arrivi");
 
+        System.out.println("[DAO] Using: " + productDao.getClass().getName());
+
         loadLatestArrivals();
 
-        // Imposta il focus sul campo di ricerca appena la UI è pronta
         Platform.runLater(() -> {
             searchField.requestFocus();
-            searchField.selectAll(); // Se vuoi selezionare tutto il testo
+            searchField.selectAll();
         });
 
-        // inserimento filtri sport
-        sportFilter.getItems().addAll(
-                ALL,
-                "Calcio",
-                "Basket",
-                "Running",
-                "Tennis",
-                "Nuoto"
-        );
-
+        sportFilter.getItems().addAll(ALL, "Calcio","Basket","Running","Tennis","Nuoto");
         sportFilter.setValue(ALL);
 
-        // inserimento filtri brand
-        brandFilter.getItems().addAll(
-                ALL,
-                "Adidas",
-                "Nike",
-                "Puma",
-                "Joma",
-                "Jordan"
-        );
-
+        brandFilter.getItems().addAll(ALL, "Adidas","Nike","Puma","Joma","Jordan");
         brandFilter.setValue(ALL);
 
-        // inserimento filtri negozio
-        shopFilter.getItems().addAll(
-                ALL,
-                "Cisalfa Sport",
-                "Decathlon",
-                "Sport Incontro",
-                "Under Armour",
-                "JD Sports"
-        );
-
+        shopFilter.getItems().addAll(ALL, "Cisalfa Sport","Decathlon","Sport Incontro","Under Armour","JD Sports");
         shopFilter.setValue(ALL);
 
-        categoryFilter.getItems().addAll(
-                ALL,
-                "Calzature",
-                "Abbigliamento",
-                "Accessori"
-        );
-
+        categoryFilter.getItems().addAll(ALL, "Calzature","Abbigliamento","Accessori");
         categoryFilter.setValue(ALL);
 
-        // aggiornamento filri prezzo min e max
-        priceRangeSlider.lowValueProperty().addListener((obs, oldVal, newVal) -> updatePriceLabel());
-        priceRangeSlider.highValueProperty().addListener((obs, oldVal, newVal) -> updatePriceLabel());
+        priceRangeSlider.lowValueProperty().addListener((obs, o, n) -> updatePriceLabel());
+        priceRangeSlider.highValueProperty().addListener((obs, o, n) -> updatePriceLabel());
 
         searchField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue.length() >= 3) {
                 searchProducts(newValue);
             } else {
-                // Se meno di 3 caratteri, mostra ultimi arrivi o svuota
                 sectionTitle.setText("Ultimi Arrivi");
                 loadLatestArrivals();
             }
         });
 
         updateCart();
-
     }
 
     @FXML
     private void searchProducts(String query) {
-
         sectionTitle.setText("Risultati per: \"" + query + "\"");
         productPane.getChildren().clear();
 
         try {
-            List<Product> results = ProductDAO.searchByName(query);
+            List<Product> results = productDao.searchByName(query); // << sostituisce ProductDAO.searchByName
 
             if (results.isEmpty()) {
                 Label noResults = new Label("Nessun prodotto trovato per \"" + query + "\"");
@@ -156,22 +129,15 @@ public class HomeController implements Initializable {
 
     @FXML
     private void onLogout() {
-
-        // tornare al login
         logger.info("Logout effettuato");
-
         try {
             if (Session.isDemo()) {
-                DemoData.clearUserDemoReviews(
-                        Session.getUser()
-                );
+                DemoData.clearUserDemoReviews(Session.getUser());
             }
             Session.clear();
 
             Parent root = FXMLLoader.load(
                     Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
-
-            // 2. Recupera lo Stage corrente
             Stage stage = (Stage) welcomeLabel.getScene().getWindow();
             stage.setScene(new Scene(root));
 
@@ -181,7 +147,6 @@ public class HomeController implements Initializable {
         }
     }
 
-    // gestione click sul pulsante carrello
     @FXML
     public void onCart() {
         try {
@@ -189,27 +154,21 @@ public class HomeController implements Initializable {
                 cartPopup.hide();
                 return;
             }
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Cart.fxml"));
             VBox popupContent = loader.load();
             CartController controller = loader.getController();
-
-
             controller.setOnCartUpdated(this::updateCart);
 
             cartPopup = new Popup();
             cartPopup.getContent().add(popupContent);
             cartPopup.setAutoHide(true);
 
-            // Mostra provvisoriamente
             cartPopup.show(cartBtn, 0, 0);
 
-            // Ricentra subito e ad ogni variazione di layout (svuota, +/- qty, ecc.)
             Runnable recenter = () -> {
                 if (cartPopup == null || !cartPopup.isShowing()) return;
                 popupContent.applyCss();
-                popupContent.layout(); // forziamo layout aggiornato
-
+                popupContent.layout();
                 var btnB = cartBtn.localToScreen(cartBtn.getBoundsInLocal());
                 double pw = popupContent.getLayoutBounds().getWidth();
                 double x  = btnB.getMinX() + (btnB.getWidth() - pw) / 2.0;
@@ -217,14 +176,8 @@ public class HomeController implements Initializable {
                 cartPopup.setX(x);
                 cartPopup.setY(y);
             };
-
-            // Ricentra ora
             recenter.run();
-
-            // Ricentra OGNI volta che cambia il layout (es. quando diventa vuoto)
             popupContent.layoutBoundsProperty().addListener((obs, o, n) -> recenter.run());
-
-            // Carica contenuti (triggerà layout e quindi il listener)
             controller.loadCartItems();
 
         } catch (IOException e) {
@@ -234,7 +187,7 @@ public class HomeController implements Initializable {
     }
 
     public void updateCart() {
-        List<Product> cartItems = Session.getCartItems(); // o come chiami la tua lista
+        List<Product> cartItems = Session.getCartItems();
         if (cartItems != null && !cartItems.isEmpty()) {
             cartCountLabel.setText(String.valueOf(cartItems.size()));
             cartCountLabel.setVisible(true);
@@ -245,7 +198,6 @@ public class HomeController implements Initializable {
         }
     }
 
-    // gestione click sul pulsante profilo
     @FXML
     public void onProfile() {
         try {
@@ -253,7 +205,6 @@ public class HomeController implements Initializable {
                 profilePopup.hide();
                 return;
             }
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Profile.fxml"));
             Parent dropdownContent = loader.load();
             ProfileController controller = loader.getController();
@@ -262,18 +213,9 @@ public class HomeController implements Initializable {
             profilePopup.getContent().add(dropdownContent);
             profilePopup.setAutoHide(true);
 
-            controller.setOnProfileDetails(() -> {
-                openProfileDetails();
-                profilePopup.hide();
-            });
-            controller.setOnPurchaseHistory(() -> {
-                openPurchaseHistory();
-                profilePopup.hide();
-            });
-            controller.setOnSavedCards(() -> {
-                openSavedCards();
-                profilePopup.hide();
-            });
+            controller.setOnProfileDetails(() -> { openProfileDetails(); profilePopup.hide(); });
+            controller.setOnPurchaseHistory(() -> { openPurchaseHistory(); profilePopup.hide(); });
+            controller.setOnSavedCards(() -> { openSavedCards(); profilePopup.hide(); });
 
             Bounds bounds = profileBtn.localToScreen(profileBtn.getBoundsInLocal());
             dropdownContent.applyCss();
@@ -283,7 +225,6 @@ public class HomeController implements Initializable {
             double centerX = bounds.getMinX() + bounds.getWidth() / 2;
             double x = centerX - popupWidth / 2;
             double y = bounds.getMaxY();
-
             profilePopup.show(profileBtn, x, y);
 
         } catch (IOException e) {
@@ -292,34 +233,21 @@ public class HomeController implements Initializable {
         }
     }
 
-    private void openProfileDetails() {
-        openSidePanel("fxml/ProfileDetails.fxml");
-    }
+    private void openProfileDetails() { openSidePanel("fxml/ProfileDetails.fxml"); }
+    private void openPurchaseHistory() { openSidePanel("fxml/PurchaseHistory.fxml"); }
+    private void openSavedCards() { openSidePanel("fxml/SavedCards.fxml"); }
 
-    private void openPurchaseHistory() {
-        openSidePanel("fxml/PurchaseHistory.fxml");
-    }
-
-    private void openSavedCards() {
-        openSidePanel("fxml/SavedCards.fxml");
-    }
-
-    // gestione click sul pulsante articoli preferiti
     public void onWishes() {
         try {
-            // se è già mostrato, lo nascondo
             if (wishesPopup != null && wishesPopup.isShowing()) {
                 wishesPopup.hide();
                 return;
             }
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Wishlist.fxml"));
             VBox popupContent = loader.load();
             WishlistController controller = loader.getController();
-
             controller.setOnCartUpdated(this::updateCart);
 
-            // creo e mostro il Popup
             Popup p = new Popup();
             p.getContent().add(popupContent);
             p.setAutoHide(true);
@@ -327,7 +255,6 @@ public class HomeController implements Initializable {
 
             controller.loadItems();
 
-            // posiziono sotto il bottone wishesBtn
             Bounds b = wishesBtn.localToScreen(wishesBtn.getBoundsInLocal());
             popupContent.applyCss();
             popupContent.layout();
@@ -336,13 +263,12 @@ public class HomeController implements Initializable {
             double y = b.getMaxY();
             p.show(wishesBtn, x, y);
 
-            } catch (IOException e) {
+        } catch (IOException e) {
             logger.log(Level.SEVERE,"Errore nel caricamento del menu wishlist", e);
             showAlert("Impossibile aprire la Wish List: " + e.getMessage());
         }
     }
 
-    //aggiorna il filtro del prezzo
     private void updatePriceLabel() {
         int low = (int) priceRangeSlider.getLowValue();
         int high = (int) priceRangeSlider.getHighValue();
@@ -351,20 +277,15 @@ public class HomeController implements Initializable {
 
     private void loadLatestArrivals() {
         productPane.getChildren().clear();
-
-        // 1. prendi gli ultimi prodotti dal DB
-        List<Product> latest = ProductDAO.findLatest(40);
-
-        // 2. per ciascun prodotto, carica una “card” via FXML e aggiungila al pane
         try {
+            List<Product> latest = productDao.findLatest(40);
             displayProducts(latest);
-        } catch (IOException e) {
+        } catch (SQLException | IOException e) {
             logger.log(Level.SEVERE, "Errore durante il caricamento dei prodotti", e);
             showAlert("Errore nel caricamento dei prodotti: " + e.getMessage());
         }
     }
 
-    // gestione click sul pulsante filtra
     public void onFilter() {
         String selectedSport = sportFilter.getValue();
         String selectedBrand = brandFilter.getValue();
@@ -379,7 +300,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         try {
-            List<Product> filteredProducts = ProductDAO.searchByFilters(
+            List<Product> filteredProducts = productDao.searchByFilters( // << sostituisce ProductDAO.searchByFilters
                     selectedSport.equals(ALL) ? null : selectedSport,
                     selectedBrand.equals(ALL) ? null : selectedBrand,
                     selectedShop.equals(ALL) ? null : selectedShop,
@@ -401,40 +322,24 @@ public class HomeController implements Initializable {
         }
     }
 
-    // gestione click sul pulsante reset
     public void onResetFilter() {
-        // Reset sport filter
         sportFilter.setValue(ALL);
-
-        // Reset brand filter
         brandFilter.setValue(ALL);
-
-        // Reset shop filter
         shopFilter.setValue(ALL);
-
-        // Reset category filter
         categoryFilter.setValue(ALL);
-
-        // Reset price range slider to max range
         priceRangeSlider.setLowValue(priceRangeSlider.getMin());
         priceRangeSlider.setHighValue(priceRangeSlider.getMax());
-
-        // Aggiorna la label del range prezzo
         updatePriceLabel();
     }
 
     private void displayProducts(List<Product> products) throws IOException  {
         productPane.getChildren().clear();
-
         for (Product p : products) {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
             Node card = loader.load();
-
             ProductCardController ctrl = loader.getController();
             ctrl.setProduct(p);
-
             ctrl.setOnAddToCartCallback(this::updateCart);
-
             productPane.getChildren().add(card);
         }
     }
@@ -445,22 +350,16 @@ public class HomeController implements Initializable {
             showAlert("Errore interno: schermata non valida.");
             return;
         }
-
         URL resource = getClass().getResource("/" + fxmlResource);
         if (resource == null) {
             logger.log(Level.WARNING, "File FXML non valido: {0}", fxmlResource);
             showAlert("Schermata non trovata: " + fxmlResource);
             return;
         }
-
         try {
             Stage stage = getStage(fxmlResource, resource);
-
-            // se vuoi una finestra MODALE (che blocca la principale finché non la chiudi):
             stage.initModality(Modality.APPLICATION_MODAL);
-
             stage.show();
-
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Errore caricamento finestra", e);
             showAlert("Errore caricamento finestra: " + e.getMessage());
@@ -470,24 +369,15 @@ public class HomeController implements Initializable {
     private static Stage getStage(String fxmlResource, URL resource) throws IOException {
         FXMLLoader loader = new FXMLLoader(resource);
         Parent content = loader.load();
-
         Scene scene = new Scene(content);
         Stage stage = new Stage();
         stage.setScene(scene);
-
-        // (facoltativo) titolo dinamico per ogni finestra
-        if (fxmlResource.toLowerCase().contains("card")) {
-            stage.setTitle("Carte Salvate");
-        } else if (fxmlResource.toLowerCase().contains("profile")) {
-            stage.setTitle("Dettagli Profilo");
-        } else if (fxmlResource.toLowerCase().contains("purchase")) {
-            stage.setTitle("Storico Acquisti");
-        } else {
-            stage.setTitle("E-Shop");
-        }
-
-        stage.setResizable(false);  // o true se vuoi permettere il resize
-        stage.centerOnScreen();     // centra la finestra al centro dello schermo
+        if (fxmlResource.toLowerCase().contains("card"))      stage.setTitle("Carte Salvate");
+        else if (fxmlResource.toLowerCase().contains("profile"))  stage.setTitle("Dettagli Profilo");
+        else if (fxmlResource.toLowerCase().contains("purchase")) stage.setTitle("Storico Acquisti");
+        else stage.setTitle("E-Shop");
+        stage.setResizable(false);
+        stage.centerOnScreen();
         return stage;
     }
 
@@ -496,5 +386,4 @@ public class HomeController implements Initializable {
         alert.setContentText(msg);
         alert.showAndWait();
     }
-
 }

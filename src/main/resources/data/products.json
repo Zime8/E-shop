@@ -1,0 +1,29 @@
+[
+  {
+    "product_id": 1,
+    "name_p": "Sneaker Pro",
+    "sport": "running",
+    "brand": "adidas",
+    "category": "calzature",
+    "image_data_base64": null,
+    "created_at": "2025-09-01T10:00:00"
+  },
+  {
+    "product_id": 2,
+    "name_p": "Maglia Dry-Fit",
+    "sport": "running",
+    "brand": "nike",
+    "category": "abbigliamento",
+    "image_data_base64": null,
+    "created_at": "2025-09-02T09:00:00"
+  },
+  {
+    "product_id": 3,
+    "name_p": "Pallone Street",
+    "sport": "basket",
+    "brand": "joma",
+    "category": "accessori",
+    "image_data_base64": null,
+    "created_at": "2025-09-03T08:30:00"
+  }
+]

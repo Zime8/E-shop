@@ -135,7 +135,7 @@ public class PaymentSelectionController {
         if (selected == null) { showInfo("Seleziona una carta salvata per procedere."); return; }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre) per la carta selezionata."); return; }
+        if (!CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre) per la carta selezionata."); return; }
 
         setProcessing(true);
 

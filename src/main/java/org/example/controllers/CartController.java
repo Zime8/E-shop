@@ -6,10 +6,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.ColumnConstraints;
@@ -20,6 +17,8 @@ import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import org.example.dao.ProductDaos;
+import org.example.dao.api.ProductDao;
 import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.util.Session;
@@ -31,6 +30,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CartController {
+
+    private final ProductDao productDao;
+
+    public CartController(ProductDao productDao) {
+        this.productDao = productDao;
+    }
+    public CartController() { this(ProductDaos.create()); }
 
     @FXML private VBox cartItemsContainer;
     @FXML private Label totalLabel;
@@ -117,7 +123,7 @@ public class CartController {
         Label unitPrice = createUnitPriceLabel(agg);
         HBox qtyBox = createQtyBox(p, agg);
         Label sub = createSubtotalLabel(agg);
-        Button removeAll = createRemoveAllButton(p, agg);
+        Button removeAll = createRemoveAllButton(p);
 
         row.add(imageView, 0, 0);
         row.add(name,      1, 0);
@@ -182,6 +188,33 @@ public class CartController {
         Label qtyLbl = new Label(String.valueOf(agg.qty));
         Button plus = new Button("+");
 
+        final int stock;
+        try {
+            stock = productDao.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
+        } catch (Exception ex) {
+            // In caso di errore, comportati in modo prudente: niente incremento
+            logger.log(Level.WARNING, "Impossibile leggere lo stock per " + p.getName(), ex);
+            qtyLbl.setText(String.valueOf(agg.qty));
+            plus.setDisable(true);
+            stockLabelTooltip(plus, "Disponibilità non verificabile");
+            stockLabelTooltip(qtyLbl, "Disponibilità non verificabile");
+            stockLabelTooltip(minus, "Disponibilità non verificabile");
+            // listener minus resta valido
+            minus.setOnAction(e -> {
+                Session.removeFromCart(p);
+                loadCartItems();
+                if (onCartUpdated != null) onCartUpdated.run();
+            });
+            qtyBox.getChildren().addAll(minus, qtyLbl, plus);
+            return qtyBox;
+        }
+
+        // Se già al massimo, disabilita il +
+        if (agg.qty >= stock) {
+            plus.setDisable(true);
+            stockLabelTooltip(plus, "Quantità massima raggiunta: " + stock);
+        }
+
         minus.setOnAction(e -> {
             Session.removeFromCart(p);
             loadCartItems();
@@ -198,13 +231,17 @@ public class CartController {
         return qtyBox;
     }
 
+    private static void stockLabelTooltip(Control c, String msg) {
+        c.setTooltip(new Tooltip(msg));
+    }
+
     private Label createSubtotalLabel(Aggregated agg) {
         Label sub = new Label(String.format("€ %.2f", agg.subtotal()));
         sub.setStyle("-fx-font-weight: bold;");
         return sub;
     }
 
-    private Button createRemoveAllButton(Product p, Aggregated agg) {
+    private Button createRemoveAllButton(Product p) {
         Button removeAll = new Button();
         removeAll.setPrefSize(24, 24);
         removeAll.setGraphic(new ImageView(
@@ -212,12 +249,11 @@ public class CartController {
                         16, 16, true, true)));
 
         removeAll.setOnAction(e -> {
-            for (int i = 0; i < agg.qty; i++) {
-                Session.removeFromCart(p);
-            }
+            Session.removeLineFromCart(p.getProductId(), p.getIdShop(), p.getSize());
             loadCartItems();
             if (onCartUpdated != null) onCartUpdated.run();
         });
+
         return removeAll;
     }
 

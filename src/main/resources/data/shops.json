@@ -1,0 +1,12 @@
+[
+  { "id_shop": 1, "name_s": "Cisalfa Sport", "street": "Via Torre di Mezzavia 91",
+    "phone_number": "3346723506"},
+  { "id_shop": 2, "name_s": "Decathlon", "street": "Via Appia Nuova 450",
+    "phone_number": "39 02 1234567" },
+  { "id_shop": 3, "name_s": "Sport Incontro", "street": "Via dei Castani 35",
+    "phone_number": "39 06 9876543" },
+  { "id_shop": 4, "name_s": "Under Armour", "street": "Via del Tritone 176",
+    "phone_number": "39 081 2233445" },
+  { "id_shop": 5, "name_s": "JD Sports", "street": "Via Luigi Schiavonetti 426",
+    "phone_number": "39 055 3344556" }
+]

@@ -1,0 +1,11 @@
+[
+  { "product_id": 1, "id_shop": 1, "size": "42", "price": 79.9, "quantity": 5 },
+  { "product_id": 1, "id_shop": 1, "size": "43", "price": 79.9, "quantity": 3 },
+  { "product_id": 1, "id_shop": 2, "size": "42", "price": 74.9, "quantity": 2 },
+
+  { "product_id": 2, "id_shop": 2, "size": "M",  "price": 29.9, "quantity": 7 },
+  { "product_id": 2, "id_shop": 2, "size": "L",  "price": 29.9, "quantity": 4 },
+
+  { "product_id": 3, "id_shop": 1, "size": "unique",  "price": 19.9, "quantity": 10 },
+  { "product_id": 3, "id_shop": 2, "size": "unique",  "price": 18.5, "quantity": 6 }
+]

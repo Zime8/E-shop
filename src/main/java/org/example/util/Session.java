@@ -29,6 +29,16 @@ public final class Session {
         wishListItems.clear();
     }
 
+    public static void removeLineFromCart(long productId, int shopId, String size) {
+        List<Product> cart = getCartItems();
+        if (cart == null) return;
+        cart.removeIf(p ->
+                p.getProductId() == productId &&
+                        p.getIdShop() == shopId &&
+                        java.util.Objects.equals(p.getSize(), size)
+        );
+    }
+
     public static boolean isDemo() {
         return demo;
     }
