@@ -93,8 +93,10 @@ public class ProductDaoFs implements ProductDao {
                                          double minPrice, double maxPrice) {
         store.rw.readLock().lock();
         try {
-            String sportVal = blankToNull(sport), brandVal = blankToNull(brand),
-                    catVal = blankToNull(category), shopVal = blankToNull(shop);
+            String sportVal = blankToNull(sport);
+            String brandVal = blankToNull(brand);
+            String catVal = blankToNull(category);
+            String shopVal = blankToNull(shop);
 
             var products = store.readList(PRODUCTS, new TypeReference<List<FsProduct>>() {});
             var avail    = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
