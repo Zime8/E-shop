@@ -31,8 +31,7 @@ public final class ShopDAO {
             // Log nel DAO
             logger.log(Level.WARNING, e, () ->
                     "Errore durante il recupero del balance per userId=" + userId);
-            // Rilancio: l'Alert verrà mostrato dal controller
-            throw e;
+            return null;
         }
     }
 
@@ -70,8 +69,6 @@ public final class ShopDAO {
                 // Log nel DAO
                 logger.log(Level.WARNING, e, () ->
                         "Errore nella richiesta di prelievo: userId=" + userId + ", amount=" + amount);
-                // Rilancio: l'Alert verrà mostrato dal controller
-                throw e;
             } finally {
                 c.setAutoCommit(true);
             }
@@ -103,7 +100,7 @@ public final class ShopDAO {
         } catch (SQLException e) {
             logger.log(Level.WARNING, e, () ->
                     "Errore durante il recupero del negozio idShop=" + idShop);
-            throw e;
+            return null;
         }
     }
 }
