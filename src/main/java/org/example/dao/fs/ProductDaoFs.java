@@ -12,16 +12,21 @@ import java.util.stream.Collectors;
 
 public class ProductDaoFs implements ProductDao {
     private final FsStore store;
+
     public ProductDaoFs(Path dataRoot) { this.store = new FsStore(dataRoot); }
     public ProductDaoFs() { this(null); } // usa resources/data
+
+    private static final String PRODUCTS = "products.json";
+    private static final String AVAILABILITY = "product_availability.json";
+    private static final String SHOPS = "shops.json";
 
     @Override
     public List<Product> findLatest(int limit) {
         store.rw.readLock().lock();
         try {
-            var products = store.readList("products.json", new TypeReference<List<FsProduct>>() {});
-            var avail    = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
-            var shops    = store.readList("shops.json", new TypeReference<List<FsShop>>() {});
+            var products = store.readList(PRODUCTS, new TypeReference<List<FsProduct>>() {});
+            var avail    = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
+            var shops    = store.readList(SHOPS, new TypeReference<List<FsShop>>() {});
 
             Map<Long, Optional<FsAvailability>> minByProduct = avail.stream()
                     .collect(Collectors.groupingBy(FsAvailability::productId,
@@ -57,8 +62,8 @@ public class ProductDaoFs implements ProductDao {
         store.rw.readLock().lock();
         try {
             String q = (name == null ? "" : name.toLowerCase());
-            var products = store.readList("products.json", new TypeReference<List<FsProduct>>() {});
-            var avail    = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
+            var products = store.readList(PRODUCTS, new TypeReference<List<FsProduct>>() {});
+            var avail    = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
             Map<Long, Double> minPrice = avail.stream().collect(
                     Collectors.groupingBy(FsAvailability::productId,
                             Collectors.mapping(FsAvailability::price,
@@ -91,9 +96,9 @@ public class ProductDaoFs implements ProductDao {
             String sportVal = blankToNull(sport), brandVal = blankToNull(brand),
                     catVal = blankToNull(category), shopVal = blankToNull(shop);
 
-            var products = store.readList("products.json", new TypeReference<List<FsProduct>>() {});
-            var avail    = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
-            var shops    = store.readList("shops.json", new TypeReference<List<FsShop>>() {});
+            var products = store.readList(PRODUCTS, new TypeReference<List<FsProduct>>() {});
+            var avail    = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
+            var shops    = store.readList(SHOPS, new TypeReference<List<FsShop>>() {});
 
             Map<Integer, String> shopNames = shops.stream()
                     .collect(Collectors.toMap(FsShop::idShop, FsShop::nameS));
@@ -138,7 +143,7 @@ public class ProductDaoFs implements ProductDao {
     @Override public int getShopIdByName(String shopName) {
         store.rw.readLock().lock();
         try {
-            var shops = store.readList("shops.json", new TypeReference<List<FsShop>>() {});
+            var shops = store.readList(SHOPS, new TypeReference<List<FsShop>>() {});
             return shops.stream()
                     .filter(s -> s.nameS().equals(shopName))
                     .findFirst().map(FsShop::idShop)
@@ -149,7 +154,7 @@ public class ProductDaoFs implements ProductDao {
     @Override public List<String> getAvailableSizes(long productId, int idShop) {
         store.rw.readLock().lock();
         try {
-            var avail = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
+            var avail = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
             return avail.stream()
                     .filter(a -> a.productId()==productId && a.idShop()==idShop && a.quantity()>0)
                     .map(FsAvailability::size).distinct().sorted().toList();
@@ -159,7 +164,7 @@ public class ProductDaoFs implements ProductDao {
     @Override public double getPriceFor(long productId, int idShop, String size) {
         store.rw.readLock().lock();
         try {
-            var avail = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
+            var avail = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
             return avail.stream()
                     .filter(a -> a.productId()==productId && a.idShop()==idShop && Objects.equals(a.size(), size))
                     .map(FsAvailability::price).findFirst()
@@ -170,7 +175,7 @@ public class ProductDaoFs implements ProductDao {
     @Override public Integer getStockFor(long productId, int shopId, String size) {
         store.rw.readLock().lock();
         try {
-            var avail = store.readList("product_availability.json", new TypeReference<List<FsAvailability>>() {});
+            var avail = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
             return avail.stream()
                     .filter(a -> a.productId()==productId && a.idShop()==shopId && Objects.equals(a.size(), size))
                     .map(FsAvailability::quantity).findFirst().orElse(0);
