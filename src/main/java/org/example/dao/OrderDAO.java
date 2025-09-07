@@ -229,13 +229,14 @@ public final class OrderDAO {
         try (PreparedStatement psOrder = conn.prepareStatement(INSERT_ORDER_SQL, Statement.RETURN_GENERATED_KEYS);
              PreparedStatement psDetail = conn.prepareStatement(INSERT_DETAIL_SQL)) {
 
+            psOrder.setInt(1, userId);
+            if (address == null || address.isBlank()) {
+                psOrder.setNull(2, Types.VARCHAR);
+            } else {
+                psOrder.setString(2, address);
+            }
+
             for (int ignored : shopIdsInOrder) {
-                psOrder.setInt(1, userId);
-                if (address == null || address.isBlank()) {
-                    psOrder.setNull(2, Types.VARCHAR);
-                } else {
-                    psOrder.setString(2, address);
-                }
                 psOrder.addBatch();
             }
             psOrder.executeBatch();
