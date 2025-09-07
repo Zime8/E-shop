@@ -5,14 +5,20 @@ import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.control.skin.ComboBoxListViewSkin;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 import org.example.dao.SellerDAO;
 import org.example.dao.ShopDAO;
@@ -30,6 +36,7 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.logging.Level;
@@ -70,7 +77,7 @@ public class SellerHomeController {
 
     private boolean updatingFilters = false;
 
-    // Esecutore async (daemon)
+    // Esecutore async
     private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "seller-ui-worker");
         t.setDaemon(true);
@@ -107,6 +114,7 @@ public class SellerHomeController {
     @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colOrderStateS;
     @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colOrderTotalS;
     @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colCustomerS;
+    @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colAddress;
 
     @FXML private TableView<SellerDAO.ShopOrderLine> orderItemsTable;
     @FXML private TableColumn<SellerDAO.ShopOrderLine, String> colItemNameS;
@@ -181,6 +189,10 @@ public class SellerHomeController {
             return new SimpleStringProperty(s);
         });
         colCustomerS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().customer()));
+        colAddress.setCellValueFactory(cd -> {
+            String v = cd.getValue().address();
+            return new SimpleStringProperty((v == null || v.isBlank()) ? "-" : v);
+        });
 
         colItemNameS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().productName()));
         colItemSizeS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().size()));
@@ -199,6 +211,7 @@ public class SellerHomeController {
         colOrderStateS.setStyle(ALIGN_CENTER);
         colOrderTotalS.setStyle(ALIGN_CENTER);
         colCustomerS.setStyle(ALIGN_CENTER);
+        colAddress.setStyle(ALIGN_CENTER);
 
         colItemNameS.setStyle(ALIGN_CENTER);
         colItemSizeS.setStyle(ALIGN_CENTER);
@@ -856,7 +869,7 @@ public class SellerHomeController {
 
     private void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial) {
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        okBtn.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+        okBtn.addEventFilter(ActionEvent.ACTION, ev -> {
             try {
                 if (initial == null) ui.combo.getEditor().setStyle(styles.base);
                 ui.size.setStyle(styles.base);
@@ -913,18 +926,18 @@ public class SellerHomeController {
     }
 
     private void blockEnterCommit(ComboBox<SellerDAO.ProductOption> cb) {
-        cb.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) e.consume();
+        cb.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.ENTER) e.consume();
         });
-        cb.getEditor().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
-            if (e.getCode() == javafx.scene.input.KeyCode.ENTER) e.consume();
+        cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+            if (e.getCode() == KeyCode.ENTER) e.consume();
         });
     }
 
     private void fixPopupSpaceIssue(ComboBox<SellerDAO.ProductOption> cb) {
-        final java.util.concurrent.atomic.AtomicBoolean suppressNext = new java.util.concurrent.atomic.AtomicBoolean(false);
+        final AtomicBoolean suppressNext = new AtomicBoolean(false);
 
-        cb.getEditor().addEventFilter(javafx.scene.input.KeyEvent.KEY_TYPED, e -> {
+        cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
             if (" ".equals(e.getCharacter()) && suppressNext.get()) {
                 e.consume();
                 suppressNext.set(false);
@@ -932,19 +945,19 @@ public class SellerHomeController {
         });
 
         cb.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-            if (!(newSkin instanceof javafx.scene.control.skin.ComboBoxListViewSkin<?> skin)) return;
-            javafx.scene.Node popupContent = skin.getPopupContent();
+            if (!(newSkin instanceof ComboBoxListViewSkin<?> skin)) return;
+            Node popupContent = skin.getPopupContent();
             if (!(popupContent instanceof ListView<?> lv)) return;
 
-            lv.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
-                if (e.getCode() == javafx.scene.input.KeyCode.SPACE && cb.getEditor().isFocused()) {
+            lv.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                if (e.getCode() == KeyCode.SPACE && cb.getEditor().isFocused()) {
                     var ed = cb.getEditor();
                     ed.insertText(ed.getCaretPosition(), " ");
                     suppressNext.set(true);
                     e.consume();
                     return;
                 }
-                if (e.getCode() == javafx.scene.input.KeyCode.ENTER) {
+                if (e.getCode() == KeyCode.ENTER) {
                     e.consume();
                 }
             });
@@ -952,7 +965,7 @@ public class SellerHomeController {
     }
 
     private void attachTypeahead(ComboBox<SellerDAO.ProductOption> cb) {
-        final PauseTransition debounce = new PauseTransition(javafx.util.Duration.millis(250));
+        final PauseTransition debounce = new PauseTransition(Duration.millis(250));
         final String[] lastQ = { "" };
 
         cb.getEditor().textProperty().addListener((o, old, neu) -> {
@@ -1034,11 +1047,11 @@ public class SellerHomeController {
     }
 
     private void dropValueOnTyping(ComboBox<SellerDAO.ProductOption> cb) {
-        cb.getEditor().addEventFilter(javafx.scene.input.KeyEvent.KEY_TYPED, e -> {
+        cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
             if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
             if (cb.getValue() != null) cb.setValue(null);
         });
-        cb.getEditor().addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, e -> {
+        cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             switch (e.getCode()) {
                 case BACK_SPACE, DELETE -> {
                     if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
@@ -1138,14 +1151,13 @@ public class SellerHomeController {
         try{
             BigDecimal bal = ShopDAO.getBalance(userId);
             balanceLabel.setText(currencyIt.format(bal));
-            withdrawButton.setDisable(bal.compareTo(BigDecimal.ZERO) <= 0);
+            withdrawButton.setDisable((bal != null ? bal.compareTo(BigDecimal.ZERO) : 0) <= 0);
         }catch (SQLException e) {
             logger.info( "Aggiornamento saldo fallito");
             balanceLabel.setText("—");
             withdrawButton.setDisable(true);
             new Alert(Alert.AlertType.ERROR, "Impossibile aggiornare il saldo: " + e.getMessage()).showAndWait();
         }
-
 
     }
 
@@ -1159,7 +1171,7 @@ public class SellerHomeController {
 
         try {
             BigDecimal saldo = ShopDAO.getBalance(userId);
-            if (saldo.compareTo(BigDecimal.ZERO) <= 0) {
+            if ((saldo != null ? saldo.compareTo(BigDecimal.ZERO) : 0) <= 0) {
                 new Alert(Alert.AlertType.INFORMATION, "Saldo non disponibile.").showAndWait();
                 return;
             }

@@ -50,6 +50,10 @@
                 <!-- Divider sottile -->
                 <Region prefHeight="6"/>
 
+                <TextField fx:id="addressField" promptText="Indirizzo di spedizione"/>
+
+                <Region prefHeight="6"/>
+
                 <!-- Sottotitolo form -->
                 <HBox alignment="CENTER_LEFT" spacing="8">
                     <Label text="Aggiungi nuova carta"
@@ -74,8 +78,8 @@
                     <Label text="Scadenza:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
                     <TextField fx:id="expiryField" promptText="MM/YY" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
 
-        <Label text="Tipo:" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
-        <ComboBox fx:id="typeCombo" promptText="Seleziona tipo" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
+                    <Label text="Tipo:" GridPane.rowIndex="1" GridPane.columnIndex="2"/>
+                    <ComboBox fx:id="typeCombo" promptText="Seleziona tipo" GridPane.rowIndex="1" GridPane.columnIndex="3"/>
 
                     <HBox spacing="8" GridPane.rowIndex="2" GridPane.columnIndex="3" alignment="CENTER_RIGHT">
                         <Button text="Aggiungi" onAction="#onAddInline"

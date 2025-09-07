@@ -40,6 +40,7 @@ public class PaymentSelectionController {
     @FXML private TextField holderField;
     @FXML private TextField numberField;
     @FXML private TextField expiryField;
+    @FXML private TextField addressField;
 
     @FXML private Button backBtn;
     @FXML private Button confirmBtn;
@@ -131,6 +132,9 @@ public class PaymentSelectionController {
         Integer userId = Session.getUserId();
         if (userId == null) { showInfo("Devi effettuare il login."); return; }
 
+        String address = (addressField != null) ? addressField.getText() : null;
+        if (address == null || address.isBlank()) { showInfo("Inserisci l'indirizzo di spedizione."); return; }
+
         Card selected = cardsTable.getSelectionModel().getSelectedItem();
         if (selected == null) { showInfo("Seleziona una carta salvata per procedere."); return; }
 
@@ -145,11 +149,11 @@ public class PaymentSelectionController {
         paymentData.put("cvv",         cvv);
         logger.log(Level.FINE, "CVV presente: {0}", !cvv.isBlank() ? "***" : "no");
 
-        Task<OrderDAO.CreationResult> task = getCreationResultTask(userId, paymentData, selected);
+        Task<OrderDAO.CreationResult> task = getCreationResultTask(userId, paymentData, selected, address);
         new Thread(task).start();
     }
 
-    private Task<OrderDAO.CreationResult> getCreationResultTask(Integer userId, Map<String, String> paymentData, Card selected) {
+    private Task<OrderDAO.CreationResult> getCreationResultTask(Integer userId, Map<String, String> paymentData, Card selected, String address) {
         Task<OrderDAO.CreationResult> task = new Task<>() {
             @Override
             protected OrderDAO.CreationResult call() throws Exception {
@@ -157,7 +161,7 @@ public class PaymentSelectionController {
                 if (!payRes.success()) {
                     throw new IllegalStateException("Pagamento rifiutato: " + payRes.message());
                 }
-                OrderDAO.CreationResult res = OrderDAO.placeOrderWithStockDecrement(userId, items);
+                OrderDAO.CreationResult res = OrderDAO.placeOrderWithStockDecrement(userId, items, address);
                 logger.log(Level.INFO, "Payment txId: {0}", payRes.transactionId());
                 return res;
             }

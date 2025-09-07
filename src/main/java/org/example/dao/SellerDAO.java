@@ -42,7 +42,8 @@ public final class SellerDAO {
             Timestamp orderDate,
             String state,
             BigDecimal total,
-            String customer
+            String customer,
+            String address
     ) {}
 
     /** Riga d’ordine per questo shop */
@@ -267,7 +268,8 @@ public final class SellerDAO {
                             rs.getTimestamp("date_order"),
                             rs.getString("state_order"),
                             rs.getBigDecimal("total"),
-                            rs.getString("customer")
+                            rs.getString("customer"),
+                            rs.getString("address")
                     ));
                 }
             }
@@ -281,6 +283,7 @@ public final class SellerDAO {
                    o.date_order,
                    o.state_order,
                    u.username AS customer,
+                   o.address,
                    COALESCE(SUM(d.quantity * d.price), 0) AS total
             FROM orders_client o
             JOIN details_order d ON d.id_order = o.id_order AND d.id_shop = ?
@@ -288,7 +291,7 @@ public final class SellerDAO {
             WHERE 1=1
         """;
         final String byState = " AND (? IS NULL OR o.state_order = ?)";
-        final String tail = " GROUP BY o.id_order, o.date_order, o.state_order, u.username ORDER BY o.date_order DESC, o.id_order DESC";
+        final String tail = " GROUP BY o.id_order, o.date_order, o.state_order, u.username, o.address ORDER BY o.date_order DESC, o.id_order DESC";
 
         return base + byState + tail;
     }

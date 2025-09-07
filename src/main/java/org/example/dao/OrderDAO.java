@@ -18,8 +18,8 @@ public final class OrderDAO {
 
     // === SQL (produzione) ===
     private static final String INSERT_ORDER_SQL = """
-        INSERT INTO orders_client (id_user, date_order, date_order_update, state_order)
-        VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione')""";
+        INSERT INTO orders_client (id_user, date_order, date_order_update, state_order, address)
+        VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione', ?)""";
 
     private static final String INSERT_DETAIL_SQL = """
         INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price)
@@ -67,11 +67,11 @@ public final class OrderDAO {
        CREAZIONE ORDINI (con gestione stock)
        ============================================================ */
     // == ENTRY POINT semplificato ==
-    public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items) throws SQLException {
+    public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items, String address) throws SQLException {
         validateItems(items);
         return Session.isDemo()
                 ? placeOrderDemo(userId, items)
-                : placeOrderDb(userId, items);
+                : placeOrderDb(userId, items, address);
     }
 
     /* ========================== DEMO ========================== */
@@ -174,14 +174,14 @@ public final class OrderDAO {
 
     /* ======================== PRODUZIONE ======================== */
 
-    private static CreationResult placeOrderDb(int userId, List<CartItem> items) throws SQLException {
+    private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
         Connection conn = DatabaseConnection.getInstance();
         boolean oldAuto = conn.getAutoCommit();
         SQLException toThrow = null;
 
         try {
             conn.setAutoCommit(false);
-            CreationResult result = createOrdersPerShop(conn, userId, items);
+            CreationResult result = createOrdersPerShop(conn, userId, items, address);
             decrementStockForItems(conn, items);
             conn.commit();
             return result;
@@ -216,7 +216,7 @@ public final class OrderDAO {
 
     // ======== HELPER DB (originali) ========
 
-    private static CreationResult createOrdersPerShop(Connection conn, int userId, List<CartItem> items) throws SQLException {
+    private static CreationResult createOrdersPerShop(Connection conn, int userId, List<CartItem> items, String address) throws SQLException {
         final Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
         for (CartItem it : items) {
             byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
@@ -229,8 +229,13 @@ public final class OrderDAO {
         try (PreparedStatement psOrder = conn.prepareStatement(INSERT_ORDER_SQL, Statement.RETURN_GENERATED_KEYS);
              PreparedStatement psDetail = conn.prepareStatement(INSERT_DETAIL_SQL)) {
 
-            psOrder.setInt(1, userId);
-            for (int i = 0; i < shopIdsInOrder.size(); i++) {
+            for (int ignored : shopIdsInOrder) {
+                psOrder.setInt(1, userId);
+                if (address == null || address.isBlank()) {
+                    psOrder.setNull(2, Types.VARCHAR);
+                } else {
+                    psOrder.setString(2, address);
+                }
                 psOrder.addBatch();
             }
             psOrder.executeBatch();
