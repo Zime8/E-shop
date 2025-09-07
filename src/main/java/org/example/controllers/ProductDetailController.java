@@ -22,7 +22,11 @@ import org.example.models.Product;
 import org.example.models.Shop;
 import org.example.util.Session;
 
+import java.awt.*;
 import java.io.ByteArrayInputStream;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
@@ -154,7 +158,8 @@ public class ProductDetailController {
             Label vName = new Label(shop.getName() != null ? shop.getName() : nameShop.getText());
 
             Label lAddress = new Label("Via:"); lAddress.setStyle(STYLE);
-            Label vAddress = new Label(shop.getAddress() != null ? shop.getAddress() : "-");
+            Hyperlink vAddress = new Hyperlink(shop.getAddress() != null ? shop.getAddress() : "-");
+            vAddress.setOnAction(e2 -> openMapsForAddress(vAddress.getText()));
 
             Label lTel = new Label("Telefono:"); lTel.setStyle(STYLE);
             Label vTel = new Label(shop.getPhone() != null ? shop.getPhone() : "-");
@@ -182,6 +187,26 @@ public class ProductDetailController {
 
         } catch (Exception ex) {
             showError("Impossibile aprire le informazioni del negozio:\n" + ex.getMessage(), ex);
+        }
+    }
+
+    private void openMapsForAddress(String address) {
+        if (address == null || address.isBlank()) {
+            new Alert(Alert.AlertType.INFORMATION, "Indirizzo non disponibile.").showAndWait();
+            return;
+        }
+        try {
+            String q = URLEncoder.encode(address, StandardCharsets.UTF_8);
+            String url = "https://www.google.com/maps/search/?api=1&query=" + q;
+
+            if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+                Desktop.getDesktop().browse(new URI(url));
+            } else {
+                // fallback: mostra l’URL all’utente
+                new Alert(Alert.AlertType.INFORMATION, "Apri manualmente:\n" + url).showAndWait();
+            }
+        } catch (Exception ex) {
+            showError("Impossibile aprire Google Maps:\n" + ex.getMessage(), ex);
         }
     }
 
