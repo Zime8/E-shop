@@ -13,17 +13,21 @@ import javafx.stage.Stage;
 import org.example.dao.OrderDAO;
 import org.example.dao.OrderDAO.OrderLine;
 import org.example.dao.OrderDAO.OrderSummary;
+import org.example.models.Order;
 import org.example.util.Session;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static java.sql.Timestamp.valueOf;
 import static javafx.collections.FXCollections.observableArrayList;
 
 public class PurchaseHistoryController {
@@ -128,56 +132,53 @@ public class PurchaseHistoryController {
 
     private void loadOrders(int userId) {
         setLoading(true);
-        new Thread(() -> {
+        Thread t = new Thread(() -> {
             try {
-                // 1) Prende TUTTI gli ordini con le righe in una sola chiamata
-                List<org.example.models.Order> full = OrderDAO.listOrdersModel(userId);
+                // 1) Carica il modello completo (ordini + righe) dal DAO
+                List<Order> full = OrderDAO.listOrdersModel(userId);
 
-                // 2) Converte in OrderSummary per la tabella di sinistra
-                List<OrderSummary> summaries = new java.util.ArrayList<>(full.size());
-
-                // 3) Prepara la cache delle righe convertendo in OrderDAO.OrderLine (record del controller)
-                itemsCache.clear();
-
-                for (org.example.models.Order o : full) {
-                    // Calcolo totale
-                    java.math.BigDecimal total = o.getLines().stream()
-                            .map(org.example.models.OrderLine::getSubtotal)
-                            .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
-
-                    // Summary per tabella ordini
-                    summaries.add(new OrderSummary(
-                            o.getId(),
-                            java.sql.Timestamp.valueOf(o.getCreatedAt()),
-                            o.getStatus().toDb(),   // stringa stato
-                            total
-                    ));
-
-                    List<OrderLine> converted = new java.util.ArrayList<>();
-                    for (org.example.models.OrderLine l : o.getLines()) {
-                        converted.add(new OrderLine(
-                                l.getOrderId(),
-                                l.getProductId(),
-                                l.getShopId(),
-                                l.getProductName(),
-                                l.getShopName(),
-                                l.getSize(),
-                                l.getQuantity(),
-                                l.getUnitPrice() == null ? java.math.BigDecimal.ZERO : l.getUnitPrice()
-                        ));
-                    }
-                    itemsCache.put(o.getId(), converted);
+                // 2) Prepara la cache dei dettagli (in background)
+                Map<Integer, List<OrderLine>> tmpCache = new HashMap<>(Math.max(16, full.size() * 2));
+                for (Order o : full) {
+                    List<OrderLine> converted = getOrderLines(o);
+                    // copia immutabile per il passaggio al FX thread
+                    tmpCache.put(o.getId(), List.copyOf(converted));
                 }
 
-                // 4) UI update
+                // 3) Costruisci direttamente la lista "finale" (immutabile) per la tabella ordini
+                List<OrderSummary> summariesView = full.stream().map(o -> {
+                    BigDecimal total = o.getLines().stream()
+                            .map(org.example.models.OrderLine::getSubtotal)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    return new OrderSummary(
+                            o.getId(),
+                            valueOf(o.getCreatedAt()),
+                            o.getStatus().toDb(),
+                            total
+                    );
+                }).toList();
+
+                // 4) Copia immutabile della cache per sicurezza
+                Map<Integer, List<OrderLine>> cacheView = Map.copyOf(tmpCache);
+
+                // 5) Aggiorna la UI sul FX Thread
                 Platform.runLater(() -> {
-                    orders.setAll(summaries);
-                    items.clear();
-                    setLoading(false);
-                    if (!orders.isEmpty()) {
-                        ordersTable.getSelectionModel().selectFirst();
+                    try {
+                        itemsCache.clear();
+                        itemsCache.putAll(cacheView);
+                        orders.setAll(summariesView);
+                        items.clear();
+                        setLoading(false);
+                        if (!orders.isEmpty()) {
+                            ordersTable.getSelectionModel().selectFirst();
+                        }
+                        ordersTable.layout();
+                    } catch (Exception e) {
+                        logger.log(Level.SEVERE, "Errore aggiornando la UI", e);
+                        setLoading(false);
+                        showError("Errore aggiornando la UI: " + e.getMessage());
                     }
-                    ordersTable.layout();
                 });
 
             } catch (SQLException e) {
@@ -187,9 +188,28 @@ public class PurchaseHistoryController {
                     showError(e.getMessage());
                 });
             }
-        }).start();
+        }, "load-orders-thread");
+
+        t.setDaemon(true);
+        t.start();
     }
 
+    private static List<OrderLine> getOrderLines(Order o) {
+        List<OrderLine> converted = new ArrayList<>();
+        for (org.example.models.OrderLine l : o.getLines()) {
+            converted.add(new OrderLine(
+                    l.getOrderId(),
+                    l.getProductId(),
+                    l.getShopId(),
+                    l.getProductName(),
+                    l.getShopName(),
+                    l.getSize(),
+                    l.getQuantity(),
+                    l.getUnitPrice() == null ? BigDecimal.ZERO : l.getUnitPrice()
+            ));
+        }
+        return converted;
+    }
 
     private void loadItems(int orderId) {
         List<OrderLine> cached = itemsCache.getOrDefault(orderId, java.util.List.of());
