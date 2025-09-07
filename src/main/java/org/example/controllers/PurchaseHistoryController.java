@@ -138,7 +138,7 @@ public class PurchaseHistoryController {
                 List<Order> full = OrderDAO.listOrdersModel(userId);
 
                 // 2) Prepara la cache dei dettagli (in background)
-                Map<Integer, List<OrderLine>> tmpCache = new HashMap<>(Math.max(16, full.size() * 2));
+                Map<Integer, List<OrderLine>> tmpCache = HashMap.newHashMap(full.size());
                 for (Order o : full) {
                     List<OrderLine> converted = getOrderLines(o);
                     // copia immutabile per il passaggio al FX thread
