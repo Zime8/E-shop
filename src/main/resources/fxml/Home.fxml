@@ -28,7 +28,7 @@
                 <Region HBox.hgrow="ALWAYS"/>
 
                 <!-- Centro: Titolo -->
-                <Label text="E-Commerce"
+                <Label text="E-Shop"
                        style="-fx-font-size: 25; -fx-font-weight: bold; -fx-text-fill: white;"/>
 
                 <!-- Spazio per spingere la parte destra a destra -->
@@ -148,7 +148,7 @@
                 </padding>
                 <Label text="© 2025 E‑Commerce FX" style="-fx-text-fill: white;"/>
                 <Region HBox.hgrow="ALWAYS"/>
-                <Label fx:id="statusLabel" style="-fx-text-fill: white;"/>
+                <Label style="-fx-text-fill: white;"/>
             </HBox>
         </bottom>
 
