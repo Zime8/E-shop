@@ -171,28 +171,81 @@ public final class OrderDAO {
     }
 
     private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
-        String call = "{ call sp_place_order(?, ?, ?) }";
+        final String CALL = "{ call sp_place_order(?, ?, ?) }";
+
         try (Connection conn = DatabaseConnection.getInstance();
-             CallableStatement cs = conn.prepareCall(call)) {
+             CallableStatement cs = conn.prepareCall(CALL)) {
 
-            cs.setInt(1, userId);
-            if (address == null || address.isBlank()) cs.setNull(2, Types.VARCHAR);
-            else cs.setString(2, address);
+            // 1) Avvio transazione lato Java
+            boolean oldAuto = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                // 2) Parametri SP
+                cs.setInt(1, userId);
+                if (address == null || address.isBlank()) cs.setNull(2, Types.VARCHAR);
+                else cs.setString(2, address);
+                cs.setString(3, buildItemsJson(items));
 
-            cs.setString(3, buildItemsJson(items));
+                // 3) Esecuzione SP con multi-resultset
+                List<Integer> orderIds = new ArrayList<>();
+                Map<Integer, Integer> shopToOrder = new LinkedHashMap<>();
 
-            List<Integer> orderIds = new ArrayList<>();
-            Map<Integer, Integer> shopToOrder = new LinkedHashMap<>();
+                boolean hasResults = cs.execute(); // NON usare executeQuery()
 
-            try (ResultSet rs = cs.executeQuery()) {
-                while (rs.next()) {
-                    int shopId  = rs.getInt("shop_id");
-                    int orderId = rs.getInt("order_id");
-                    shopToOrder.put(shopId, orderId);
-                    orderIds.add(orderId);
+                ResultSet finalRs = null;
+                while (true) {
+                    if (hasResults) {
+                        ResultSet cur = cs.getResultSet();
+                        ResultSetMetaData md = cur.getMetaData();
+
+                        // Cerca il RS finale con le colonne id_shop/id_order (o shop_id/order_id se non aliasi)
+                        boolean isFinal = false;
+                        for (int i = 1; i <= md.getColumnCount(); i++) {
+                            String label = md.getColumnLabel(i);
+                            if ("id_order".equalsIgnoreCase(label) || "order_id".equalsIgnoreCase(label)) {
+                                isFinal = true;
+                                break;
+                            }
+                        }
+                        if (isFinal) {
+                            finalRs = cur; // NON chiudere qui
+                            break;
+                        } else {
+                            cur.close(); // scarta RS intermedi (es. SELECT ... FOR UPDATE)
+                        }
+                    } else {
+                        if (cs.getUpdateCount() == -1) break; // fine risultati
+                    }
+                    hasResults = cs.getMoreResults();
                 }
+
+                if (finalRs == null) {
+                    throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
+                }
+
+                // 4) Leggi il risultato finale
+                try (ResultSet rs = finalRs) {
+                    while (rs.next()) {
+                        // Usa i nomi coerenti con la SP: id_shop/id_order (o shop_id/order_id)
+                        int shopId  = rs.getInt("id_shop");
+                        int orderId = rs.getInt("id_order");
+                        shopToOrder.put(shopId, orderId);
+                        orderIds.add(orderId);
+                    }
+                }
+
+                // 5) Tutto ok: COMMIT
+                conn.commit();
+                conn.setAutoCommit(oldAuto);
+                return new CreationResult(orderIds, shopToOrder);
+
+            } catch (Exception ex) {
+                // Qualsiasi errore: ROLLBACK => nessun ordine resta inserito
+                try { conn.rollback(); } catch (Exception ignore) {}
+                try { conn.setAutoCommit(true); } catch (Exception ignore) {}
+                if (ex instanceof SQLException se) throw se;
+                throw new SQLException("Errore durante placeOrderDb", ex);
             }
-            return new CreationResult(orderIds, shopToOrder);
         }
     }
 
