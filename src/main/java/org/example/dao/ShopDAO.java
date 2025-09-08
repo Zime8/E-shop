@@ -45,9 +45,9 @@ public final class ShopDAO {
             cs.setBigDecimal(2, amount);
             cs.execute(); // la SP fa transazione + SIGNAL su errore
         } catch (SQLException e) {
-            logger.log(Level.WARNING, e, () ->
-                    "Errore nella richiesta di prelievo: userId=" + userId + ", amount=" + amount);
-            throw e; // Propaga per gestirlo a livello superiore (coerente con firma throws)
+            throw new SQLException(
+                    "Errore nella richiesta di prelievo (userId=" + userId + ", amount=" + amount + ")", e
+            );
         }
     }
 
