@@ -184,72 +184,12 @@
             colPrice.setStyle(ALIGN_CENTER);
             colQuantity.setStyle(ALIGN_CENTER);
         }
-    
+
         private void wireOrdersColumns() {
-            colOrderIdS.setCellValueFactory(cd -> new SimpleIntegerProperty(cd.getValue().orderId()));
-            colOrderDateS.setCellValueFactory(cd -> new SimpleStringProperty(
-                    cd.getValue().orderDate() == null ? "" : dateFmt.format(cd.getValue().orderDate().toInstant())
-            ));
-            colOrderStateS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().state()));
-            colOrderTotalS.setCellValueFactory(cd -> {
-                BigDecimal t = cd.getValue().total();
-                String s = (t == null) ? CURR_IT.format(0) : CURR_IT.format(t);
-                return new SimpleStringProperty(s);
-            });
-            colCustomerS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().customer()));
-            colAddress.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().address()));
-
-            colAddress.setCellFactory(tc -> new TableCell<>() {
-                private final Hyperlink link = new Hyperlink();
-
-                {
-                    setStyle(ALIGN_CENTER);
-                    link.setFocusTraversable(false);
-                    link.setOnAction(e -> {
-                        var row = getTableView().getItems().get(getIndex());
-                        String addr = row == null ? null : row.address();
-                        if (addr != null && !addr.isBlank()) openMaps(addr);
-                    });
-                }
-
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || item == null || item.isBlank()) {
-                        setGraphic(null);
-                        setText("-");            // placeholder
-                    } else {
-                        link.setText(item);
-                        setGraphic(link);
-                        setText(null);
-                    }
-                }
-            });
-    
-            colItemNameS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().productName()));
-            colItemSizeS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().size()));
-            colItemQtyS.setCellValueFactory(cd -> new SimpleIntegerProperty(cd.getValue().quantity()));
-            colItemPriceS.setCellValueFactory(cd -> {
-                BigDecimal up = cd.getValue().unitPrice();
-                String s = (up == null) ? CURR_IT.format(0) : CURR_IT.format(up);
-                return new SimpleStringProperty(s);
-            });
-            colItemSubtotalS.setCellValueFactory(cd -> new SimpleStringProperty(
-                    CURR_IT.format(cd.getValue().subtotal())
-            ));
-    
-            colOrderIdS.setStyle(ALIGN_CENTER);
-            colOrderDateS.setStyle(ALIGN_CENTER);
-            colOrderStateS.setStyle(ALIGN_CENTER);
-            colOrderTotalS.setStyle(ALIGN_CENTER);
-            colCustomerS.setStyle(ALIGN_CENTER);
-            colAddress.setStyle(ALIGN_CENTER);
-    
-            colItemNameS.setStyle(ALIGN_CENTER);
-            colItemSizeS.setStyle(ALIGN_CENTER);
-            colItemQtyS.setStyle(ALIGN_CENTER);
-            colItemPriceS.setStyle(ALIGN_CENTER);
-            colItemSubtotalS.setStyle(ALIGN_CENTER);
+            configureOrderSummaryColumns();
+            configureAddressHyperlinkColumn();
+            configureOrderItemColumns();
+            applyOrderColumnsStyle();
         }
     
         /* ========================= Catalogo: handler ========================= */
@@ -376,6 +316,62 @@
             );
         }
 
+        private void configureOrderSummaryColumns() {
+            colOrderIdS.setCellValueFactory(cd -> new SimpleIntegerProperty(cd.getValue().orderId()));
+            colOrderDateS.setCellValueFactory(cd -> new SimpleStringProperty(
+                    cd.getValue().orderDate() == null ? "" : dateFmt.format(cd.getValue().orderDate().toInstant())
+            ));
+            colOrderStateS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().state()));
+            colOrderTotalS.setCellValueFactory(cd -> new SimpleStringProperty(formatCurrency(cd.getValue().total())));
+            colCustomerS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().customer()));
+            // address “pulito”: niente placeholder, lo gestisce la cellFactory dedicata
+            colAddress.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().address()));
+        }
+
+        private void configureAddressHyperlinkColumn() {
+            colAddress.setCellFactory(tc -> new TableCell<>() {
+                private final Hyperlink link = new Hyperlink();
+                {
+                    setStyle(ALIGN_CENTER);
+                    link.setFocusTraversable(false);
+                    link.setOnAction(e -> {
+                        var row = getTableView().getItems().get(getIndex());
+                        String addr = (row == null) ? null : row.address();
+                        if (addr != null && !addr.isBlank()) openMaps(addr);
+                    });
+                }
+                @Override
+                protected void updateItem(String item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty || item == null || item.isBlank()) {
+                        setGraphic(null);
+                        setText("-");
+                    } else {
+                        link.setText(item);
+                        setGraphic(link);
+                        setText(null);
+                    }
+                }
+            });
+        }
+
+        private void configureOrderItemColumns() {
+            colItemNameS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().productName()));
+            colItemSizeS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().size()));
+            colItemQtyS.setCellValueFactory(cd -> new SimpleIntegerProperty(cd.getValue().quantity()));
+            colItemPriceS.setCellValueFactory(cd -> new SimpleStringProperty(formatCurrency(cd.getValue().unitPrice())));
+            colItemSubtotalS.setCellValueFactory(cd -> new SimpleStringProperty(formatCurrency(cd.getValue().subtotal())));
+        }
+
+        private void applyOrderColumnsStyle() {
+            for (TableColumn<?, ?> c : List.of(
+                    colOrderIdS, colOrderDateS, colOrderStateS, colOrderTotalS, colCustomerS, colAddress,
+                    colItemNameS, colItemSizeS, colItemQtyS, colItemPriceS, colItemSubtotalS
+            )) {
+                c.setStyle(ALIGN_CENTER);
+            }
+        }
+
         private void openMaps(String address) {
             try {
                 String url = "https://www.google.com/maps/search/?api=1&query="
@@ -390,6 +386,10 @@
             } catch (Exception ex) {
                 showAlert(Alert.AlertType.ERROR, "Impossibile aprire Google Maps: " + ex.getMessage());
             }
+        }
+
+        private static String formatCurrency(BigDecimal v) {
+            return CURR_IT.format(v == null ? BigDecimal.ZERO : v);
         }
 
 
