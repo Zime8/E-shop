@@ -14,21 +14,16 @@ public final class ShopDAO {
 
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());
 
+    // Saldo del venditore
     public static BigDecimal getBalance(long userId) throws SQLException {
-        final String sql = """
-            SELECT balance
-            FROM shops s JOIN users u ON s.id_shop = u.id_shop
-            WHERE u.id_user = ?
-        """;
-
+        final String call = "{ call sp_shop_get_balance_by_user(?) }";
         try (Connection c = DatabaseConnection.getInstance();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setLong(1, userId);
+            try (ResultSet rs = cs.executeQuery()) {
                 return rs.next() ? rs.getBigDecimal(1) : BigDecimal.ZERO;
             }
         } catch (SQLException e) {
-            // Log nel DAO
             logger.log(Level.WARNING, e, () ->
                     "Errore durante il recupero del balance per userId=" + userId);
             return null;
@@ -40,53 +35,29 @@ public final class ShopDAO {
             throw new SQLException("Importo non valido");
         }
 
+        // piccolo delay
         try { Thread.sleep(900); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
 
-        final String SQL_UPDATE_BALANCE = """
-            UPDATE shops s
-            JOIN users u ON u.id_shop = s.id_shop
-            SET s.balance = s.balance - ?
-            WHERE u.id_user = ? AND s.balance >= ?
-        """;
-
-        try (Connection c = DatabaseConnection.getInstance()) {
-            c.setAutoCommit(false);
-            try (PreparedStatement psUpd = c.prepareStatement(SQL_UPDATE_BALANCE)) {
-
-                psUpd.setBigDecimal(1, amount);
-                psUpd.setLong(2, userId);
-                psUpd.setBigDecimal(3, amount);
-
-                int changed = psUpd.executeUpdate();
-                if (changed == 0) {
-                    c.rollback();
-                    throw new SQLException("Saldo insufficiente o shop non trovato");
-                }
-
-                c.commit();
-            } catch (SQLException e) {
-                c.rollback();
-                // Log nel DAO
-                logger.log(Level.WARNING, e, () ->
-                        "Errore nella richiesta di prelievo: userId=" + userId + ", amount=" + amount);
-            } finally {
-                c.setAutoCommit(true);
-            }
+        final String call = "{ call sp_shop_request_withdraw(?, ?) }";
+        try (Connection c = DatabaseConnection.getInstance();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setLong(1, userId);
+            cs.setBigDecimal(2, amount);
+            cs.execute(); // la SP fa transazione + SIGNAL su errore
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, e, () ->
+                    "Errore nella richiesta di prelievo: userId=" + userId + ", amount=" + amount);
+            throw e; // Propaga per gestirlo a livello superiore (coerente con firma throws)
         }
     }
 
-    /** Restituisce il negozio con via e telefono; null se non trovato. */
-    public static Shop getById(long idShop) throws SQLException {
-        final String sql = """
-            SELECT id_shop, name_s, street, phone_number
-            FROM shops
-            WHERE id_shop = ?
-        """;
-
+    // Restituisce il negozio con via e telefono; null se non trovato
+    public static Shop getById(long idShop) {
+        final String call = "{ call sp_shop_get_by_id(?) }";
         try (Connection c = DatabaseConnection.getInstance();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, idShop);
-            try (ResultSet rs = ps.executeQuery()) {
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setLong(1, idShop);
+            try (ResultSet rs = cs.executeQuery()) {
                 if (rs.next()) {
                     return new Shop(
                             rs.getLong("id_shop"),
@@ -100,7 +71,7 @@ public final class ShopDAO {
         } catch (SQLException e) {
             logger.log(Level.WARNING, e, () ->
                     "Errore durante il recupero del negozio idShop=" + idShop);
-            return null;
+            return null; // mantieni comportamento precedente
         }
     }
 }

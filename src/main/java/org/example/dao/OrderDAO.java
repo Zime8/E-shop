@@ -16,28 +16,7 @@ public final class OrderDAO {
         throw new AssertionError("Utility class, no instances allowed");
     }
 
-    // === SQL (produzione) ===
-    private static final String INSERT_ORDER_SQL = """
-        INSERT INTO orders_client (id_user, date_order, date_order_update, state_order, address)
-        VALUES (?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'in elaborazione', ?)""";
-
-    private static final String INSERT_DETAIL_SQL = """
-        INSERT INTO details_order (id_order, id_product, id_shop, size, quantity, price)
-        VALUES (?, ?, ?, ?, ?, ?)""";
-
-    private static final String LOCK_STOCK_SQL = """
-        SELECT quantity
-        FROM product_availability
-        WHERE product_id = ? AND id_shop = ? AND size = ?
-        FOR UPDATE
-        """;
-
-    private static final String UPDATE_STOCK_SQL = """
-        UPDATE product_availability
-        SET quantity = quantity - ?
-        WHERE product_id = ? AND id_shop = ? AND size = ?
-        """;
-
+    // Risultato creazione ordini
     public record CreationResult(
             List<Integer> orderIds,
             Map<Integer, Integer> shopToOrderId
@@ -48,9 +27,7 @@ public final class OrderDAO {
         }
     }
 
-    /* ============================================================
-       UTIL DEMO
-       ============================================================ */
+    // UTIL DEMO
     private static String stockKey(long productId, int shopId, String size) {
         return DemoData.stockKey(productId, shopId, size);
     }
@@ -63,10 +40,7 @@ public final class OrderDAO {
         }
     }
 
-    /* ============================================================
-       CREAZIONE ORDINI (con gestione stock)
-       ============================================================ */
-    // == ENTRY POINT semplificato ==
+    // ENTRY POINT CREAZIONE ORDINE
     public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items, String address) throws SQLException {
         validateItems(items);
         return Session.isDemo()
@@ -74,8 +48,7 @@ public final class OrderDAO {
                 : placeOrderDb(userId, items, address);
     }
 
-    /* ========================== DEMO ========================== */
-
+    // DEMO
     private static CreationResult placeOrderDemo(int userId, List<CartItem> items) throws SQLException {
         ensureDemoSeed();
 
@@ -172,170 +145,77 @@ public final class OrderDAO {
         }
     }
 
-    /* ======================== PRODUZIONE ======================== */
+    // PRODUZIONE
+
+    // Escape per JSON
+    private static String jsonEscape(String s) {
+        if (s == null) return "null";
+        return "\"" + s.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
+    }
+
+    private static String buildItemsJson(List<CartItem> items) {
+        StringBuilder sb = new StringBuilder("[");
+        for (int i = 0; i < items.size(); i++) {
+            CartItem it = items.get(i);
+            if (i > 0) sb.append(',');
+            sb.append('{')
+                    .append("\"productId\":").append(it.getProductId()).append(',')
+                    .append("\"shopId\":").append(it.getShopId()).append(',')
+                    .append("\"size\":").append(jsonEscape(it.getSize())).append(',')
+                    .append("\"quantity\":").append(it.getQuantity()).append(',')
+                    .append("\"unitPrice\":").append(it.getUnitPrice())
+                    .append('}');
+        }
+        sb.append(']');
+        return sb.toString();
+    }
 
     private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
-        Connection conn = DatabaseConnection.getInstance();
-        boolean oldAuto = conn.getAutoCommit();
-        SQLException toThrow = null;
+        String call = "{ call sp_place_order(?, ?, ?) }";
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
 
-        try {
-            conn.setAutoCommit(false);
-            CreationResult result = createOrdersPerShop(conn, userId, items, address);
-            decrementStockForItems(conn, items);
-            conn.commit();
-            return result;
+            cs.setInt(1, userId);
+            if (address == null || address.isBlank()) cs.setNull(2, Types.VARCHAR);
+            else cs.setString(2, address);
 
-        } catch (SQLException e) {
-            rollbackQuiet(conn, e);
-            toThrow = e;
-        } catch (RuntimeException e) {
-            rollbackQuiet(conn, e);
-            toThrow = new SQLException("Errore durante la transazione ordine/stock", e);
-        } catch (Exception e) {
-            rollbackQuiet(conn, e);
-            toThrow = new SQLException("Errore generico durante la transazione ordine/stock", e);
-        } finally {
-            try { conn.setAutoCommit(oldAuto); }
-            catch (SQLException e) { if (toThrow != null) toThrow.addSuppressed(e); else toThrow = e; }
+            cs.setString(3, buildItemsJson(items));
+
+            List<Integer> orderIds = new ArrayList<>();
+            Map<Integer, Integer> shopToOrder = new LinkedHashMap<>();
+
+            try (ResultSet rs = cs.executeQuery()) {
+                while (rs.next()) {
+                    int shopId  = rs.getInt("shop_id");
+                    int orderId = rs.getInt("order_id");
+                    shopToOrder.put(shopId, orderId);
+                    orderIds.add(orderId);
+                }
+            }
+            return new CreationResult(orderIds, shopToOrder);
         }
-        throw toThrow;
     }
 
-    private static void rollbackQuiet(Connection conn, Exception cause) {
-        try { conn.rollback(); } catch (SQLException rbEx) { cause.addSuppressed(rbEx); }
-    }
-
-    /* ======================== VALIDAZIONE ======================== */
-
+    // VALIDAZIONE
     private static void validateItems(List<CartItem> items) {
         if (items == null || items.isEmpty()) {
             throw new IllegalArgumentException("Lista articoli vuota");
         }
     }
 
-    // ======== HELPER DB (originali) ========
+    // LETTURA ORDINI
 
-    private static CreationResult createOrdersPerShop(Connection conn, int userId, List<CartItem> items, String address) throws SQLException {
-        final Map<Integer, List<CartItem>> byShop = new LinkedHashMap<>();
-        for (CartItem it : items) {
-            byShop.computeIfAbsent(it.getShopId(), k -> new ArrayList<>()).add(it);
-        }
-
-        final List<Integer> createdOrderIds = new ArrayList<>();
-        final Map<Integer, Integer> shopToOrderId = new HashMap<>();
-        final List<Integer> shopIdsInOrder = new ArrayList<>(byShop.keySet());
-
-        try (PreparedStatement psOrder = conn.prepareStatement(INSERT_ORDER_SQL, Statement.RETURN_GENERATED_KEYS);
-             PreparedStatement psDetail = conn.prepareStatement(INSERT_DETAIL_SQL)) {
-
-            psOrder.setInt(1, userId);
-            if (address == null || address.isBlank()) {
-                psOrder.setNull(2, Types.VARCHAR);
-            } else {
-                psOrder.setString(2, address);
-            }
-
-            for (int ignored : shopIdsInOrder) {
-                psOrder.addBatch();
-            }
-            psOrder.executeBatch();
-
-            try (ResultSet rsKeys = psOrder.getGeneratedKeys()) {
-                int idx = 0;
-                while (rsKeys.next()) {
-                    if (idx >= shopIdsInOrder.size()) break;
-                    int orderId = rsKeys.getInt(1);
-                    int shopId  = shopIdsInOrder.get(idx++);
-                    createdOrderIds.add(orderId);
-                    shopToOrderId.put(shopId, orderId);
-                }
-                if (idx != shopIdsInOrder.size()) {
-                    throw new SQLException("Numero di chiavi generate non corrisponde al numero di ordini creati.");
-                }
-            }
-
-            for (int shopId : shopIdsInOrder) {
-                int orderId = shopToOrderId.get(shopId);
-
-                psDetail.setInt(1, orderId);
-                psDetail.setInt(3, shopId);
-                for (CartItem it : byShop.get(shopId)) {
-                    psDetail.setLong(2, it.getProductId());
-                    psDetail.setString(4, it.getSize());
-                    psDetail.setInt(5, it.getQuantity());
-                    psDetail.setDouble(6, it.getUnitPrice());
-                    psDetail.addBatch();
-                }
-            }
-            psDetail.executeBatch();
-            psDetail.clearBatch();
-        }
-
-        return new CreationResult(createdOrderIds, shopToOrderId);
-    }
-
-    private static void decrementStockForItems(Connection conn, List<CartItem> items) throws SQLException {
-        final Map<String, Integer> need = new LinkedHashMap<>();
-        for (CartItem it : items) {
-            final String key = it.getProductId() + "|" + it.getShopId() + "|" + it.getSize();
-            need.merge(key, it.getQuantity(), Integer::sum);
-        }
-
-        try (PreparedStatement psLock = conn.prepareStatement(LOCK_STOCK_SQL);
-             PreparedStatement psUpd  = conn.prepareStatement(UPDATE_STOCK_SQL)) {
-
-            for (Map.Entry<String, Integer> e : need.entrySet()) {
-                final String[] parts = e.getKey().split("\\|");
-                final long   productId = Long.parseLong(parts[0]);
-                final int    shopId    = Integer.parseInt(parts[1]);
-                final String size      = parts[2];
-                final int    qtyNeeded = e.getValue();
-
-                psLock.setLong(1, productId);
-                psLock.setInt(2, shopId);
-                psLock.setString(3, size);
-
-                final int available;
-                try (ResultSet rs = psLock.executeQuery()) {
-                    if (!rs.next()) {
-                        throw new SQLException("Stock non trovato per product=" + productId +
-                                ", shop=" + shopId + ", size=" + size);
-                    }
-                    available = rs.getInt(1);
-                }
-
-                if (available < qtyNeeded) {
-                    throw new SQLException("Stock insufficiente per product=" + productId +
-                            ", shop=" + shopId + ", size=" + size +
-                            " (richiesto " + qtyNeeded + ", disponibile " + available + ")");
-                }
-
-                psUpd.setInt(1, qtyNeeded);
-                psUpd.setLong(2, productId);
-                psUpd.setInt(3, shopId);
-                psUpd.setString(4, size);
-                psUpd.addBatch();
-            }
-
-            psUpd.executeBatch();
-            psUpd.clearBatch();
-        }
-    }
-
-    // ======== LETTURA ORDINI / DETTAGLI (compatibilità esistente) ========
-
-    /** Riga tabella ORDINI */
+    // Riga tabella ORDINI
     public record OrderSummary(int idOrder, Timestamp dateOrder, String stateOrder, BigDecimal totalAmount) { }
 
-    /** Riga tabella DETTAGLIO (attenzione: nome collide con il model, qui è record interno) */
+    // Riga tabella DETTAGLIO
     public record OrderLine(int orderId, long productId, int shopId, String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {
         public BigDecimal getSubtotal() {
             return (unitPrice == null) ? BigDecimal.ZERO : unitPrice.multiply(BigDecimal.valueOf(quantity));
         }
     }
 
-    /** Ordini completi (con righe) come model `Order`. */
+    // Ordini completi come model `Order`
     public static List<Order> listOrdersModel(int userId) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
@@ -354,7 +234,6 @@ public final class OrderDAO {
                                     l.getQuantity(),
                                     l.getUnitPrice()
                             )
-
                     ));
                 }
                 out.add(copy);
@@ -366,49 +245,39 @@ public final class OrderDAO {
             return out;
         }
 
-        // PRODUZIONE: header + righe
-        final String H_SQL = """
-            SELECT id_order, id_user, date_order, state_order
-            FROM orders_client
-            WHERE id_user = ?
-            ORDER BY date_order DESC, id_order DESC
-        """;
-
-        final String L_SQL = """
-            SELECT d.id_order, d.id_product, d.id_shop, d.size, d.quantity, d.price,
-               p.name_p AS product_name, s.name_s AS shop_name
-            FROM details_order d
-            JOIN orders_client o ON o.id_order = d.id_order
-            JOIN products p ON p.product_id = d.id_product
-            JOIN shops    s ON s.id_shop    = d.id_shop
-            WHERE o.id_user = ?
-            ORDER BY d.id_order ASC, p.name_p ASC, d.id_product ASC
-        """;
+        // PRODUZIONE con stored procedure
+        final String CALL_H = "{ call sp_list_orders_header(?) }";
+        final String CALL_L = "{ call sp_list_orders_lines(?) }";
 
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement psH = conn.prepareStatement(H_SQL)) {
+             CallableStatement csH = conn.prepareCall(CALL_H)) {
 
-            psH.setInt(1, userId);
+            csH.setInt(1, userId);
             List<Order> orders = new ArrayList<>();
-            try (ResultSet rs = psH.executeQuery()) {
+            Map<Integer, Order> byId = new LinkedHashMap<>();
+
+            try (ResultSet rs = csH.executeQuery()) {
                 while (rs.next()) {
-                    orders.add(new Order(
-                            rs.getInt("id_order"),
+                    int idOrder = rs.getInt("id_order");
+                    Order ord = new Order(
+                            idOrder,
                             rs.getInt("id_user"),
                             rs.getTimestamp("date_order").toLocalDateTime(),
                             OrderStatus.fromDb(rs.getString("state_order"))
-                    ));
+                    );
+                    orders.add(ord);
+                    byId.put(idOrder, ord);
                 }
             }
             if (orders.isEmpty()) return orders;
 
-            try (PreparedStatement psL = conn.prepareStatement(L_SQL)) {
-                psL.setInt(1, userId);
-                try (ResultSet rs = psL.executeQuery()) {
-                    Map<Integer, List<org.example.models.OrderLine>> grouped = new HashMap<>();
+            try (CallableStatement csL = conn.prepareCall(CALL_L)) {
+                csL.setInt(1, userId);
+                try (ResultSet rs = csL.executeQuery()) {
                     while (rs.next()) {
-                        org.example.models.OrderLine l = new org.example.models.OrderLine(
-                                rs.getInt("id_order"),
+                        int orderId = rs.getInt("id_order");
+                        org.example.models.OrderLine line = new org.example.models.OrderLine(
+                                orderId,
                                 rs.getLong("id_product"),
                                 rs.getInt("id_shop"),
                                 new org.example.models.OrderLine.Details(
@@ -419,10 +288,8 @@ public final class OrderDAO {
                                         rs.getBigDecimal("price")
                                 )
                         );
-                        grouped.computeIfAbsent(l.getOrderId(), k -> new ArrayList<>()).add(l);
-                    }
-                    for (Order o : orders) {
-                        o.getLines().addAll(grouped.getOrDefault(o.getId(), List.of()));
+                        Order o = byId.get(orderId);
+                        if (o != null) o.getLines().add(line);
                     }
                 }
             }

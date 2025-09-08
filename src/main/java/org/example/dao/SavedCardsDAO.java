@@ -36,23 +36,22 @@ public final class SavedCardsDAO {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             var list = DemoData.savedCards().getOrDefault(userId, Collections.emptyList());
-            // Ordina per id DESC (proxy di created_at)
             return list.stream()
                     .sorted(Comparator.comparingInt(Card::getId).reversed())
                     .map(c -> new Row(c.getId(), c.getHolder(), c.getNumber(), c.getExpiry(), c.getType()))
                     .toList();
         }
 
-        String sql = """
-            SELECT card_id, holder, card_number, expiry, card_type
-            FROM saved_cards
-            WHERE id_user = ?
-            ORDER BY created_at DESC, card_id DESC
-        """;
+        String call = "{ call sp_cards_find_by_user(?) }";
+        return getRows(userId, call);
+    }
+
+    private static List<Row> getRows(int userId, String call) throws SQLException {
         List<Row> out = new ArrayList<>();
-        try (PreparedStatement ps = DatabaseConnection.getInstance().prepareStatement(sql)) {
-            ps.setInt(1, userId);
-            try (ResultSet rs = ps.executeQuery()) {
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setInt(1, userId);
+            try (ResultSet rs = cs.executeQuery()) {
                 while (rs.next()) {
                     out.add(new Row(
                             rs.getInt("card_id"),
@@ -67,14 +66,13 @@ public final class SavedCardsDAO {
         return out;
     }
 
-    // Inserisce la carta se assente (ritorna id)
+    // Inserisce la carta se assente (ritorna Optional<id>)
     public static Optional<Integer> insertIfAbsentReturningId(
             int userId, String holder, String rawCardNumber, String expiry, String cardType) throws SQLException {
 
-        final String normalized = onlyDigits(rawCardNumber);
-
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
+            final String normalized = onlyDigits(rawCardNumber);
             var list = DemoData.savedCards().computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
             boolean exists = list.stream().anyMatch(c -> onlyDigits(c.getNumber()).equals(normalized));
             if (exists) return Optional.empty();
@@ -85,34 +83,21 @@ public final class SavedCardsDAO {
             return Optional.of(newId);
         }
 
-        final String sql = """
-            INSERT INTO saved_cards (id_user, holder, card_number, expiry, card_type)
-            SELECT ?, ?, ?, ?, ?
-            FROM DUAL
-            WHERE NOT EXISTS (
-                SELECT 1
-                FROM saved_cards
-                WHERE id_user = ?
-                  AND REGEXP_REPLACE(card_number, '[^0-9]', '') = ?
-            )
-        """;
+        String call = "{ call sp_cards_insert_if_absent(?, ?, ?, ?, ?, ?) }";
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setInt(1, userId);
+            cs.setString(2, holder);
+            cs.setString(3, rawCardNumber);
+            cs.setString(4, expiry);
+            cs.setString(5, cardType);
+            cs.registerOutParameter(6, Types.INTEGER);
 
-        try (PreparedStatement ps = DatabaseConnection.getInstance()
-                .prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            ps.setInt(1, userId);
-            ps.setString(2, holder);
-            ps.setString(3, rawCardNumber);
-            ps.setString(4, expiry);
-            ps.setString(5, cardType);
-            ps.setInt(6, userId);
-            ps.setString(7, normalized);
+            cs.execute();
 
-            int affected = ps.executeUpdate();
-            if (affected == 0) return Optional.empty(); // già presente
-
-            try (ResultSet keys = ps.getGeneratedKeys()) {
-                return keys.next() ? Optional.of(keys.getInt(1)) : Optional.empty();
-            }
+            int id = cs.getInt(6);
+            if (cs.wasNull()) return Optional.empty();
+            return Optional.of(id);
         }
     }
 
@@ -135,26 +120,24 @@ public final class SavedCardsDAO {
             return removed;
         }
 
-        String sql = """
-            DELETE FROM saved_cards
-            WHERE card_id = ? AND id_user = ?
-        """;
+        String call = "{ call sp_cards_delete(?, ?, ?) }";
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setInt(1, cardId);
+            cs.setInt(2, userId);
+            cs.registerOutParameter(3, Types.TINYINT);
 
-        try (PreparedStatement ps = DatabaseConnection.getInstance().prepareStatement(sql)) {
-            ps.setInt(1, cardId);
-            ps.setInt(2, userId);
-            int affected = ps.executeUpdate();
-            return affected > 0;
+            cs.execute();
+            return cs.getByte(3) == 1;
         }
     }
 
     public static boolean updateCard(int cardId, int userId, String holder, String rawCardNumber, String expiry, String cardType)
             throws SQLException {
 
-        final String normalized = onlyDigits(rawCardNumber);
-
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
+            final String normalized = onlyDigits(rawCardNumber);
             var list = DemoData.savedCards().get(userId);
             if (list == null) return false;
 
@@ -174,33 +157,19 @@ public final class SavedCardsDAO {
             return false;
         }
 
-        String sql = """
-            UPDATE saved_cards s
-            SET s.holder = ?, s.card_number = ?, s.expiry = ?, s.card_type = ?
-            WHERE s.card_id = ? AND s.id_user = ?
-              AND NOT EXISTS (
-                  SELECT 1
-                  FROM (
-                      SELECT card_id
-                      FROM saved_cards
-                      WHERE id_user = ? AND REGEXP_REPLACE(card_number, '[^0-9]', '') = ?
-                  ) AS x
-                  WHERE x.card_id <> s.card_id
-              )
-        """;
+        String call = "{ call sp_cards_update(?, ?, ?, ?, ?, ?, ?) }";
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setInt(1, cardId);
+            cs.setInt(2, userId);
+            cs.setString(3, holder);
+            cs.setString(4, rawCardNumber);
+            cs.setString(5, expiry);
+            cs.setString(6, cardType);
+            cs.registerOutParameter(7, Types.TINYINT);
 
-        try (PreparedStatement ps = DatabaseConnection.getInstance().prepareStatement(sql)) {
-            ps.setString(1, holder);
-            ps.setString(2, rawCardNumber);
-            ps.setString(3, expiry);
-            ps.setString(4, cardType);
-            ps.setInt(5, cardId);
-            ps.setInt(6, userId);
-            ps.setInt(7, userId);
-            ps.setString(8, normalized);
-
-            int affected = ps.executeUpdate();
-            return affected > 0;
+            cs.execute();
+            return cs.getByte(7) == 1;
         }
     }
 }

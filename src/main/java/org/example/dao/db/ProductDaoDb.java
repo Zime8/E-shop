@@ -12,40 +12,13 @@ import java.util.logging.Logger;
 public class ProductDaoDb implements ProductDao {
     private static final Logger logger = Logger.getLogger(ProductDaoDb.class.getName());
 
-    private static final String SEARCH_BY_FILTERS_SQL = """
-        SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-               MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
-        FROM products p
-        JOIN product_availability pa ON p.product_id = pa.product_id
-        JOIN shops s ON pa.id_shop = s.id_shop
-        WHERE pa.price BETWEEN ? AND ?
-          AND ( ? IS NULL OR p.sport = ? )
-          AND ( ? IS NULL OR p.brand = ? )
-          AND ( ? IS NULL OR s.id_shop = ? )
-          AND ( ? IS NULL OR p.category = ? )
-        GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
-        ORDER BY p.created_at DESC
-        """;
-
     @Override
     public List<Product> findLatest(int limit) {
-        String sql = """
-            SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-                   pa.price AS price, p.image_data, p.created_at,
-                   s.name_s AS shop_name, pa.quantity, pa.size, s.id_shop
-            FROM products p
-            JOIN product_availability pa ON pa.product_id = p.product_id
-            JOIN shops s ON s.id_shop = pa.id_shop
-            LEFT JOIN product_availability pa2
-              ON pa2.product_id = pa.product_id AND pa2.id_shop = pa.id_shop
-             AND (pa2.price < pa.price OR (pa2.price = pa.price AND pa2.size < pa.size))
-            WHERE pa2.product_id IS NULL AND pa.quantity > 0
-            ORDER BY p.created_at DESC, p.product_id DESC, s.id_shop ASC
-            LIMIT ?""";
+        String call = "{ call sp_find_latest(?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, limit);
-            try (ResultSet rs = stmt.executeQuery()) {
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setInt(1, limit);
+            try (ResultSet rs = cs.executeQuery()) {
                 List<Product> list = new ArrayList<>();
                 while (rs.next()) list.add(mapRow(rs));
                 return list;
@@ -59,19 +32,11 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public List<Product> searchByName(String name) throws SQLException {
         List<Product> products = new ArrayList<>();
-        String sql = """
-            SELECT p.product_id, p.name_p, p.sport, p.brand, p.category,
-                   MIN(pa.price) AS price, p.image_data, p.created_at, s.name_s AS shop_name, s.id_shop
-            FROM products p
-            JOIN product_availability pa ON p.product_id = pa.product_id
-            JOIN shops s ON pa.id_shop = s.id_shop
-            WHERE LOWER(p.name_p) LIKE ?
-            GROUP BY p.product_id, p.name_p, p.sport, p.brand, p.category, p.image_data, p.created_at, s.name_s, s.id_shop
-            ORDER BY p.created_at DESC""";
+        String call = "{ call sp_search_by_name(?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, "%" + (name == null ? "" : name.toLowerCase()) + "%");
-            try (ResultSet rs = stmt.executeQuery()) {
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setString(1, name);
+            try (ResultSet rs = cs.executeQuery()) {
                 while (rs.next()) products.add(mapRow(rs));
             }
         }
@@ -82,30 +47,37 @@ public class ProductDaoDb implements ProductDao {
     public List<Product> searchByFilters(String sport, String brand, String shop, String category,
                                          double minPrice, double maxPrice) throws SQLException {
         List<Product> products = new ArrayList<>();
+        String call = "{ call sp_search_by_filters(?, ?, ?, ?, ?, ?) }";
+
         String sportVal    = blankToNull(sport);
         String brandVal    = blankToNull(brand);
         String categoryVal = blankToNull(category);
         Integer shopId     = resolveShopId(shop);
 
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement stmt = conn.prepareStatement(SEARCH_BY_FILTERS_SQL)) {
-            bindFilters(stmt, minPrice, maxPrice, sportVal, brandVal, shopId, categoryVal);
-            try (ResultSet rs = stmt.executeQuery()) {
+             CallableStatement cs = conn.prepareCall(call)) {
+            // MySQL: setNull con tipo corretto
+            if (sportVal == null) cs.setNull(1, Types.VARCHAR); else cs.setString(1, sportVal);
+            if (brandVal == null) cs.setNull(2, Types.VARCHAR); else cs.setString(2, brandVal);
+            if (shopId   == null) cs.setNull(3, Types.INTEGER); else cs.setInt(3, shopId);
+            if (categoryVal == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, categoryVal);
+            cs.setDouble(5, minPrice);
+            cs.setDouble(6, maxPrice);
+
+            try (ResultSet rs = cs.executeQuery()) {
                 while (rs.next()) products.add(mapRow(rs));
             }
         }
         return products;
     }
 
-    @Override public int getShopIdByName(String shopName) throws SQLException {
-        String sql = """
-            SELECT id_shop
-            FROM shops
-            WHERE name_s = ?""";
+    @Override
+    public int getShopIdByName(String shopName) throws SQLException {
+        String call = "{ call sp_get_shop_id_by_name(?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, shopName);
-            try (ResultSet rs = ps.executeQuery()) {
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setString(1, shopName);
+            try (ResultSet rs = cs.executeQuery()) {
                 if (rs.next()) return rs.getInt("id_shop");
                 throw new SQLException("Shop not found: " + shopName);
             }
@@ -114,16 +86,12 @@ public class ProductDaoDb implements ProductDao {
 
     @Override
     public List<String> getAvailableSizes(long productId, int idShop) throws SQLException {
-        String sql = """
-            SELECT size
-            FROM product_availability
-            WHERE product_id = ? AND id_shop = ? AND quantity > 0
-            ORDER BY size ASC""";
+        String call = "{ call sp_get_available_sizes(?, ?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, productId);
-            ps.setInt(2, idShop);
-            try (ResultSet rs = ps.executeQuery()) {
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setLong(1, productId);
+            cs.setInt(2, idShop);
+            try (ResultSet rs = cs.executeQuery()) {
                 List<String> sizes = new ArrayList<>();
                 while (rs.next()) sizes.add(rs.getString("size"));
                 return sizes;
@@ -133,84 +101,51 @@ public class ProductDaoDb implements ProductDao {
 
     @Override
     public double getPriceFor(long productId, int idShop, String size) throws SQLException {
-        String sql = """
-            SELECT price
-            FROM product_availability
-            WHERE product_id=? AND id_shop=? AND size=?""";
+        String call = "{ call sp_get_price_for(?, ?, ?, ?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setLong(1, productId);
-            ps.setInt(2, idShop);
-            ps.setString(3, size);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getDouble(1);
-                throw new SQLException("Prezzo non trovato per size=" + size);
-            }
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setLong(1, productId);
+            cs.setInt(2, idShop);
+            cs.setString(3, size);
+            cs.registerOutParameter(4, Types.DOUBLE);
+            cs.execute();
+            double price = cs.getDouble(4);
+            if (cs.wasNull()) throw new SQLException("Prezzo non trovato per size=" + size);
+            return price;
         }
     }
 
     @Override
     public Integer getStockFor(long productId, int shopId, String size) throws SQLException {
-        String sql = """
-            SELECT quantity
-            FROM product_availability
-            WHERE product_id=? AND id_shop=? AND size=?""";
-        try (Connection c = DatabaseConnection.getInstance();
-             PreparedStatement ps = c.prepareStatement(sql)) {
-            ps.setLong(1, productId);
-            ps.setInt(2, shopId);
-            ps.setString(3, size);
-            try (ResultSet rs = ps.executeQuery()) {
-                return rs.next() ? rs.getInt(1) : 0;
-            }
+        String call = "{ call sp_get_stock_for(?, ?, ?, ?) }";
+        try (Connection conn = DatabaseConnection.getInstance();
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setLong(1, productId);
+            cs.setInt(2, shopId);
+            cs.setString(3, size);
+            cs.registerOutParameter(4, Types.INTEGER);
+            cs.execute();
+            int qty = cs.getInt(4);
+            return cs.wasNull() ? 0 : qty;
         }
     }
 
     @Override
     public boolean existsWish(String username, long productId, int shopId, String size) throws SQLException {
-        String sql = """
-            SELECT 1
-            FROM wishlist
-            WHERE username = ? AND product_id = ? AND id_shop = ?
-              AND ( ? IS NULL OR p_size = ? )
-            LIMIT 1
-            """;
+        String call = "{ call sp_exists_wish(?, ?, ?, ?, ?) }";
         try (Connection conn = DatabaseConnection.getInstance();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
-            int i = 1;
-            ps.setString(i++, username);
-            ps.setLong(i++, productId);
-            ps.setInt(i++, shopId);
-            if (size == null) {
-                ps.setNull(i++, Types.VARCHAR); ps.setNull(i, Types.VARCHAR);
-            } else {
-                ps.setString(i++, size); ps.setString(i, size);
-            }
-            try (ResultSet rs = ps.executeQuery()) { return rs.next(); }
+             CallableStatement cs = conn.prepareCall(call)) {
+            cs.setString(1, username);
+            cs.setLong(2, productId);
+            cs.setInt(3, shopId);
+            if (size == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, size);
+            cs.registerOutParameter(5, Types.TINYINT);
+            cs.execute();
+            return cs.getByte(5) == 1;
         }
     }
 
-    // ---- helper / mapping (copiati dal tuo DAO statico) ----
-    private static void bindFilters(PreparedStatement stmt, double minPrice, double maxPrice,
-                                    String sportVal, String brandVal, Integer shopId, String categoryVal) throws SQLException {
-        int i = 1;
-        stmt.setDouble(i++, minPrice);
-        stmt.setDouble(i++, maxPrice);
-        i = bindOptionalPair(stmt, i, sportVal);
-        i = bindOptionalPair(stmt, i, brandVal);
-        i = bindOptionalPair(stmt, i, shopId);
-        bindOptionalPair(stmt, i, categoryVal);
-    }
-    private static int bindOptionalPair(PreparedStatement ps, int idx, String v) throws SQLException {
-        if (v == null) { ps.setNull(idx++, Types.VARCHAR); ps.setNull(idx++, Types.VARCHAR); }
-        else { ps.setString(idx++, v); ps.setString(idx++, v); }
-        return idx;
-    }
-    private static int bindOptionalPair(PreparedStatement ps, int idx, Integer v) throws SQLException {
-        if (v == null) { ps.setNull(idx++, Types.INTEGER); ps.setNull(idx++, Types.INTEGER); }
-        else { ps.setInt(idx++, v); ps.setInt(idx++, v); }
-        return idx;
-    }
+    // helper
     private static String blankToNull(String s) { return (s == null || s.isBlank()) ? null : s; }
 
     private Product mapRow(ResultSet rs) throws SQLException {
