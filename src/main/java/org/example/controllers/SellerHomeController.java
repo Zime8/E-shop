@@ -187,7 +187,7 @@
 
         private void wireOrdersColumns() {
             configureOrderSummaryColumns();
-            configureAddressHyperlinkColumn();
+            colAddress.setCellFactory(tc -> new AddressCell());
             configureOrderItemColumns();
             applyOrderColumnsStyle();
         }
@@ -328,33 +328,6 @@
             colAddress.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().address()));
         }
 
-        private void configureAddressHyperlinkColumn() {
-            colAddress.setCellFactory(tc -> new TableCell<>() {
-                private final Hyperlink link = new Hyperlink();
-                {
-                    setStyle(ALIGN_CENTER);
-                    link.setFocusTraversable(false);
-                    link.setOnAction(e -> {
-                        var row = getTableView().getItems().get(getIndex());
-                        String addr = (row == null) ? null : row.address();
-                        if (addr != null && !addr.isBlank()) openMaps(addr);
-                    });
-                }
-                @Override
-                protected void updateItem(String item, boolean empty) {
-                    super.updateItem(item, empty);
-                    if (empty || item == null || item.isBlank()) {
-                        setGraphic(null);
-                        setText("-");
-                    } else {
-                        link.setText(item);
-                        setGraphic(link);
-                        setText(null);
-                    }
-                }
-            });
-        }
-
         private void configureOrderItemColumns() {
             colItemNameS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().productName()));
             colItemSizeS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().size()));
@@ -371,6 +344,37 @@
                 c.setStyle(ALIGN_CENTER);
             }
         }
+
+        // Cella dedicata per la colonna Address
+        private final class AddressCell extends TableCell<SellerDAO.ShopOrderSummary, String> {
+            private final Hyperlink link = new Hyperlink();
+
+            AddressCell() {
+                setStyle(ALIGN_CENTER);
+                link.setFocusTraversable(false);
+                link.setOnAction(e -> {
+                    var row = getTableView().getItems().get(getIndex());
+                    String addr = (row == null) ? null : row.address();
+                    if (addr != null && !addr.isBlank()) {
+                        openMaps(addr); // usa il tuo metodo già presente nel controller
+                    }
+                });
+            }
+
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null || item.isBlank()) {
+                    setGraphic(null);
+                    setText("-");
+                } else {
+                    link.setText(item);
+                    setGraphic(link);
+                    setText(null);
+                }
+            }
+        }
+
 
         private void openMaps(String address) {
             try {
