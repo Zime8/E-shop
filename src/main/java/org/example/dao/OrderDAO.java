@@ -301,7 +301,7 @@ public final class OrderDAO {
     }
 
     /** Uniforma le eccezioni a SQLException (come il metodo originale). */
-    private static SQLException wrapToSqlException(Exception ex) throws SQLException {
+    private static SQLException wrapToSqlException(Exception ex) {
         if (ex instanceof SQLException se) return se;
         return new SQLException("Errore durante placeOrderDb", ex);
     }
@@ -386,7 +386,7 @@ public final class OrderDAO {
                 csL.setInt(1, userId);
                 try (ResultSet rs = csL.executeQuery()) {
                     while (rs.next()) {
-                        int orderId = rs.getInt("id_order");
+                        int orderId = rs.getInt(ORDER_ID);
                         org.example.models.OrderLine line = new org.example.models.OrderLine(
                                 orderId,
                                 rs.getLong("id_product"),

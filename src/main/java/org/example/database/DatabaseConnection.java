@@ -41,16 +41,21 @@ public class DatabaseConnection {
         closeConnection();
     }
 
+    private static boolean reuseIfValid() {
+        if (connection == null) return false;
+        try {
+            return !connection.isClosed() && connection.isValid(2);
+        } catch (SQLException ignore) {
+            // Se il check fallisce, chiudi e forza ri-creazione
+            closeConnection();
+            return false;
+        }
+    }
+
     public static synchronized Connection getInstance() throws SQLException {
         try {
-            if (connection != null && !connection.isClosed()) {
-                // Se è ancora valida, riusa
-                try {
-                    if (connection.isValid(2)) return connection;
-                } catch (SQLException ignore) {
-                    // se fallisce il check, chiudi e riapri
-                    closeConnection();
-                }
+            if (reuseIfValid()) {
+                return connection;
             }
 
             String url;
@@ -58,12 +63,10 @@ public class DatabaseConnection {
             String password;
 
             if (urlOverride != null) {
-                // Parametri imposti dai test
                 url = urlOverride;
                 user = userOverride;
                 password = passwordOverride;
             } else {
-                // Carica da file e consenti override via System properties
                 Properties props = new Properties();
                 try (InputStream input = DatabaseConnection.class.getResourceAsStream(CONFIG_FILE)) {
                     if (input == null) {
