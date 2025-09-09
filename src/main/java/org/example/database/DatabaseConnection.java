@@ -64,10 +64,12 @@ public class DatabaseConnection {
     }
 
     public static synchronized Connection getInstance() throws SQLException {
+        String url = null;
+        String user = null;
         try {
             if (isReusable(connection)) return connection;
 
-            String url, user, password;
+            String password;
 
             if (urlOverride != null) {
                 url = urlOverride;
@@ -75,17 +77,25 @@ public class DatabaseConnection {
                 password = passwordOverride;
             } else {
                 Properties props = loadConfigProperties(); // <<— estratto
-                url      = System.getProperty("db.url",      props.getProperty("db.url"));
-                user     = System.getProperty("db.user",     props.getProperty("db.user"));
+                url = System.getProperty("db.url", props.getProperty("db.url"));
+                user = System.getProperty("db.user", props.getProperty("db.user"));
                 password = System.getProperty("db.password", props.getProperty("db.password"));
             }
 
             connection = DriverManager.getConnection(url, user, password);
             return connection;
         } catch (SQLException ex) {
-            logger.log(Level.SEVERE, "Errore apertura connessione DB", ex);
-            throw ex;
+            String safeUrl = redactPassword(url);
+            throw new SQLException(
+                    "Impossibile aprire la connessione DB (url=" + safeUrl + ", user=" + user + ")", ex
+            );
         }
+    }
+
+    private static String redactPassword(String url) {
+        if (url == null) return "null";
+        // oscura eventuale parametro password= nell'URL JDBC
+        return url.replaceAll("(?i)(password=)[^&]*", "$1***");
     }
 
     public static synchronized void closeConnection() {
