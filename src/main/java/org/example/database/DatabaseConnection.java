@@ -41,44 +41,42 @@ public class DatabaseConnection {
         closeConnection();
     }
 
-    private static boolean reuseIfValid() {
-        if (connection == null) return false;
+    private static boolean isReusable(Connection c) {
         try {
-            return !connection.isClosed() && connection.isValid(2);
+            return c != null && !c.isClosed() && c.isValid(2);
         } catch (SQLException ignore) {
-            // Se il check fallisce, chiudi e forza ri-creazione
-            closeConnection();
+            closeConnection(); // se la validazione fallisce, reset
             return false;
+        }
+    }
+
+    private static Properties loadConfigProperties() {
+        Properties props = new Properties();
+        try (InputStream input = DatabaseConnection.class.getResourceAsStream(CONFIG_FILE)) {
+            if (input == null) {
+                throw new IllegalStateException("File di configurazione non trovato: " + CONFIG_FILE);
+            }
+            props.load(input);
+            return props;
+        } catch (IOException e) {
+            throw new IllegalStateException("Impossibile leggere il file di configurazione", e);
         }
     }
 
     public static synchronized Connection getInstance() throws SQLException {
         try {
-            if (reuseIfValid()) {
-                return connection;
-            }
+            if (isReusable(connection)) return connection;
 
-            String url;
-            String user;
-            String password;
+            String url, user, password;
 
             if (urlOverride != null) {
                 url = urlOverride;
                 user = userOverride;
                 password = passwordOverride;
             } else {
-                Properties props = new Properties();
-                try (InputStream input = DatabaseConnection.class.getResourceAsStream(CONFIG_FILE)) {
-                    if (input == null) {
-                        throw new IllegalStateException("File di configurazione non trovato: " + CONFIG_FILE);
-                    }
-                    props.load(input);
-                } catch (IOException e) {
-                    throw new IllegalStateException("Impossibile leggere il file di configurazione", e);
-                }
-
-                url = System.getProperty("db.url", props.getProperty("db.url"));
-                user = System.getProperty("db.user", props.getProperty("db.user"));
+                Properties props = loadConfigProperties(); // <<— estratto
+                url      = System.getProperty("db.url",      props.getProperty("db.url"));
+                user     = System.getProperty("db.user",     props.getProperty("db.user"));
                 password = System.getProperty("db.password", props.getProperty("db.password"));
             }
 
