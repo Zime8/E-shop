@@ -170,84 +170,142 @@ public final class OrderDAO {
         return sb.toString();
     }
 
+    // ENTRY POINT DB (refactor: bassa complessità)
     private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
         final String CALL = "{ call sp_place_order(?, ?, ?) }";
 
         try (Connection conn = DatabaseConnection.getInstance();
              CallableStatement cs = conn.prepareCall(CALL)) {
 
-            // 1) Avvio transazione lato Java
-            boolean oldAuto = conn.getAutoCommit();
-            conn.setAutoCommit(false);
+            boolean oldAuto = beginTx(conn);
             try {
-                // 2) Parametri SP
-                cs.setInt(1, userId);
-                if (address == null || address.isBlank()) cs.setNull(2, Types.VARCHAR);
-                else cs.setString(2, address);
-                cs.setString(3, buildItemsJson(items));
-
-                // 3) Esecuzione SP con multi-resultset
-                List<Integer> orderIds = new ArrayList<>();
-                Map<Integer, Integer> shopToOrder = new LinkedHashMap<>();
-
-                boolean hasResults = cs.execute(); // NON usare executeQuery()
-
-                ResultSet finalRs = null;
-                while (true) {
-                    if (hasResults) {
-                        ResultSet cur = cs.getResultSet();
-                        ResultSetMetaData md = cur.getMetaData();
-
-                        // Cerca il RS finale con le colonne id_shop/id_order (o shop_id/order_id se non aliasi)
-                        boolean isFinal = false;
-                        for (int i = 1; i <= md.getColumnCount(); i++) {
-                            String label = md.getColumnLabel(i);
-                            if ("id_order".equalsIgnoreCase(label) || "order_id".equalsIgnoreCase(label)) {
-                                isFinal = true;
-                                break;
-                            }
-                        }
-                        if (isFinal) {
-                            finalRs = cur; // NON chiudere qui
-                            break;
-                        } else {
-                            cur.close(); // scarta RS intermedi (es. SELECT ... FOR UPDATE)
-                        }
-                    } else {
-                        if (cs.getUpdateCount() == -1) break; // fine risultati
-                    }
-                    hasResults = cs.getMoreResults();
-                }
-
-                if (finalRs == null) {
-                    throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
-                }
-
-                // 4) Leggi il risultato finale
-                try (ResultSet rs = finalRs) {
-                    while (rs.next()) {
-                        // Usa i nomi coerenti con la SP: id_shop/id_order (o shop_id/order_id)
-                        int shopId  = rs.getInt("id_shop");
-                        int orderId = rs.getInt("id_order");
-                        shopToOrder.put(shopId, orderId);
-                        orderIds.add(orderId);
-                    }
-                }
-
-                // 5) Tutto ok: COMMIT
+                bindPlaceOrderParams(cs, userId, address, items);
+                Map<Integer, Integer> shopToOrder = executeAndReadMapping(cs);
                 conn.commit();
-                conn.setAutoCommit(oldAuto);
-                return new CreationResult(orderIds, shopToOrder);
-
+                return toCreationResult(shopToOrder);
             } catch (Exception ex) {
-                // Qualsiasi errore: ROLLBACK => nessun ordine resta inserito
-                try { conn.rollback(); } catch (Exception ignore) {}
-                try { conn.setAutoCommit(true); } catch (Exception ignore) {}
-                if (ex instanceof SQLException se) throw se;
-                throw new SQLException("Errore durante placeOrderDb", ex);
+                safeRollback(conn);
+                throw wrapToSqlException(ex);
+            } finally {
+                restoreAutoCommit(conn, oldAuto);
             }
         }
     }
+
+/* =======================
+   Helpers di supporto
+   ======================= */
+
+    private static boolean beginTx(Connection conn) throws SQLException {
+        boolean old = conn.getAutoCommit();
+        conn.setAutoCommit(false);
+        return old;
+    }
+
+    private static void restoreAutoCommit(Connection conn, boolean oldAuto) {
+        try {
+            conn.setAutoCommit(oldAuto);
+        } catch (Exception ignore) { /* no-op */ }
+    }
+
+    private static void safeRollback(Connection conn) {
+        try {
+            conn.rollback();
+        } catch (Exception ignore) { /* no-op */ }
+    }
+
+    private static void bindPlaceOrderParams(CallableStatement cs, int userId, String address, List<CartItem> items) throws SQLException {
+        cs.setInt(1, userId);
+        if (address == null || address.isBlank()) cs.setNull(2, Types.VARCHAR);
+        else cs.setString(2, address);
+        cs.setString(3, buildItemsJson(items));
+    }
+
+    /** Esegue la SP, avanza tra i (possibili) resultset intermedi e ritorna la mappa shop->orderId. */
+    private static Map<Integer, Integer> executeAndReadMapping(CallableStatement cs) throws SQLException {
+        if (!cs.execute()) {
+            // possono esserci solo update counts iniziali: avanza finché non troviamo il RS finale
+            if (!advanceToFinalResultSet(cs)) {
+                throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
+            }
+        }
+
+        // Se siamo qui, o c'era già un RS, o advanceToFinalResultSet l'ha posizionato sul finale
+        try (ResultSet rs = cs.getResultSet()) {
+            return readShopOrderMapping(rs);
+        }
+    }
+
+    /** Avanza nei risultati finché non trova un ResultSet con colonne id_order/order_id. */
+    private static boolean advanceToFinalResultSet(CallableStatement cs) throws SQLException {
+        boolean has = true; // entrerà nel ciclo con il next getMoreResults()
+        while (true) {
+            has = cs.getMoreResults();
+            if (has) {
+                try (ResultSet probe = cs.getResultSet()) {
+                    if (isFinalMappingResult(probe)) {
+                        // non chiudere il RS finale: dobbiamo rileggerlo dal caller
+                        // Riapriamo con getResultSet() fuori dal try-with-resources
+                        return true;
+                    }
+                }
+            } else if (cs.getUpdateCount() == -1) {
+                return false; // fine stream risultati
+            }
+        }
+    }
+
+    /** Determina se il ResultSet corrente è quello con le colonne finali (id_shop/id_order o shop_id/order_id). */
+    private static boolean isFinalMappingResult(ResultSet rs) throws SQLException {
+        if (rs == null) return false;
+        ResultSetMetaData md = rs.getMetaData();
+        for (int i = 1; i <= md.getColumnCount(); i++) {
+            String label = md.getColumnLabel(i);
+            if ("id_order".equalsIgnoreCase(label) || "order_id".equalsIgnoreCase(label)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Legge la mappa shop->orderId dal RS finale e la ritorna. */
+    private static Map<Integer, Integer> readShopOrderMapping(ResultSet rs) throws SQLException {
+        Map<Integer, Integer> map = new LinkedHashMap<>();
+        while (rs.next()) {
+            // gestiamo entrambi i naming possibili (id_shop/shop_id e id_order/order_id)
+            int shopId  = getIntByAliases(rs, "id_shop", "shop_id");
+            int orderId = getIntByAliases(rs, "id_order", "order_id");
+            map.put(shopId, orderId);
+        }
+        if (map.isEmpty()) {
+            throw new SQLException("Result set finale vuoto: atteso elenco (id_shop, id_order).");
+        }
+        return map;
+    }
+
+    /** Ritorna rs.getInt sul primo alias presente. */
+    private static int getIntByAliases(ResultSet rs, String primary, String alias) throws SQLException {
+        try {
+            return rs.getInt(primary);
+        } catch (SQLException ex) {
+            // prova con alias
+            return rs.getInt(alias);
+        }
+    }
+
+    /** Converte la mappa in CreationResult (ordinando gli orderIds per stabilità). */
+    private static CreationResult toCreationResult(Map<Integer, Integer> shopToOrder) {
+        List<Integer> orderIds = new ArrayList<>(shopToOrder.values());
+        orderIds.sort(Integer::compareTo);
+        return new CreationResult(orderIds, shopToOrder);
+    }
+
+    /** Uniforma le eccezioni a SQLException (come il metodo originale). */
+    private static SQLException wrapToSqlException(Exception ex) throws SQLException {
+        if (ex instanceof SQLException se) return se;
+        return new SQLException("Errore durante placeOrderDb", ex);
+    }
+
 
     // VALIDAZIONE
     private static void validateItems(List<CartItem> items) {
