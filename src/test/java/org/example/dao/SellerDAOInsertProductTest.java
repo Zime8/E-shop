@@ -1,73 +1,107 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
 import java.sql.Connection;
-import java.util.List;
+import java.sql.ResultSet;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SellerDAOInsertProductTest {
 
-    // Dati di test: usiamo il venditore con id=1 (Cisalfa),
-    // il prodotto con id=3 (Puma Future Z 1.4),
-    // e una taglia "41" (che nel seed non c’è, così possiamo testare l’inserimento).
-    private static final int VENDOR_USER_ID = 1;
-    private static final int PRODUCT_ID     = 3;
-    private static final String SIZE        = "41";
+    private static final int VENDOR_USER_ID = 1;   // esiste nel DB originale
+    private static final int PRODUCT_ID     = 3;   // Puma Future Z 1.4 nel DB originale
+    private String createdSize = null;             // per cleanup
+    private int shopId;
+
+    @BeforeAll
+    void sanity() throws Exception {
+        try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
+        var shop = SellerDAO.findShopForUser(VENDOR_USER_ID);
+        assertNotNull(shop, "Nessuno shop associato al venditore");
+        shopId = shop.shopId();
+    }
+
+    @AfterEach
+    void cleanup() throws Exception {
+        if (createdSize == null) return;
+        try (var c = DatabaseConnection.getInstance();
+             var ps = c.prepareStatement(
+                     "DELETE FROM product_availability WHERE id_shop=? AND product_id=? AND size=?")) {
+            ps.setInt(1, shopId);
+            ps.setInt(2, PRODUCT_ID);
+            ps.setString(3, createdSize);
+            ps.executeUpdate();
+        } finally {
+            createdSize = null;
+        }
+    }
 
     @Test
-    @DisplayName("Il venditore inserisce una nuova variante prodotto nel proprio shop")
+    @DisplayName("Il venditore inserisce una NUOVA variante prodotto nel proprio shop (size libera)")
     void insertNewVariantIntoOwnShop() throws Exception {
-        // --- 1) Verifica che il database sia raggiungibile
-        try (Connection ignored = DatabaseConnection.getInstance()) {
-            // se non lancia eccezioni, la connessione è ok
-        }
+        // 1) Trova una taglia NON presente per (shopId, PRODUCT_ID)
+        String size = findFreeSize(shopId);
+        assertNotNull(size, "Non trovata una taglia libera per il test");
+        createdSize = size; // per cleanup
 
-        // --- 2) Recupera lo shop associato al venditore
-        SellerDAO.SellerShop shop = SellerDAO.findShopForUser(VENDOR_USER_ID);
-        assertNotNull(shop, "Nessuno shop associato al venditore");
-        int shopId = shop.shopId(); // ID del negozio di Cisalfa
-
-        // --- 3) Primo inserimento di una nuova variante (upsert)
+        // 2) Primo upsert → deve creare la riga con prezzo e qty specificati
         BigDecimal firstPrice = new BigDecimal("119.99");
         int firstQty = 5;
+        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, firstPrice, firstQty);
 
-        // Inserisce nel catalogo il prodotto 3, taglia 41, prezzo 119.99, quantità 5
-        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, SIZE, firstPrice, firstQty);
-
-        // --- 4) Verifica dopo il primo upsert
-        SellerDAO.CatalogRow row1 = findCatalogRow(shopId, PRODUCT_ID, SIZE);
+        SellerDAO.CatalogRow row1 = findCatalogRow(shopId, size);
         assertNotNull(row1, "La variante inserita non è stata trovata nel catalogo");
         assertEquals(firstPrice, row1.price(), "Prezzo iniziale non corrisponde");
         assertEquals(firstQty, row1.quantity(), "Quantità iniziale non corrisponde");
 
-        // --- 5) Secondo upsert sulla stessa variante
+        // 3) Secondo upsert → nel tuo SP originale la quantità si somma e il prezzo NON cambia
         BigDecimal newPrice = new BigDecimal("100.00");
         int addQty = 2;
+        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, newPrice, addQty);
 
-        // Inserisce di nuovo la stessa variante con prezzo 100.00 e quantità aggiuntiva 2
-        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, SIZE, newPrice, addQty);
-
-        // --- 6) Verifica dopo il secondo upsert
-        SellerDAO.CatalogRow row2 = findCatalogRow(shopId, PRODUCT_ID, SIZE);
-        assertNotNull(row2);
-
-        // Il prezzo rimane quello iniziale (la stored procedure non aggiorna il prezzo)
+        SellerDAO.CatalogRow row2 = findCatalogRow(shopId, size);
+        assertNotNull(row2, "Variante non trovata dopo secondo upsert");
         assertEquals(firstPrice, row2.price(), "Il prezzo NON dovrebbe cambiare con l’upsert");
-
-        // La quantità è stata sommata (5 iniziali + 2 aggiunti = 7)
         assertEquals(firstQty + addQty, row2.quantity(), "La quantità non è stata sommata correttamente");
     }
 
-    // --- Helper per cercare la riga del catalogo con shopId, productId e size
-    private SellerDAO.CatalogRow findCatalogRow(int shopId, int productId, String size) throws Exception {
-        List<SellerDAO.CatalogRow> catalog = SellerDAO.listCatalog(shopId, null);
+    // --- helpers -------------------------------------------------------------
+
+    /** Restituisce la prima taglia “plausibile” non presente per (shopId, productId). */
+    private String findFreeSize(int shopId) throws Exception {
+        Set<String> used = new HashSet<>();
+        try (var c = DatabaseConnection.getInstance();
+             var ps = c.prepareStatement("""
+                 SELECT size FROM product_availability
+                 WHERE id_shop=? AND product_id=?""")) {
+            ps.setInt(1, shopId);
+            ps.setInt(2, SellerDAOInsertProductTest.PRODUCT_ID);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) used.add(rs.getString(1));
+            }
+        }
+        // elenco di taglie comuni per calzature; aggiungiamo fallback
+        List<String> candidateSizes = new ArrayList<>(List.of(
+                "38","39","40","41","42","43","44","45","46","47","48"
+        ));
+        // se proprio tutte occupate, genera un'etichetta di test
+        for (String s : candidateSizes) {
+            if (!used.contains(s)) return s;
+        }
+        // fallback assoluto
+        String fallback = "ZZ" + System.currentTimeMillis()%1000;
+        return used.contains(fallback) ? null : fallback;
+    }
+
+    private SellerDAO.CatalogRow findCatalogRow(int shopId, String size) throws Exception {
+        var catalog = SellerDAO.listCatalog(shopId, null);
         return catalog.stream()
-                .filter(r -> r.productId() == productId && size.equals(r.size()))
+                .filter(r -> r.productId() == SellerDAOInsertProductTest.PRODUCT_ID && size.equals(r.size()))
                 .findFirst()
                 .orElse(null);
     }
