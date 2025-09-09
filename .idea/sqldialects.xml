@@ -8,5 +8,9 @@
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/dao/ShopDAO.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/dao/UserDAO.java" dialect="GenericSQL" />
     <file url="file://$PROJECT_DIR$/src/main/java/org/example/dao/db/ProductDaoDb.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/dao/OrderDAOSuccessPaymentTest.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/dao/SavedCardsDAOAddCardTest.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/test/java/org/example/dao/SellerDAOInsertProductTest.java" dialect="GenericSQL" />
+    <file url="file://$PROJECT_DIR$/src/test/resources/schema.sql" dialect="MySQL" />
   </component>
 </project>

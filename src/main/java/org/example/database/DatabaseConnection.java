@@ -11,35 +11,83 @@ import java.util.logging.Logger;
 
 public class DatabaseConnection {
 
-    private static Connection connection;
+    private static volatile Connection connection;
     private static final String CONFIG_FILE = "/db.properties";
     private static final Logger logger = Logger.getLogger(DatabaseConnection.class.getName());
 
+    // --- campi override per i test ---
+    private static volatile String urlOverride;
+    private static volatile String userOverride;
+    private static volatile String passwordOverride;
+
     private DatabaseConnection() {}
 
-    public static Connection getInstance() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            Properties props = new Properties();
-
-            try (InputStream input = DatabaseConnection.class.getResourceAsStream(CONFIG_FILE)) {
-                if (input == null) {
-                    throw new IllegalStateException("File di configurazione non trovato: " + CONFIG_FILE);
-                }
-                props.load(input);
-            } catch (IOException e) {
-                throw new IllegalStateException("Impossibile leggere il file di configurazione");
-            }
-
-            String url = props.getProperty("db.url");
-            String user = props.getProperty("db.user");
-            String password = props.getProperty("db.password");
-
-            connection = DriverManager.getConnection(url, user, password);
-        }
-        return connection;
+    /**
+     * Forza credenziali/URL per i test (es. Testcontainers).
+     * Chiude l'eventuale connessione aperta così la prossima getInstance() riapre con questi parametri.
+     */
+    public static synchronized void override(String url, String user, String password) {
+        urlOverride = url;
+        userOverride = user;
+        passwordOverride = password;
+        closeConnection(); // assicura ricreazione con i nuovi parametri
     }
 
-    public static void closeConnection() {
+    /** Rimuove l’override (torna a usare db.properties / system properties). */
+    public static synchronized void clearOverride() {
+        urlOverride = null;
+        userOverride = null;
+        passwordOverride = null;
+        closeConnection();
+    }
+
+    public static synchronized Connection getInstance() throws SQLException {
+        try {
+            if (connection != null && !connection.isClosed()) {
+                // Se è ancora valida, riusa
+                try {
+                    if (connection.isValid(2)) return connection;
+                } catch (SQLException ignore) {
+                    // se fallisce il check, chiudi e riapri
+                    closeConnection();
+                }
+            }
+
+            String url;
+            String user;
+            String password;
+
+            if (urlOverride != null) {
+                // Parametri imposti dai test
+                url = urlOverride;
+                user = userOverride;
+                password = passwordOverride;
+            } else {
+                // Carica da file e consenti override via System properties
+                Properties props = new Properties();
+                try (InputStream input = DatabaseConnection.class.getResourceAsStream(CONFIG_FILE)) {
+                    if (input == null) {
+                        throw new IllegalStateException("File di configurazione non trovato: " + CONFIG_FILE);
+                    }
+                    props.load(input);
+                } catch (IOException e) {
+                    throw new IllegalStateException("Impossibile leggere il file di configurazione", e);
+                }
+
+                url = System.getProperty("db.url", props.getProperty("db.url"));
+                user = System.getProperty("db.user", props.getProperty("db.user"));
+                password = System.getProperty("db.password", props.getProperty("db.password"));
+            }
+
+            connection = DriverManager.getConnection(url, user, password);
+            return connection;
+        } catch (SQLException ex) {
+            logger.log(Level.SEVERE, "Errore apertura connessione DB", ex);
+            throw ex;
+        }
+    }
+
+    public static synchronized void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();

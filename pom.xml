@@ -20,7 +20,7 @@
         <main.class>org.example.Main</main.class>
 
         <!-- Librerie -->
-        <javafx.version>20.0.2</javafx.version>
+        <javafx.version>23.0.1</javafx.version>
         <controlsfx.version>11.1.1</controlsfx.version>
     </properties>
 
@@ -68,6 +68,42 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.10.2</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers per MySQL -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-compress</artifactId>
+            <version>1.28.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mysql</artifactId>
+            <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.12</version> <!-- usa una 2.0.x compatibile -->
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -106,6 +142,21 @@
                 </executions>
             </plugin>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                    <classpathDependencyExcludes>
+                        <classpathDependencyExclude>org.openjfx:javafx-controls</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.openjfx:javafx-fxml</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.openjfx:javafx-graphics</classpathDependencyExclude>
+                        <classpathDependencyExclude>org.openjfx:javafx-base</classpathDependencyExclude>
+                    </classpathDependencyExcludes>
+                </configuration>
+            </plugin>
+
             <!-- Jar con Main-Class nel manifest -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -117,6 +168,15 @@
                             <mainClass>${main.class}</mainClass>
                         </manifest>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
                 </configuration>
             </plugin>
         </plugins>
@@ -137,12 +197,14 @@
                     <artifactId>javafx-controls</artifactId>
                     <version>${javafx.version}</version>
                     <classifier>win</classifier>
+                    <scope>provided</scope>
                 </dependency>
                 <dependency>
                     <groupId>org.openjfx</groupId>
                     <artifactId>javafx-fxml</artifactId>
                     <version>${javafx.version}</version>
                     <classifier>win</classifier>
+                    <scope>provided</scope>
                 </dependency>
             </dependencies>
         </profile>

@@ -10,7 +10,6 @@ public class CartItem {
 
     private String size;
 
-
     public CartItem(long productId, int shopId, int quantity, Double unitPrice, String productName, byte[] productImage, String size) {
         this.productId = productId;
         this.shopId = shopId;
