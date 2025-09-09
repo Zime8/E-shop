@@ -64,8 +64,8 @@ public class DatabaseConnection {
     }
 
     public static synchronized Connection getInstance() throws SQLException {
-        String url = null;
-        String user = null;
+        String url;
+        String user;
         try {
             if (isReusable(connection)) return connection;
 
@@ -85,17 +85,10 @@ public class DatabaseConnection {
             connection = DriverManager.getConnection(url, user, password);
             return connection;
         } catch (SQLException ex) {
-            String safeUrl = redactPassword(url);
             throw new SQLException(
-                    "Impossibile aprire la connessione DB (url=" + safeUrl + ", user=" + user + ")", ex
+                    "Impossibile aprire la connessione DB", ex
             );
         }
-    }
-
-    private static String redactPassword(String url) {
-        if (url == null) return "null";
-        // oscura eventuale parametro password= nell'URL JDBC
-        return url.replaceAll("(?i)(password=)[^&]*", "$1***");
     }
 
     public static synchronized void closeConnection() {
