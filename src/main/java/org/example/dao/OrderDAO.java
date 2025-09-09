@@ -12,6 +12,8 @@ import java.util.*;
 
 public final class OrderDAO {
 
+    private static final String ORDER_ID = "id_order";
+
     private OrderDAO() {
         throw new AssertionError("Utility class, no instances allowed");
     }
@@ -223,11 +225,9 @@ public final class OrderDAO {
 
     /** Esegue la SP, avanza tra i (possibili) resultset intermedi e ritorna la mappa shop->orderId. */
     private static Map<Integer, Integer> executeAndReadMapping(CallableStatement cs) throws SQLException {
-        if (!cs.execute()) {
-            // possono esserci solo update counts iniziali: avanza finché non troviamo il RS finale
-            if (!advanceToFinalResultSet(cs)) {
-                throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
-            }
+        boolean hasInitialResultSet = cs.execute();
+        if (!hasInitialResultSet && !advanceToFinalResultSet(cs)) {
+            throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
         }
 
         // Se siamo qui, o c'era già un RS, o advanceToFinalResultSet l'ha posizionato sul finale
@@ -261,7 +261,7 @@ public final class OrderDAO {
         ResultSetMetaData md = rs.getMetaData();
         for (int i = 1; i <= md.getColumnCount(); i++) {
             String label = md.getColumnLabel(i);
-            if ("id_order".equalsIgnoreCase(label) || "order_id".equalsIgnoreCase(label)) {
+            if (ORDER_ID.equalsIgnoreCase(label) || ORDER_ID.equalsIgnoreCase(label)) {
                 return true;
             }
         }
@@ -274,7 +274,7 @@ public final class OrderDAO {
         while (rs.next()) {
             // gestiamo entrambi i naming possibili (id_shop/shop_id e id_order/order_id)
             int shopId  = getIntByAliases(rs, "id_shop", "shop_id");
-            int orderId = getIntByAliases(rs, "id_order", "order_id");
+            int orderId = getIntByAliases(rs, ORDER_ID, "order_id");
             map.put(shopId, orderId);
         }
         if (map.isEmpty()) {
@@ -369,7 +369,7 @@ public final class OrderDAO {
 
             try (ResultSet rs = csH.executeQuery()) {
                 while (rs.next()) {
-                    int idOrder = rs.getInt("id_order");
+                    int idOrder = rs.getInt(ORDER_ID);
                     Order ord = new Order(
                             idOrder,
                             rs.getInt("id_user"),
