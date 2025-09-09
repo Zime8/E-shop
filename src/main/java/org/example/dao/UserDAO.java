@@ -63,7 +63,6 @@ public final class UserDAO {
                 if (!ok)
                     return new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
 
-                // upgrade a bcrypt se necessario
                 if (!passFromDb.startsWith("$2")) {
                     String newHash = BCrypt.hashpw(password, BCrypt.gensalt(12));
                     try (PreparedStatement up = conn.prepareStatement("UPDATE users SET pass = ? WHERE id_user = ?")) {
@@ -204,7 +203,6 @@ public final class UserDAO {
     public static void updateProfile(String currentUsername, String newUsername, String email, String phone) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
-            // gestione demo invariata
             DemoData.User old = DemoData.users().get(currentUsername);
             if (old == null) return;
             if (!Objects.equals(currentUsername, newUsername)) {

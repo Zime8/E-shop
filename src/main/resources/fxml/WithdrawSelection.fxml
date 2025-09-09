@@ -22,7 +22,6 @@
             </VBox>
         </StackPane>
 
-        <!-- Card contenuti: tabella + form inline (uguale all'acquisto) -->
         <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                           -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
             <VBox spacing="12" style="-fx-padding: 22 20 18 20;">

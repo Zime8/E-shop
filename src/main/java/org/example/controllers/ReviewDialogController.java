@@ -27,21 +27,19 @@ public class ReviewDialogController {
 
     @FXML
     private void initialize() {
-        // userData = indice stella
+
         star1.setUserData(1);
         star2.setUserData(2);
         star3.setUserData(3);
         star4.setUserData(4);
         star5.setUserData(5);
 
-        // Assicura la style class "star" e gestisci la "on" quando cambia selected
         setupStar(star1);
         setupStar(star2);
         setupStar(star3);
         setupStar(star4);
         setupStar(star5);
 
-        // stato iniziale (5/5)
         setRating(5);
     }
 
@@ -69,7 +67,6 @@ public class ReviewDialogController {
         star5.setSelected(rating >= 5);
 
         ratingLabel.setText(rating + "/5");
-        // Le classi "on" vengono aggiornate automaticamente dai listener in setupStar(...)
     }
 
     @FXML
@@ -110,12 +107,10 @@ public class ReviewDialogController {
         return (v < 1) ? 1 : (Math.min(v, 5));
     }
 
-    // ---------- gestione stile stelle (classe .on al posto di :selected) ----------
+    // gestione stile stelle
     private void setupStar(ToggleButton tb) {
         if (!tb.getStyleClass().contains("star")) tb.getStyleClass().add("star");
-        // Sync iniziale
         updateStarClass(tb, tb.isSelected());
-        // Aggiorna quando cambia selected
         tb.selectedProperty().addListener((obs, was, isSel) -> updateStarClass(tb, isSel));
     }
 
@@ -127,6 +122,5 @@ public class ReviewDialogController {
         }
     }
 
-    /** DTO */
     public record ReviewData(int rating, String title, String comment) {}
 }

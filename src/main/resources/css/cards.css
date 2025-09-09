@@ -68,7 +68,7 @@
     -fx-font-weight: bold;
 }
 
-/* OK (default) = rosso pieno */
+/* OK (default) = rosso */
 .dialog-pane .button-bar .button:default {
     -fx-background-color: #d32f2f;
     -fx-text-fill: white;

@@ -29,7 +29,6 @@ public class SavedCardsController {
     private static final String STYLE_TEXT_DARK = "-fx-text-fill: #444;";
     private static final String STYLE_OPACITY_HOVER = "-fx-opacity: 0.85;";
 
-    // Stili centralizzati
     private static final String CANCEL_BTN_STYLE =
             "-fx-background-color: white;" +
                     "-fx-border-color: #d32f2f;" +
@@ -132,10 +131,6 @@ public class SavedCardsController {
         }
     }
 
-    /* =======================
-       Dialog building (no duplicati)
-       ======================= */
-
     private record FormControls(TextField holder, TextField number, TextField expiry, ChoiceBox<String> type, GridPane grid) {}
 
     private Optional<Card> promptCard(String title, String headerText, String okText, Card prefill) {
@@ -150,14 +145,12 @@ public class SavedCardsController {
         ButtonType okType = new ButtonType(okText, ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(okType, ButtonType.CANCEL);
 
-        // stile Cancel coerente
         Button cancelButton = (Button) dialog.getDialogPane().lookupButton(ButtonType.CANCEL);
         cancelButton.setStyle(CANCEL_BTN_STYLE);
 
         FormControls fc = buildForm(prefill);
         dialog.getDialogPane().setContent(fc.grid());
 
-        // CSS opzionale (se lo usi)
         var cssUrl = getClass().getResource("/css/cards.css");
         if (cssUrl != null) {
             dialog.getDialogPane().getStylesheets().add(cssUrl.toExternalForm());
@@ -200,9 +193,7 @@ public class SavedCardsController {
         return new FormControls(holderField, numberField, expiryField, typeChoice, grid);
     }
 
-    /* =======================
-       VALIDAZIONI & UTILS
-       ======================= */
+    // VALIDAZIONI e UTILS
 
     private static String validateHolder(String holder) {
         if (holder == null || holder.trim().isEmpty())
@@ -261,9 +252,7 @@ public class SavedCardsController {
         return "**** **** **** " + last4;
     }
 
-    /* =======================
-       CELL FACTORY
-       ======================= */
+    //CELL FACTORY
 
     private class CardCell extends ListCell<Card> {
         private final Label holder = new Label();
@@ -417,9 +406,6 @@ public class SavedCardsController {
         }
     }
 
-    /* =======================
-       Alert helpers
-       ======================= */
     private void showError(String header, String msg) {
         Alert a = new Alert(Alert.AlertType.ERROR);
         a.setTitle("Errore"); a.setHeaderText(header); a.setContentText(msg);

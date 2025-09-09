@@ -15,7 +15,7 @@ public class OrderLine {
     // Parameter Object per i dettagli
     public record Details(String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {}
 
-    // Costruttore con 4 parametri (3 id + oggetto dettagli)
+    // Costruttore
     public OrderLine(int orderId, long productId, int shopId, Details details) {
         this.orderId = orderId;
         this.productId = productId;

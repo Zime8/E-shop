@@ -16,10 +16,10 @@ public final class ProductDaos {
         String mode = System.getProperty("persist.mode",
                 System.getenv().getOrDefault("PERSIST_MODE", "DB"));
         if ("FS".equalsIgnoreCase(mode)) {
-            String root = System.getProperty("fs.root", System.getenv("FS_ROOT")); // può essere null
+            String root = System.getProperty("fs.root", System.getenv("FS_ROOT"));
             if (root == null || root.isBlank()) {
                 logger.info(() -> "[DAO] Mode=FS (resources/data)");
-                return new ProductDaoFs(); // legge da resources/data
+                return new ProductDaoFs();
             } else {
                 logger.log(Level.INFO, () -> "[DAO] Mode=FS (folder) root=" + root);
                 return new ProductDaoFs(java.nio.file.Path.of(root));

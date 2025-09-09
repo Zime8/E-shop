@@ -13,7 +13,7 @@ public final class ReviewDAO {
 
     private ReviewDAO(){}
 
-    // Risale a uno username “umano” in demo a partire da userId
+    // Risale a uno username in demo a partire da userId
     private static String resolveUsernameDemo(int userId) {
         if (userId < 0 && Session.getUser() != null) return Session.getUser();
 
@@ -24,7 +24,7 @@ public final class ReviewDAO {
                 .orElseGet(() -> Session.getUser() != null ? Session.getUser() : ("user#" + userId));
     }
 
-    // Restituisce le recensioni per (product, shop) ordinate per createdAt DESC.
+    // Restituisce le recensioni per (product, shop)
     public static List<Review> listByProductShop(long productId, int idShop) throws SQLException {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
@@ -81,7 +81,7 @@ public final class ReviewDAO {
             DemoData.ensureLoaded();
             List<Review> list = DemoData.reviewsOf(productId, idShop);
 
-            // upsert: rimuovi eventuale review dello stesso utente
+            // rimuovi eventuale review dello stesso utente
             for (Iterator<Review> it = list.iterator(); it.hasNext();) {
                 Review r = it.next();
                 if (r.getUserId() == userId) { it.remove(); break; }

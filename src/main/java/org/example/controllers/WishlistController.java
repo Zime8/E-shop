@@ -39,14 +39,12 @@ public class WishlistController {
     public void initialize() {
         itemsBox.setFillWidth(true);
 
-        // Cresce fino a MAX_SCROLL_HEIGHT, poi attiva lo scroll
         itemsBox.heightProperty().addListener((obs, oldH, newH) -> {
-            double target = Math.min(newH.doubleValue() + 8, MAX_SCROLL_HEIGHT); // +8 per un piccolo padding
+            double target = Math.min(newH.doubleValue() + 8, MAX_SCROLL_HEIGHT);
             wishlistScroll.setPrefHeight(target);
             wishlistScroll.setMaxHeight(MAX_SCROLL_HEIGHT);
         });
 
-        // Per sicurezza: lo scroll orizzontale non serve
         wishlistScroll.setFitToWidth(true);
         wishlistScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         wishlistScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
@@ -81,7 +79,6 @@ public class WishlistController {
         HBox row = new HBox(10);
         row.setAlignment(Pos.CENTER_LEFT);
 
-        // ImageView prodotto
         ImageView image = new ImageView();
         image.setFitWidth(50);
         image.setFitHeight(50);
@@ -90,8 +87,8 @@ public class WishlistController {
         StackPane thumb = new StackPane(image);
         thumb.setPrefSize(50, 50);
         thumb.setMinSize(50, 50);
-        thumb.setMaxSize(50, 50); // mantiene la colonna larga 50
-        StackPane.setAlignment(image, Pos.CENTER); // (di default è già CENTER)
+        thumb.setMaxSize(50, 50);
+        StackPane.setAlignment(image, Pos.CENTER);
 
         try {
             image.setImage(p.getImage());
@@ -100,7 +97,6 @@ public class WishlistController {
             logger.log(Level.WARNING, "Exception: ", e);
         }
 
-        // Name label
         Label name = new Label(p.getName());
         name.setWrapText(true);
         name.setStyle("-fx-font-weight: bold");
@@ -108,7 +104,6 @@ public class WishlistController {
         HBox.setHgrow(name, Priority.ALWAYS);
         name.setMaxWidth(Double.MAX_VALUE);
 
-        // Size label
         Label size = new Label("Taglia: " + (p.getSize() != null ? p.getSize() : "-"));
         size.setWrapText(true);
         size.setStyle("-fx-font-weight: bold");
@@ -116,12 +111,10 @@ public class WishlistController {
         HBox.setHgrow(size, Priority.ALWAYS);
         size.setMaxWidth(Double.MAX_VALUE);
 
-        // Price label
         Label price = new Label(String.format("%.2f", p.getPrice()) + " €");
         price.setStyle("-fx-font-weight: bold; -fx-text-fill: #d32f2f;");
         price.setAlignment(Pos.CENTER);
 
-        // Remove button (trash icon)
         Button btnRemove = new Button();
         btnRemove.setPrefSize(24, 24);
         btnRemove.setGraphic(new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/basket.png")), 16,16,true,true)));
@@ -132,12 +125,11 @@ public class WishlistController {
                 logger.log(Level.SEVERE, String.format("Errore rimuovendo dalla wishlist (user=%s, productId=%d, shopId=%d, size=%s)",
                                 Session.getUser(), p.getProductId(), p.getIdShop(), p.getSize()), ex);
                 showAlert("Errore nella rimozione del prodotto dalla wishlist");
-                return; // non ricaricare la lista se la rimozione è fallita
+                return;
             }
-            loadItems(); // ricarica solo se la rimozione è andata a buon fine
+            loadItems();
         });
 
-        // Add-to-cart button (cart icon)
         Button btnAddCart = new Button();
         btnAddCart.setPrefSize(24, 24);
         btnAddCart.setGraphic(new ImageView(new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/cart.png")), 16,16,true,true)));
@@ -153,8 +145,8 @@ public class WishlistController {
     @FXML
     private void onClearWishlist() {
         try {
-            UserDAO.clearWishlist(Session.getUser()); // <- metodo che svuota la wishlist per l'utente
-            loadItems(); // ricarica la lista (ora vuota)
+            UserDAO.clearWishlist(Session.getUser());
+            loadItems();
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore nello svuotamento della wishlist", e);
             showAlert("Errore nello svuotamento della wishlist");

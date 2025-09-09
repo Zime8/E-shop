@@ -66,7 +66,7 @@ public final class SavedCardsDAO {
         return out;
     }
 
-    // Inserisce la carta se assente (ritorna Optional<id>)
+    // Inserisce la carta se assente
     public static Optional<Integer> insertIfAbsentReturningId(
             int userId, String holder, String rawCardNumber, String expiry, String cardType) throws SQLException {
 

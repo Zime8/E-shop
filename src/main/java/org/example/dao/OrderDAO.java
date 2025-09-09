@@ -18,7 +18,6 @@ public final class OrderDAO {
         throw new AssertionError("Utility class, no instances allowed");
     }
 
-    // Risultato creazione ordini
     public record CreationResult(
             List<Integer> orderIds,
             Map<Integer, Integer> shopToOrderId
@@ -42,7 +41,7 @@ public final class OrderDAO {
         }
     }
 
-    // ENTRY POINT CREAZIONE ORDINE
+    // CREAZIONE ORDINE
     public static CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items, String address) throws SQLException {
         validateItems(items);
         return Session.isDemo()
@@ -147,8 +146,6 @@ public final class OrderDAO {
         }
     }
 
-    // PRODUZIONE
-
     // Escape per JSON
     private static String jsonEscape(String s) {
         if (s == null) return "null";
@@ -172,7 +169,7 @@ public final class OrderDAO {
         return sb.toString();
     }
 
-    // ENTRY POINT DB (refactor: bassa complessità)
+    // DB
     private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
         final String CALL = "{ call sp_place_order(?, ?, ?) }";
 
@@ -194,9 +191,7 @@ public final class OrderDAO {
         }
     }
 
-/* =======================
-   Helpers di supporto
-   ======================= */
+    // Helpers
 
     private static boolean beginTx(Connection conn) throws SQLException {
         boolean old = conn.getAutoCommit();
@@ -207,13 +202,17 @@ public final class OrderDAO {
     private static void restoreAutoCommit(Connection conn, boolean oldAuto) {
         try {
             conn.setAutoCommit(oldAuto);
-        } catch (Exception ignore) { /* no-op */ }
+        } catch (Exception ignore) {
+            // Nessuna operazione
+        }
     }
 
     private static void safeRollback(Connection conn) {
         try {
             conn.rollback();
-        } catch (Exception ignore) { /* no-op */ }
+        } catch (Exception ignore) {
+            // Nessuna operazione
+        }
     }
 
     private static void bindPlaceOrderParams(CallableStatement cs, int userId, String address, List<CartItem> items) throws SQLException {
@@ -223,56 +222,52 @@ public final class OrderDAO {
         cs.setString(3, buildItemsJson(items));
     }
 
-    /** Esegue la SP, avanza tra i (possibili) resultset intermedi e ritorna la mappa shop->orderId. */
+    // Esegue la SP, avanza tra i resultset intermedi e ritorna la mappa shop->orderId.
     private static Map<Integer, Integer> executeAndReadMapping(CallableStatement cs) throws SQLException {
         boolean hasInitialResultSet = cs.execute();
         if (!hasInitialResultSet && !advanceToFinalResultSet(cs)) {
             throw new SQLException("sp_place_order non ha restituito il result set atteso (id_shop/id_order).");
         }
 
-        // Se siamo qui, o c'era già un RS, o advanceToFinalResultSet l'ha posizionato sul finale
         try (ResultSet rs = cs.getResultSet()) {
             return readShopOrderMapping(rs);
         }
     }
 
-    /** Avanza nei risultati finché non trova un ResultSet con colonne id_order/order_id. */
+    // Avanza nei risultati finché non trova un ResultSet con colonne id_order/order_id.
     private static boolean advanceToFinalResultSet(CallableStatement cs) throws SQLException {
-        boolean has = true; // entrerà nel ciclo con il next getMoreResults()
+        boolean has = true;
         while (true) {
             has = cs.getMoreResults();
             if (has) {
                 try (ResultSet probe = cs.getResultSet()) {
                     if (isFinalMappingResult(probe)) {
-                        // non chiudere il RS finale: dobbiamo rileggerlo dal caller
-                        // Riapriamo con getResultSet() fuori dal try-with-resources
                         return true;
                     }
                 }
             } else if (cs.getUpdateCount() == -1) {
-                return false; // fine stream risultati
+                return false;
             }
         }
     }
 
-    /** Determina se il ResultSet corrente è quello con le colonne finali (id_shop/id_order o shop_id/order_id). */
+    // Determina se il ResultSet corrente è quello con le colonne finali (id_shop/id_order o shop_id/order_id).
     private static boolean isFinalMappingResult(ResultSet rs) throws SQLException {
         if (rs == null) return false;
         ResultSetMetaData md = rs.getMetaData();
         for (int i = 1; i <= md.getColumnCount(); i++) {
             String label = md.getColumnLabel(i);
-            if (ORDER_ID.equalsIgnoreCase(label) || ORDER_ID.equalsIgnoreCase(label)) {
+            if (ORDER_ID.equalsIgnoreCase(label)) {
                 return true;
             }
         }
         return false;
     }
 
-    /** Legge la mappa shop->orderId dal RS finale e la ritorna. */
+    // Legge la mappa shop->orderId dal RS finale e la ritorna
     private static Map<Integer, Integer> readShopOrderMapping(ResultSet rs) throws SQLException {
         Map<Integer, Integer> map = new LinkedHashMap<>();
         while (rs.next()) {
-            // gestiamo entrambi i naming possibili (id_shop/shop_id e id_order/order_id)
             int shopId  = getIntByAliases(rs, "id_shop", "shop_id");
             int orderId = getIntByAliases(rs, ORDER_ID, "order_id");
             map.put(shopId, orderId);
@@ -283,24 +278,23 @@ public final class OrderDAO {
         return map;
     }
 
-    /** Ritorna rs.getInt sul primo alias presente. */
+    // Ritorna rs.getInt sul primo alias presente.
     private static int getIntByAliases(ResultSet rs, String primary, String alias) throws SQLException {
         try {
             return rs.getInt(primary);
         } catch (SQLException ex) {
-            // prova con alias
             return rs.getInt(alias);
         }
     }
 
-    /** Converte la mappa in CreationResult (ordinando gli orderIds per stabilità). */
+    // Converte la mappa in CreationResult
     private static CreationResult toCreationResult(Map<Integer, Integer> shopToOrder) {
         List<Integer> orderIds = new ArrayList<>(shopToOrder.values());
         orderIds.sort(Integer::compareTo);
         return new CreationResult(orderIds, shopToOrder);
     }
 
-    /** Uniforma le eccezioni a SQLException (come il metodo originale). */
+    // Uniforma le eccezioni a SQLException
     private static SQLException wrapToSqlException(Exception ex) {
         if (ex instanceof SQLException se) return se;
         return new SQLException("Errore durante placeOrderDb", ex);
@@ -356,7 +350,7 @@ public final class OrderDAO {
             return out;
         }
 
-        // PRODUZIONE con stored procedure
+        // PRODUZIONE
         final String CALL_H = "{ call sp_list_orders_header(?) }";
         final String CALL_L = "{ call sp_list_orders_lines(?) }";
 

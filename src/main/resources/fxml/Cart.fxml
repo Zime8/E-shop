@@ -32,16 +32,7 @@
 
     <ScrollPane fx:id="cartScroll" fitToWidth="true" maxHeight="200" style="-fx-background-color: transparent;">
         <VBox fx:id="cartItemsContainer" spacing="8" style="-fx-background-color: transparent;">
-            <!-- Qui in runtime inserirai righe prodotto -->
-            <!-- esempio riga prodotto: -->
-            <!--
-            <HBox spacing="10" alignment="CENTER_LEFT">
-                <ImageView fitWidth="40" fitHeight="40" pickOnBounds="true" preserveRatio="true" />
-                <Label text="Nome prodotto" style="-fx-font-weight: bold;"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Label text="€ XX,XX" style="-fx-text-fill: #d32f2f;"/>
-            </HBox>
-            -->
+            <!-- Qui verranno inserite le righe del carrello -->
         </VBox>
     </ScrollPane>
 

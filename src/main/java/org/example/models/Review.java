@@ -3,12 +3,12 @@ package org.example.models;
 import java.time.LocalDateTime;
 
 public class Review {
-    private int userId;              // utile per upsert/identificazione autore
-    private String username;         // comodo per mostrare in UI
-    private int rating;              // 1..5
-    private String title;            // opzionale
-    private String comment;          // opzionale
-    private LocalDateTime createdAt; // orario creazione/aggiornamento
+    private int userId;
+    private String username;
+    private int rating;
+    private String title;
+    private String comment;
+    private LocalDateTime createdAt;
 
     public Review() {}
 

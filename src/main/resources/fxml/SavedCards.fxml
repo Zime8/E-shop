@@ -18,13 +18,11 @@
                   style="-fx-padding: 18 18 16 18;">
                 <Label text="Carte Salvate"
                        style="-fx-font-size: 24; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
-                <!-- Descrizione grigia piccola -->
                 <Label text="Gestisci le carte salvate per i tuoi pagamenti"
                        style="-fx-text-fill: #777; -fx-font-size: 12;"/>
             </VBox>
         </StackPane>
 
-        <!-- Lista carte in “card” -->
         <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                           -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
             <VBox spacing="10" style="-fx-padding: 22 20 18 20;">
@@ -35,7 +33,6 @@
                     <Region HBox.hgrow="ALWAYS"/>
                 </HBox>
 
-                <!-- separatore sottile -->
                 <Region prefHeight="6"/>
 
                 <ListView fx:id="cardsListView"
@@ -43,13 +40,11 @@
                           style="-fx-background-color: transparent; -fx-background-insets: 0;
                                  -fx-control-inner-background: white;
                                  -fx-background-radius: 16;">
-                    <!-- stylesheet opzionale della tua app -->
                     <stylesheets>
                         <URL value="@/css/style.css"/>
                     </stylesheets>
                 </ListView>
 
-                <!-- Footer sottile della card -->
                 <HBox alignment="CENTER_LEFT" spacing="8" style="-fx-padding: 6 0 0 0;">
                     <Label text="Suggerimento:"
                            style="-fx-text-fill: #d32f2f; -fx-font-weight: bold; -fx-font-size: 12;"/>

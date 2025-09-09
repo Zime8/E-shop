@@ -18,14 +18,12 @@ public final class CardUi {
     public static final String CARD_TYPE_CREDITO = "Credito";
     public static final String DIGITS_ONLY_REGEX = "\\D";
 
-    /** Raggruppa riferimenti “di contesto” della tabella. */
     public record CardTableContext(
             TableView<Card> table,
             ObservableList<Card> items,
             Map<Integer, String> transientCvvs
     ) {}
 
-    /** Raggruppa tutte le colonne della tabella carte. */
     public record CardColumns(
             TableColumn<Card, Number> colId,
             TableColumn<Card, String> colHolder,
@@ -35,14 +33,13 @@ public final class CardUi {
             TableColumn<Card, String> colCvv
     ) {}
 
-    /** Inizializza la combo del tipo carta (Debito/Credito). */
     public static void setupTypeCombo(ComboBox<String> combo) {
         if (combo == null) return;
         combo.getItems().setAll(CARD_TYPE_DEBITO, CARD_TYPE_CREDITO);
         combo.setValue(CARD_TYPE_DEBITO);
     }
 
-    /** Maschera il PAN mostrando solo le ultime 4 cifre. */
+    // Maschera il PAN mostrando solo le ultime 4 cifre
     public static String maskPan(String pan) {
         if (pan == null) return "";
         String digits = pan.replaceAll(DIGITS_ONLY_REGEX, "");
@@ -51,18 +48,17 @@ public final class CardUi {
         return "**** **** **** " + last4;
     }
 
-    /** CVV valido = 3 cifre. */
+    // CVV valido = 3 cifre
     public static boolean isValidCvv(String cvv) {
         return cvv != null && cvv.matches("\\d{3}");
     }
 
-    /** Collega larghezze colonna alla larghezza della tabella (ratio 0..1). */
     public static void bindWidth(TableView<?> table, TableColumn<?, ?> col, double ratio) {
         if (table == null || col == null) return;
         col.prefWidthProperty().bind(table.widthProperty().multiply(ratio));
     }
 
-    /** Disabilita 'Conferma' se lista vuota o nessuna riga selezionata. */
+    // Disabilita 'Conferma' se lista vuota o nessuna riga selezionata
     public static void bindConfirmEnablement(ObservableList<?> items, TableView<?> table, Button confirmBtn) {
         if (confirmBtn == null || table == null || items == null) return;
         confirmBtn.setDisable(items.isEmpty() || table.getSelectionModel().getSelectedItem() == null);
@@ -74,13 +70,10 @@ public final class CardUi {
         );
     }
 
-    /**
-     * Inizializzazione completa della tabella carte con 2 parametri (no più di 7).
-     */
     public static void initCardTable(CardTableContext ctx, CardColumns cols) {
         if (ctx == null || ctx.table() == null) return;
 
-        // Items + policy
+        // Items
         ctx.table().setItems(ctx.items());
         ctx.table().setEditable(true);
         ctx.table().setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);

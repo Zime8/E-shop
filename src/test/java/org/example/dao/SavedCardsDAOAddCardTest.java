@@ -22,10 +22,9 @@ class SavedCardsDAOAddCardTest {
 
     @BeforeAll
     void useRealDb() throws Exception {
-        // Assicurati di NON usare il demo mode
         Session.setDemo(false);
 
-        // Sanity: la connessione deve aprirsi senza eccezioni
+        // la connessione deve aprirsi senza eccezioni
         try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
     }
 
@@ -50,7 +49,7 @@ class SavedCardsDAOAddCardTest {
         List<SavedCardsDAO.Row> before = SavedCardsDAO.findByUser(USER_ID);
         int beforeCount = before.size();
 
-        // 1) Inserisco una nuova carta
+        // Inserisco una nuova carta
         Optional<Integer> maybeId = SavedCardsDAO.insertIfAbsentReturningId(
                 USER_ID, "Mario Rossi", "4111 1111 1111 1111", "12/27", "Credito");
 
@@ -58,13 +57,13 @@ class SavedCardsDAOAddCardTest {
         insertedCardId = maybeId.get();
         assertTrue(insertedCardId > 0, "card_id non valido");
 
-        // 2) Provo un duplicato (stesse cifre, formattazione diversa) → deve essere rifiutato
+        // Provo un duplicato (stesse cifre, formattazione diversa), deve essere rifiutato
         Optional<Integer> dup = SavedCardsDAO.insertIfAbsentReturningId(
                 USER_ID, "Mario Rossi", "4111111111111111", "12/27", "Credito");
 
         assertTrue(dup.isEmpty(), "La carta duplicata (stesse cifre) non dovrebbe essere inserita");
 
-        // 3) Verifica elenco aggiornato: +1 rispetto a prima
+        // Verifico elenco aggiornato: +1 rispetto a prima
         List<SavedCardsDAO.Row> after = SavedCardsDAO.findByUser(USER_ID);
         assertEquals(beforeCount + 1, after.size(), "Dovrebbe esserci esattamente una carta in più");
     }

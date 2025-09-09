@@ -32,14 +32,13 @@ import java.util.logging.Logger;
 
 public class HomeController implements Initializable {
 
-    // ---- DI del DAO (Opzione 2)
     private final ProductDao productDao;
-    public HomeController(ProductDao productDao) {      // costruttore per test/DI
+    public HomeController(ProductDao productDao) {      // costruttore
         this.productDao = productDao;
     }
 
     public HomeController() {                           // costruttore usato da FXMLLoader
-        this(ProductDaos.create());                     // DB o FS in base alle proprietà
+        this(ProductDaos.create());
     }
 
     private static final Logger logger = Logger.getLogger(HomeController.class.getName());
@@ -76,6 +75,7 @@ public class HomeController implements Initializable {
             searchField.selectAll();
         });
 
+        // Setto i flitri
         sportFilter.getItems().addAll(ALL, "Calcio","Basket","Running","Tennis","Nuoto");
         sportFilter.setValue(ALL);
 
@@ -103,13 +103,14 @@ public class HomeController implements Initializable {
         updateCart();
     }
 
+    // Ricerca prodotto dopo il 3 carattere digitato
     @FXML
     private void searchProducts(String query) {
         sectionTitle.setText("Risultati per: \"" + query + "\"");
         productPane.getChildren().clear();
 
         try {
-            List<Product> results = productDao.searchByName(query); // << sostituisce ProductDAO.searchByName
+            List<Product> results = productDao.searchByName(query);
 
             if (results.isEmpty()) {
                 Label noResults = new Label("Nessun prodotto trovato per \"" + query + "\"");
@@ -298,7 +299,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         try {
-            List<Product> filteredProducts = productDao.searchByFilters( // << sostituisce ProductDAO.searchByFilters
+            List<Product> filteredProducts = productDao.searchByFilters(
                     selectedSport.equals(ALL) ? null : selectedSport,
                     selectedBrand.equals(ALL) ? null : selectedBrand,
                     selectedShop.equals(ALL) ? null : selectedShop,

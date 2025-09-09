@@ -134,7 +134,6 @@ public class ProductDetailController {
                 return;
             }
 
-            // UI minimale senza FXML (come prima)
             VBox root = new VBox(12);
             root.setStyle("""
             -fx-background-color: #fff;
@@ -190,6 +189,7 @@ public class ProductDetailController {
         }
     }
 
+    // Apre l'indirizzo su google maps
     private void openMapsForAddress(String address) {
         if (address == null || address.isBlank()) {
             new Alert(Alert.AlertType.INFORMATION, "Indirizzo non disponibile.").showAndWait();
@@ -202,7 +202,6 @@ public class ProductDetailController {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 Desktop.getDesktop().browse(new URI(url));
             } else {
-                // fallback: mostra l’URL all’utente
                 new Alert(Alert.AlertType.INFORMATION, "Apri manualmente:\n" + url).showAndWait();
             }
         } catch (Exception ex) {
@@ -230,7 +229,6 @@ public class ProductDetailController {
             int max = stock;
 
             if (max <= 0) {
-                // esaurito
                 stockLabel.setText("Esaurito");
                 qtySpinner.setDisable(true);
                 addToCartBtn.setDisable(true);
@@ -246,7 +244,6 @@ public class ProductDetailController {
             }
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Errore recuperando disponibilità", e);
-            // fallback prudente
             stockLabel.setText("Disponibilità: —");
             qtySpinner.setDisable(false);
             addToCartBtn.setDisable(false);
@@ -362,7 +359,6 @@ public class ProductDetailController {
         product.setPrice(priceSel);
         priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
 
-        // aggiorna stato “preferiti” per taglia
         boolean wished = productDao.existsWish(Session.getUser(),
                 product.getProductId(), product.getIdShop(), sel);
         updateWishButton(wished);

@@ -11,32 +11,25 @@ public class FakePaymentGateway implements PaymentGateway {
 
     private final long simulatedDelayMs;
     private final double failRate;
-    private final DoubleSupplier rng; // RNG iniettato
-    private Boolean forceNext = null; // opzionale per test
+    private final DoubleSupplier rng;
+    private Boolean forceNext = null;
 
-    /** Default: 800ms delay, 10% fail, RNG sicuro
-    public FakePaymentGateway() {
-        this(800, 0.10, new SecureRandom()::nextDouble);
-    }
-
-    /** Stessi parametri di prima, RNG sicuro di default */
     public FakePaymentGateway(long simulatedDelayMs, double failRate) {
         this(simulatedDelayMs, failRate, new SecureRandom()::nextDouble);
     }
 
-    /** Versione deterministica (compatibile col vecchio costruttore col seed) */
+    // Versione deterministica
     public FakePaymentGateway(long simulatedDelayMs, double failRate, long seed) {
         this(simulatedDelayMs, failRate, new SplittableRandom(seed)::nextDouble);
     }
 
-    /** Costruttore principale (iniezione RNG) */
+    // Costruttore principale
     private FakePaymentGateway(long simulatedDelayMs, double failRate, DoubleSupplier rng) {
         this.simulatedDelayMs = simulatedDelayMs;
         this.failRate = failRate;
         this.rng = rng;
     }
 
-    /** Forza il prossimo esito (true=successo, false=fallimento) — utile nei test */
     public synchronized void forceNext(boolean success) {
         this.forceNext = success;
     }
@@ -51,7 +44,6 @@ public class FakePaymentGateway implements PaymentGateway {
             throw new PaymentGatewayException("Operazione di pagamento interrotta", ie);
         }
 
-        // Esito forzato (se impostato)
         synchronized (this) {
             if (forceNext != null) {
                 boolean ok = forceNext;
@@ -62,7 +54,7 @@ public class FakePaymentGateway implements PaymentGateway {
             }
         }
 
-        // Validazioni minime dati carta
+        // Validazioni dati carta
         String pan = paymentData.getOrDefault("card_number", "");
         String expiry = paymentData.getOrDefault("expiry", "");
         if (pan.isBlank() || expiry.isBlank()) {

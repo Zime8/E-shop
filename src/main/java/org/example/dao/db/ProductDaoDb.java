@@ -56,7 +56,6 @@ public class ProductDaoDb implements ProductDao {
 
         try (Connection conn = DatabaseConnection.getInstance();
              CallableStatement cs = conn.prepareCall(call)) {
-            // MySQL: setNull con tipo corretto
             if (sportVal == null) cs.setNull(1, Types.VARCHAR); else cs.setString(1, sportVal);
             if (brandVal == null) cs.setNull(2, Types.VARCHAR); else cs.setString(2, brandVal);
             if (shopId   == null) cs.setNull(3, Types.INTEGER); else cs.setInt(3, shopId);

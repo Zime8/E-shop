@@ -58,7 +58,7 @@
         <!-- Contenuto a schede -->
         <TabPane fx:id="tabPane" tabClosingPolicy="UNAVAILABLE"
                  style="-fx-background-color: transparent;">
-            <!-- ======================== CATALOGO ======================== -->
+            <!-- CATALOGO -->
             <Tab text="Catalogo Prodotti">
                 <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                                   -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
@@ -128,7 +128,7 @@
                 </StackPane>
             </Tab>
 
-            <!-- ======================== ORDINI ======================== -->
+            <!-- ORDINI -->
             <Tab text="Ordini del Negozio">
                 <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                                   -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
@@ -154,8 +154,7 @@
                             <TableView fx:id="sellerOrdersTable"
                                        prefHeight="260"
                                        style="-fx-background-color: transparent; -fx-background-insets: 0;
-                  -fx-control-inner-background: white; -fx-background-radius: 16;">
-                                <!-- La colonna finale si espande -->
+                                              -fx-control-inner-background: white; -fx-background-radius: 16;">
                                 <columnResizePolicy>
                                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/>
                                 </columnResizePolicy>

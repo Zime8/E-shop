@@ -23,7 +23,7 @@
             </VBox>
         </StackPane>
 
-        <!-- Card contenuti: tabella + form inline -->
+        <!-- Card contenuti -->
         <StackPane style="-fx-background-color: white; -fx-background-radius: 20;
                           -fx-effect: dropshadow(gaussian, rgba(211,47,47,0.14), 22, 0.18, 0, 8);">
             <VBox spacing="12" style="-fx-padding: 22 20 18 20;">
@@ -34,7 +34,7 @@
                     <Region HBox.hgrow="ALWAYS"/>
                 </HBox>
 
-                <!-- Tabella carte (stessi fx:id/colonne) -->
+                <!-- Tabella carte -->
                 <TableView fx:id="cardsTable" prefHeight="260" VBox.vgrow="ALWAYS"
                            style="-fx-background-color: transparent; -fx-background-insets: 0;">
                     <columns>
@@ -47,7 +47,6 @@
                     </columns>
                 </TableView>
 
-                <!-- Divider sottile -->
                 <Region prefHeight="6"/>
 
                 <TextField fx:id="addressField" promptText="Indirizzo di spedizione"/>
@@ -60,7 +59,6 @@
                            style="-fx-text-fill:#d32f2f; -fx-font-weight: bold; -fx-font-size: 14;"/>
                 </HBox>
 
-                <!-- FORM INLINE (stessi fx:id) -->
                 <GridPane hgap="10" vgap="10">
                     <columnConstraints>
                         <ColumnConstraints percentWidth="15"/>
@@ -90,7 +88,6 @@
             </VBox>
         </StackPane>
 
-        <!-- Bottom actions (stessi fx:id/handler) -->
         <HBox spacing="16" alignment="CENTER_RIGHT">
             <ProgressIndicator fx:id="progress" visible="false" prefWidth="24" prefHeight="24"/>
             <Region HBox.hgrow="ALWAYS"/>

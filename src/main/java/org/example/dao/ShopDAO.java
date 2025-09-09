@@ -43,7 +43,7 @@ public final class ShopDAO {
              CallableStatement cs = c.prepareCall(call)) {
             cs.setLong(1, userId);
             cs.setBigDecimal(2, amount);
-            cs.execute(); // la SP fa transazione + SIGNAL su errore
+            cs.execute();
         } catch (SQLException e) {
             throw new SQLException(
                     "Errore nella richiesta di prelievo (userId=" + userId + ", amount=" + amount + ")", e
@@ -51,7 +51,7 @@ public final class ShopDAO {
         }
     }
 
-    // Restituisce il negozio con via e telefono; null se non trovato
+    // Restituisce il negozio con via e telefono
     public static Shop getById(long idShop) {
         final String call = "{ call sp_shop_get_by_id(?) }";
         try (Connection c = DatabaseConnection.getInstance();
@@ -71,7 +71,7 @@ public final class ShopDAO {
         } catch (SQLException e) {
             logger.log(Level.WARNING, e, () ->
                     "Errore durante il recupero del negozio idShop=" + idShop);
-            return null; // mantieni comportamento precedente
+            return null;
         }
     }
 }

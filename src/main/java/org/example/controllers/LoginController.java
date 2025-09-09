@@ -81,7 +81,7 @@ public class LoginController {
                 "Errore durante il caricamento della schermata utente.");
     }
 
-    /** Apertura area venditore (schermata dedicata). */
+    // Apertura area venditore
     private void goSellerHome() {
         navigate("/fxml/SellerHome.fxml",
                 "Area Venditore",
@@ -120,7 +120,7 @@ public class LoginController {
         }
     }
 
-    /** Metodo riutilizzabile per caricare un FXML, impostare scena/titolo e gestire errori. */
+    // Metodo che carica FXML, imposta scena/titolo e gestisce errori
     private void navigate(String fxmlPath,
                           String title,
                           boolean maximized,

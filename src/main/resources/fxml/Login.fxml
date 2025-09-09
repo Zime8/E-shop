@@ -27,7 +27,7 @@
                 <Insets top="22" right="22" bottom="22" left="22"/>
             </padding>
 
-            <!-- colonne: etichette a destra, campi che crescono -->
+            <!-- colonne -->
             <columnConstraints>
                 <ColumnConstraints minWidth="110" halignment="RIGHT"/>
                 <ColumnConstraints hgrow="ALWAYS" minWidth="220"/>

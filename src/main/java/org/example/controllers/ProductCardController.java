@@ -50,23 +50,23 @@ public class ProductCardController {
     private void onCardClicked() {
 
         try {
-            // 1) Carica la FXML della mini‐pagina
+
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductDetail.fxml"));
             Parent detailRoot = loader.load();
 
-            // 2) Passa il prodotto al controller del dettaglio
+            // Passa il prodotto al controller del dettaglio prodotto
             ProductDetailController detailCtrl = loader.getController();
             detailCtrl.setProduct(product);
 
             detailCtrl.setOnAddToCartCallback(onAddToCartCallback);
 
-            // 3) Crea contenitore con sfondo trasparente e padding
+            // Crea contenitore
             StackPane transparentRoot = new StackPane();
-            transparentRoot.setStyle("-fx-background-color: rgba(0, 0, 0, 0.1);"); // sfondo scuro trasparente
-            transparentRoot.setPadding(new Insets(500)); // margine attorno al contenuto
+            transparentRoot.setStyle("-fx-background-color: rgba(0, 0, 0, 0.1);");
+            transparentRoot.setPadding(new Insets(500));
             transparentRoot.getChildren().add(detailRoot);
 
-            // 4) Aggiungi listener per chiusura cliccando fuori
+            // Aggiungi listener per chiusura cliccando fuori dal contenitore
             transparentRoot.addEventFilter(MouseEvent.MOUSE_CLICKED, event -> {
                 if (!detailRoot.isHover()) {
                     Stage stage = (Stage) transparentRoot.getScene().getWindow();
@@ -74,12 +74,11 @@ public class ProductCardController {
                 }
             });
 
-            // (Opzionale) un po’ di semitrasparenza dietro
+            // Semitrasparenza intorno al contenitore
             Stage owner = (Stage) photo.getScene().getWindow();
             Scene scene = new Scene(transparentRoot, owner.getWidth(), owner.getHeight());
             scene.setFill(Color.TRANSPARENT);
 
-            // Aggiorna automaticamente la scena quando cambia la dimensione della finestra principale
             owner.widthProperty().addListener((obs, oldVal, newVal) ->
                 scene.getWindow().setWidth(newVal.doubleValue())
             );
@@ -88,7 +87,6 @@ public class ProductCardController {
                 scene.getWindow().setHeight(newVal.doubleValue())
             );
 
-            // 5) Crea lo stage trasparente
             Stage dialog = new Stage(StageStyle.TRANSPARENT);
             dialog.initOwner(photo.getScene().getWindow());
             dialog.initModality(Modality.APPLICATION_MODAL);

@@ -14,23 +14,23 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/** Servizio per le carte salvate. */
+// Servizio per le carte salvate
 public final class CardsService {
     private CardsService(){}
 
     private static final Logger LOGGER = Logger.getLogger(CardsService.class.getName());
 
-    /** Risultato dell’add inline. */
+    // Risultato dell’add inline
     public enum AddCardStatus { ADDED, DUPLICATE, VALIDATION_ERROR, ERROR }
 
     public record AddCardResult(AddCardStatus status, String message, Card card) {
         public boolean ok() { return status == AddCardStatus.ADDED; }
     }
 
-    /** Dati input carta inseriti dall’utente. */
+    // Dati input carta inseriti dall’utente
     private record InlineInputs(String holder, String number, String expiry, String type) {}
 
-    /** Riferimenti UI necessari per aggiornare la schermata. */
+    // Riferimenti UI per aggiornare la schermata
     private record UiRefs(
             ComboBox<String> typeCombo,
             ObservableList<Card> cards,
@@ -48,10 +48,7 @@ public final class CardsService {
         }
     }
 
-    /**
-     * Aggiunge una carta “inline” (se non presente) e aggiorna la TableView.
-     * Restituisce un risultato con esito e messaggio da mostrare.
-     */
+    // Aggiunge una carta se non presente e aggiorna la TableView.
     public static void addInlineCard(
             int userId,
             TextField holderField, TextField numberField, TextField expiryField,
@@ -59,7 +56,7 @@ public final class CardsService {
             ObservableList<Card> cards,
             TableView<Card> table
     ) {
-        // 1) leggi input
+        // Legge input
         InlineInputs inputs = new InlineInputs(
                 safe(holderField),
                 safe(numberField),
@@ -68,18 +65,18 @@ public final class CardsService {
         );
         UiRefs ui = new UiRefs(typeCombo, cards, table, holderField, numberField, expiryField);
 
-        // 2) valida
+        // Validazione
         String validationError = validateInlineInputs(inputs);
         if (validationError != null) {
             new AddCardResult(AddCardStatus.VALIDATION_ERROR, validationError, null);
             return;
         }
 
-        // 3) inserisci e aggiorna UI
+        // Inserisce e aggiorna UI
         insertCardAndUpdateUI(userId, inputs, ui);
     }
 
-    /* ===================== Helpers interni ===================== */
+    // Helpers
 
     private static String validateInlineInputs(InlineInputs in) {
         if (isBlank(in.holder) || isBlank(in.number) || isBlank(in.expiry) || isBlank(in.type)) {

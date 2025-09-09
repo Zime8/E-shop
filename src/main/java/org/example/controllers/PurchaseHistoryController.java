@@ -77,7 +77,7 @@ public class PurchaseHistoryController {
 
         ordersTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN);
 
-        // Quando selezioni un ordine, carica i dettagli
+        // Quando seleziona un ordine, carica i dettagli
         ordersTable.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
             if (sel != null) {
                 loadItems(sel.idOrder());
@@ -134,18 +134,14 @@ public class PurchaseHistoryController {
         setLoading(true);
         Thread t = new Thread(() -> {
             try {
-                // 1) Carica il modello completo (ordini + righe) dal DAO
                 List<Order> full = OrderDAO.listOrdersModel(userId);
 
-                // 2) Prepara la cache dei dettagli (in background)
                 Map<Integer, List<OrderLine>> tmpCache = HashMap.newHashMap(full.size());
                 for (Order o : full) {
                     List<OrderLine> converted = getOrderLines(o);
-                    // copia immutabile per il passaggio al FX thread
                     tmpCache.put(o.getId(), List.copyOf(converted));
                 }
 
-                // 3) Costruisci direttamente la lista "finale" (immutabile) per la tabella ordini
                 List<OrderSummary> summariesView = full.stream().map(o -> {
                     BigDecimal total = o.getLines().stream()
                             .map(org.example.models.OrderLine::getSubtotal)
@@ -159,10 +155,8 @@ public class PurchaseHistoryController {
                     );
                 }).toList();
 
-                // 4) Copia immutabile della cache per sicurezza
                 Map<Integer, List<OrderLine>> cacheView = Map.copyOf(tmpCache);
 
-                // 5) Aggiorna la UI sul FX Thread
                 Platform.runLater(() -> {
                     try {
                         itemsCache.clear();

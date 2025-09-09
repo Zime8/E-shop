@@ -16,7 +16,6 @@ public final class DemoData {
 
     private DemoData(){}
 
-    // ✅ campi RESI PRIVATI (erano public)
     private static final Map<String, User> USERS = new ConcurrentHashMap<>();
     private static final Map<String, List<Product>> WISHLISTS = new ConcurrentHashMap<>();
     private static final Map<String, Product> PRODUCTS = new ConcurrentHashMap<>();
@@ -25,7 +24,6 @@ public final class DemoData {
     private static final Map<Integer, List<Order>> ORDERS = new ConcurrentHashMap<>();
     private static final Map<String, Integer> STOCK = new ConcurrentHashMap<>();
 
-    // ✅ getter STATICI per accedere ai dati (stessa semantica di prima)
     public static Map<String, User> users() { return USERS; }
     public static Map<String, List<Product>> wishlists() { return WISHLISTS; }
     public static Map<String, Product> products() { return PRODUCTS; }
@@ -38,7 +36,6 @@ public final class DemoData {
 
     private static final AtomicBoolean INIT = new AtomicBoolean(false);
 
-    // (lascio pubblici gli Atomic per non toccare altro codice; possiamo rifattorizzarli dopo)
     public static final AtomicInteger DEMO_CARD_ID = new AtomicInteger(1);
     public static final AtomicInteger DEMO_ORDER_ID = new AtomicInteger(1000);
     public static final AtomicInteger NEXT_DEMO_USER_ID = new AtomicInteger(-1000);
@@ -70,7 +67,7 @@ public final class DemoData {
         return productId + "|" + shopId + "|" + (size == null ? "" : size);
     }
 
-    // Helper comodo per ottenere/creare la lista recensioni in demo
+    // Helper per ottenere/creare la lista recensioni in demo
     public static List<Review> reviewsOf(long productId, int idShop) {
         String key = reviewKey(productId, idShop);
         return REVIEWS.computeIfAbsent(key, k -> new CopyOnWriteArrayList<>());

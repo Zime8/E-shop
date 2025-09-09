@@ -9,7 +9,6 @@
            fx:controller="org.example.controllers.HomeController">
     <BorderPane style="-fx-background-color: #ffffff;">
 
-        <!-- ░░░░░ TOP BAR ░░░░░ -->
         <top>
             <HBox spacing="12" alignment="CENTER"
                   style="-fx-background-color: #d32f2f;">
@@ -24,17 +23,13 @@
                                maxWidth="200"/>
                 </HBox>
 
-                <!-- Spazio centrale per centrare il titolo -->
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <!-- Centro: Titolo -->
                 <Label text="E-Shop"
                        style="-fx-font-size: 25; -fx-font-weight: bold; -fx-text-fill: white;"/>
 
-                <!-- Spazio per spingere la parte destra a destra -->
                 <Region HBox.hgrow="ALWAYS"/>
 
-                <!-- Destra: Pulsanti con immagini + logout -->
                 <HBox spacing="10" alignment="CENTER_RIGHT">
                     <!-- CART ICON + BADGE -->
                     <StackPane alignment="TOP_RIGHT">
@@ -82,7 +77,7 @@
             </HBox>
         </top>
 
-        <!-- ░░░░░ LEFT – FILTRI ░░░░░ -->
+        <!-- Sinistra – Filtri -->
         <left>
             <VBox spacing="10" style="-fx-background-color:#ffffff; -fx-border-color:#d32f2f; -fx-border-width: 2;"
                   prefWidth="240">
@@ -117,10 +112,9 @@
             </VBox>
         </left>
 
-        <!-- ░░░░░ CENTER – PRODOTTI ░░░░░ -->
+        <!-- Centro: prodotti -->
         <center>
             <VBox spacing="10" style="-fx-padding:15; -fx-background-color: #ffffff;">
-                <!-- Titolo dinamico -->
                 <Label fx:id="sectionTitle"
                        text="Ultimi Arrivi"
                        style="-fx-font-size: 20; -fx-font-weight: bold; -fx-text-fill: #d32f2f;"/>
@@ -128,7 +122,6 @@
                     <padding>
                         <Insets top="15" right="15" bottom="15" left="15"/>
                     </padding>
-                    <!-- Usando TilePane per griglia reattiva -->
                     <TilePane fx:id="productPane"
                               hgap="15" vgap="15"
                               prefColumns="4"
@@ -139,14 +132,14 @@
             </VBox>
         </center>
 
-        <!-- ░░░░░ BOTTOM BAR ░░░░░ -->
+        <!-- Sotto -->
         <bottom>
             <HBox alignment="CENTER_LEFT" spacing="6"
                   style="-fx-background-color: #d32f2f;">
                 <padding>
                     <Insets top="5" right="5" bottom="5" left="5"/>
                 </padding>
-                <Label text="© 2025 E‑Commerce FX" style="-fx-text-fill: white;"/>
+                <Label text="© 2025 E‑Shop FX" style="-fx-text-fill: white;"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Label style="-fx-text-fill: white;"/>
             </HBox>

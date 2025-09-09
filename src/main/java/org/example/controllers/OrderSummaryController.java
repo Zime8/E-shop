@@ -36,25 +36,25 @@ public class OrderSummaryController {
 
     private static final Logger logger = Logger.getLogger(OrderSummaryController.class.getName());
 
-        // ======= Nuovo: view-model neutro per visualizzare righe sia da CartItem che da OrderLine =======
-        private record ItemView(String productName, String size, int quantity, BigDecimal unitPrice, Object imageObj) {
-            private ItemView(String productName, String size, int quantity, BigDecimal unitPrice, Object imageObj) {
-                this.productName = productName;
-                this.size = size;
-                this.quantity = quantity;
-                this.unitPrice = unitPrice == null ? BigDecimal.ZERO : unitPrice;
-                this.imageObj = imageObj;
-            }
+    // view-model per visualizzare righe sia da CartItem che da OrderLine
+    private record ItemView(String productName, String size, int quantity, BigDecimal unitPrice, Object imageObj) {
+        private ItemView(String productName, String size, int quantity, BigDecimal unitPrice, Object imageObj) {
+            this.productName = productName;
+            this.size = size;
+            this.quantity = quantity;
+            this.unitPrice = unitPrice == null ? BigDecimal.ZERO : unitPrice;
+            this.imageObj = imageObj;
         }
+    }
 
+    // Per aggiornare il contatore nel carrello
     public void setOnCartUpdated(Runnable onCartUpdated) {
         this.onCartUpdated = onCartUpdated;
     }
+
     public void setStage(Stage stage) { this.stage = stage; }
 
-    // =======================
-    // 1) Flusso esistente: dal carrello (CartItem)
-    // =======================
+    // Recupera CartItem dal carrello
     public void setData(List<CartItem> items, BigDecimal total) {
         this.items = items;
         this.total = total;
@@ -74,14 +74,14 @@ public class OrderSummaryController {
                         it.getSize(),
                         it.getQuantity(),
                         unit,
-                        it.getProductImage() // può essere Image/byte[]/String URL
+                        it.getProductImage()
                 ));
             }
         }
         populate(rows);
     }
 
-    // ======= rendering comune =======
+    // rendering comune
     private void populate(List<ItemView> rows) {
         itemsBox.getChildren().clear();
         NumberFormat fmt = NumberFormat.getCurrencyInstance(Locale.ITALY);
@@ -157,6 +157,7 @@ public class OrderSummaryController {
         totalLabel.setText(fmt.format(this.total));
     }
 
+    // Carica l'immagine nel riepilogo ordine
     private ImageView getImageView(Object imgObj) {
         ImageView iv = new ImageView();
         iv.setFitWidth(56);
@@ -172,7 +173,6 @@ public class OrderSummaryController {
         return iv;
     }
 
-    // Versione compatibile con Java 8/11/17 (no pattern matching switch)
     private static Image toImage(Object src) {
         switch (src) {
             case null -> {

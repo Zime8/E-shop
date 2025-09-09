@@ -20,10 +20,9 @@ class OrderDAOSuccessPaymentTest {
     void useOriginalDb() throws Exception {
         DatabaseConnection.clearOverride();
 
-        // modalità PRODUZIONE per OrderDAO
         Session.setDemo(false);
 
-        // sanity: la connessione deve aprirsi
+        // la connessione deve aprirsi
         try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
     }
 
@@ -34,7 +33,7 @@ class OrderDAOSuccessPaymentTest {
         try (Connection c = DatabaseConnection.getInstance()) {
             c.setAutoCommit(false);
             try {
-                // 1) prendo le righe d’ordine per ripristinare stock e calcolare il totale per saldo negozio
+                // Prendo le righe d’ordine per ripristinare stock e calcolare il totale per saldo negozio
                 record Line(int shopId, int productId, String size, int qty, double price) {}
                 List<Line> lines = new ArrayList<>();
                 try (PreparedStatement ps = c.prepareStatement(
@@ -57,12 +56,12 @@ class OrderDAOSuccessPaymentTest {
                     }
                 }
 
-                // 2) ripristino stock e saldo negozio
+                // Ripristino stock e saldo negozio
                 double totalPerShop = 0.0;
                 Integer shopForBalance = null;
 
                 for (Line ln : lines) {
-                    // ripristina stock
+                    // ripristino stock
                     try (PreparedStatement ps = c.prepareStatement(
                             """
                             UPDATE product_availability
@@ -90,7 +89,7 @@ class OrderDAOSuccessPaymentTest {
                     }
                 }
 
-                // 3) cancello righe e testata ordine
+                // Cancello righe e testata ordine
                 try (PreparedStatement ps = c.prepareStatement(
                         "DELETE FROM details_order WHERE id_order = ?")) {
                     ps.setInt(1, createdOrderId);
@@ -123,7 +122,7 @@ class OrderDAOSuccessPaymentTest {
         double unitPrice;
         int buyQty = 2;
 
-        // prendo una riga reale dal catalogo (qty >= 5)
+        // prendo una riga reale dal catalogo
         try (Connection c = DatabaseConnection.getInstance();
              PreparedStatement ps = c.prepareStatement(
                      """

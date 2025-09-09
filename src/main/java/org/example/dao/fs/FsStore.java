@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 final class FsStore {
     private static final Logger logger = Logger.getLogger(FsStore.class.getName());
 
-    private final Path root; // se root è null -> usa le risorse nel classpath
+    private final Path root;
     private final ObjectMapper om = new ObjectMapper();
     final ReentrantReadWriteLock rw = new ReentrantReadWriteLock();
 

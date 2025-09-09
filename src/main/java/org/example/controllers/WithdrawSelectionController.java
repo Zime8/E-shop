@@ -80,10 +80,9 @@ public class WithdrawSelectionController {
         try {
             // saldo disponibile
             available = ShopDAO.getBalance(currentUserId);
-            // NumberFormat(IT) già include "€"
             availableLabel.setText(currency.format(available));
 
-            // carte salvate dell'utente (venditore)
+            // carte salvate
             CardsService.loadSavedCards(currentUserId, cards);
             if (!cards.isEmpty()) cardsTable.getSelectionModel().selectFirst();
 
@@ -174,7 +173,7 @@ public class WithdrawSelectionController {
         if (backBtn != null) backBtn.setDisable(processing);
     }
 
-    // ===== util =====
+    // util
     private String safe(TextField tf) { return tf == null || tf.getText() == null ? "" : tf.getText().trim(); }
 
     private void showInfo(String s) {

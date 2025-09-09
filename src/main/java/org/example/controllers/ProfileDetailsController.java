@@ -27,7 +27,6 @@ public class ProfileDetailsController {
     @FXML
     public void initialize() {
 
-        // Campi non editabili all'avvio
         usernameField.setEditable(false);
         passwordField.setEditable(false);
         emailField.setEditable(false);
@@ -45,7 +44,7 @@ public class ProfileDetailsController {
             if (u == null) return;
 
             usernameField.setText(u.getUsername());
-            passwordField.setText("******"); // placeholder UI
+            passwordField.setText("******");
             emailField.setText(u.getEmail());
             phoneField.setText(u.getPhone());
         } catch (SQLException e) {
@@ -71,18 +70,17 @@ public class ProfileDetailsController {
 
         if (editMode) {
             editBtn.setText("Salva");
-            passwordField.setText(""); // sblocca per nuovo inserimento
+            passwordField.setText("");
             return;
         }
 
-        // Salvataggio
         editBtn.setText("Modifica dati");
 
         String current = Session.getUser();
         String newUsername = usernameField.getText().trim();
         String newEmail    = emailField.getText().trim();
         String newPhone    = phoneField.getText().trim();
-        String newPwd      = passwordField.getText(); // vuota = non cambiare
+        String newPwd      = passwordField.getText();
 
         try {
 
@@ -95,7 +93,6 @@ public class ProfileDetailsController {
             // aggiorna sessione se username cambiato
             Session.setUser(newUsername);
 
-            // UI back to view
             passwordField.setText("******");
             usernameField.setEditable(false);
             passwordField.setEditable(false);

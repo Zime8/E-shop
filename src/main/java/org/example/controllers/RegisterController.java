@@ -68,7 +68,6 @@ public class RegisterController {
         if (success) {
             showAlert("Registrazione completata!");
 
-            // Torna al login
             onBack();
         } else {
             showAlert("Errore durante la registrazione. Username già esistente o problema nel database.");

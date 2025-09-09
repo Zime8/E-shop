@@ -70,7 +70,6 @@
                            style="-fx-background-color: transparent; -fx-background-insets: 0;
                                   -fx-control-inner-background: white; -fx-background-radius: 16;">
 
-                    <!-- Solo adattamento orizzontale -->
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
                     </columnResizePolicy>

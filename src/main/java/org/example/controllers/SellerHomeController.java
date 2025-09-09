@@ -79,8 +79,7 @@
             -fx-background-radius: %s; -fx-padding: 10 16; -fx-cursor: hand;
             -fx-border-color: %s; -fx-border-radius: %s; -fx-border-width: 2;
             """;
-    
-        // Prezzi/valute
+
         private static final NumberFormat CURR_IT = NumberFormat.getCurrencyInstance(Locale.ITALY);
     
         private boolean updatingFilters = false;
@@ -159,7 +158,7 @@
             installTableFixes();
         }
     
-        /* ===================== Bind colonne ===================== */
+        // Bind colonne catalogo
     
         private void wireCatalogColumns() {
             colProdId.setCellValueFactory(cd -> new SimpleIntegerProperty(cd.getValue().productId()));
@@ -192,7 +191,7 @@
             applyOrderColumnsStyle();
         }
     
-        /* ========================= Catalogo: handler ========================= */
+        // Catalogo
     
         @FXML
         private void onSearchProduct() {
@@ -278,7 +277,7 @@
             });
         }
     
-        /* ========================= Ordini: handler ========================= */
+        // Ordini
     
         @FXML
         private void onApplyOrderFilters() {
@@ -324,7 +323,6 @@
             colOrderStateS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().state()));
             colOrderTotalS.setCellValueFactory(cd -> new SimpleStringProperty(formatCurrency(cd.getValue().total())));
             colCustomerS.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().customer()));
-            // address “pulito”: niente placeholder, lo gestisce la cellFactory dedicata
             colAddress.setCellValueFactory(cd -> new SimpleStringProperty(cd.getValue().address()));
         }
 
@@ -345,7 +343,7 @@
             }
         }
 
-        // Cella dedicata per la colonna Address
+        // Cella per la colonna Address
         private final class AddressCell extends TableCell<SellerDAO.ShopOrderSummary, String> {
             private final Hyperlink link = new Hyperlink();
 
@@ -356,7 +354,7 @@
                     var row = getTableView().getItems().get(getIndex());
                     String addr = (row == null) ? null : row.address();
                     if (addr != null && !addr.isBlank()) {
-                        openMaps(addr); // usa il tuo metodo già presente nel controller
+                        openMaps(addr);
                     }
                 });
             }
@@ -374,7 +372,6 @@
                 }
             }
         }
-
 
         private void openMaps(String address) {
             try {
@@ -395,9 +392,6 @@
         private static String formatCurrency(BigDecimal v) {
             return CURR_IT.format(v == null ? BigDecimal.ZERO : v);
         }
-
-
-        /* ========================= Logout ========================= */
     
         @FXML
         private void onLogout() {
@@ -415,7 +409,7 @@
             }
         }
     
-        /* ========================= Helpers ========================= */
+        // Helpers
     
         private boolean ensureUserLoggedIn() {
             Integer uid = Session.getUserId();
@@ -641,7 +635,7 @@
             return b == null ? BigDecimal.ZERO : b;
         }
     
-        /* ============== Dialog per Aggiungi/Modifica catalogo ============== */
+        // Dialog per Aggiungi/Modifica catalogo
     
         private record CatalogForm(int productId, String size, BigDecimal price, int quantity) {}
     
@@ -680,8 +674,8 @@
             return dialog;
         }
     
-        /* ------------------------- Helper di struttura ------------------------- */
-    
+        // Helper di struttura
+
         private Dialog<CatalogForm> createBaseDialog(String title) {
             Dialog<CatalogForm> dialog = new Dialog<>();
             dialog.setTitle(title);
@@ -717,7 +711,7 @@
             return headerBox;
         }
     
-        /* ------------------------- UI holder & stili ------------------------- */
+        // UI holder e stili
     
         private record ProductUI(ComboBox<SellerDAO.ProductOption> combo,
                                  TextField name,
@@ -812,7 +806,7 @@
             }
         }
     
-        /* ------------------------- Layout ------------------------- */
+        // Layout
     
         private GridPane buildFormGrid(ProductUI ui, boolean isEdit) {
             GridPane gp = new GridPane();
@@ -918,7 +912,7 @@
             }
         }
     
-        /* ------------------------- Validazione & result ------------------------- */
+        // Validazione e result
     
         private void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial) {
             Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
@@ -956,8 +950,8 @@
                 return null;
             });
         }
-    
-        /* ------------------------- Modalità "Aggiungi" ------------------------- */
+
+        // Modalità Aggiungi
     
         private void setupAddModeHandlers(ComboBox<SellerDAO.ProductOption> cb) {
             bindEditorToValue(cb);
@@ -1119,7 +1113,7 @@
             });
         }
     
-        /* ------------------------- Utility locali ------------------------- */
+        // Utility locali
     
         private static String extractNameForSearch(String s) {
             if (s == null) return "";
@@ -1157,7 +1151,7 @@
             );
         }
     
-        /* ------------------------- Modalità "Modifica" ------------------------- */
+        // Modalità "Modifica"
     
         private void prefillEditMode(CatalogForm initial, ProductUI ui) {
             ui.size.setText(initial.size());
@@ -1180,7 +1174,7 @@
             );
         }
     
-        /* ========================= Utility async ========================= */
+        // Utility async
     
         private <T> void runAsync(Callable<T> task, Consumer<T> onSuccess, Consumer<Exception> onError) {
             EXEC.submit(() -> {

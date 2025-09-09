@@ -15,7 +15,7 @@ class SellerDAOInsertProductTest {
 
     private static final int VENDOR_USER_ID = 1;   // esiste nel DB originale
     private static final int PRODUCT_ID     = 3;   // Puma Future Z 1.4 nel DB originale
-    private String createdSize = null;             // per cleanup
+    private String createdSize = null;
     private int shopId;
 
     @BeforeAll
@@ -44,12 +44,12 @@ class SellerDAOInsertProductTest {
     @Test
     @DisplayName("Il venditore inserisce una NUOVA variante prodotto nel proprio shop (size libera)")
     void insertNewVariantIntoOwnShop() throws Exception {
-        // 1) Trova una taglia NON presente per (shopId, PRODUCT_ID)
+        // Trovo una taglia non presente per (shopId, PRODUCT_ID)
         String size = findFreeSize(shopId);
         assertNotNull(size, "Non trovata una taglia libera per il test");
         createdSize = size; // per cleanup
 
-        // 2) Primo upsert → deve creare la riga con prezzo e qty specificati
+        // Primo upsert: deve creare la riga con prezzo e qty specificati
         BigDecimal firstPrice = new BigDecimal("119.99");
         int firstQty = 5;
         SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, firstPrice, firstQty);
@@ -59,7 +59,7 @@ class SellerDAOInsertProductTest {
         assertEquals(firstPrice, row1.price(), "Prezzo iniziale non corrisponde");
         assertEquals(firstQty, row1.quantity(), "Quantità iniziale non corrisponde");
 
-        // 3) Secondo upsert → nel tuo SP originale la quantità si somma e il prezzo NON cambia
+        // Secondo upsert: la quantità si somma e il prezzo NON cambia
         BigDecimal newPrice = new BigDecimal("100.00");
         int addQty = 2;
         SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, newPrice, addQty);
@@ -70,9 +70,9 @@ class SellerDAOInsertProductTest {
         assertEquals(firstQty + addQty, row2.quantity(), "La quantità non è stata sommata correttamente");
     }
 
-    // --- helpers -------------------------------------------------------------
+    // helpers
 
-    /** Restituisce la prima taglia “plausibile” non presente per (shopId, productId). */
+    // Restituisce la prima taglia giusta non presente per (shopId, productId)
     private String findFreeSize(int shopId) throws Exception {
         Set<String> used = new HashSet<>();
         try (var c = DatabaseConnection.getInstance();
@@ -85,7 +85,7 @@ class SellerDAOInsertProductTest {
                 while (rs.next()) used.add(rs.getString(1));
             }
         }
-        // elenco di taglie comuni per calzature; aggiungiamo fallback
+        // elenco di taglie comuni per calzature
         List<String> candidateSizes = new ArrayList<>(List.of(
                 "38","39","40","41","42","43","44","45","46","47","48"
         ));
@@ -93,7 +93,7 @@ class SellerDAOInsertProductTest {
         for (String s : candidateSizes) {
             if (!used.contains(s)) return s;
         }
-        // fallback assoluto
+
         String fallback = "ZZ" + System.currentTimeMillis()%1000;
         return used.contains(fallback) ? null : fallback;
     }

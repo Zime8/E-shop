@@ -34,7 +34,7 @@ public class Card {
     public void setExpiry(String value) { expiry.set(value); }
     public void setType(String value) { type.set(value); }
 
-    // METODI PROPERTY (fondamentali per TableView)
+    // METODI PROPERTY per TableView
     public SimpleIntegerProperty idProperty() { return id; }
     public SimpleStringProperty holderProperty() { return holder; }
     public SimpleStringProperty numberProperty() { return number; }

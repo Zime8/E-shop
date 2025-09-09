@@ -49,20 +49,21 @@ public class CartController {
 
     public void setOnCartUpdated(Runnable callback) { this.onCartUpdated = callback; }
 
-
     public void initialize() { loadCartItems(); }
 
     // ==== Helper per raggruppare per prodotto+shop+taglia ====
     private record Key(long productId, int shopId, String size) { }
 
+    // riga del carrello
     private static class Aggregated {
-        final Product sample;  // un rappresentante per la riga (contiene immagine, nome, prezzo, ecc.)
+        final Product sample;  // rappresentante per prodotto
         int qty;
         Aggregated(Product sample, int qty) { this.sample = sample; this.qty = qty; }
         double unitPrice() { return sample.getPrice(); }
         double subtotal() { return unitPrice() * qty; }
     }
 
+    // Carica i prodotti nel carrello
     public void loadCartItems() {
         List<Product> cartItems = Session.getCartItems();
 
@@ -193,14 +194,13 @@ public class CartController {
         try {
             stock = productDao.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
         } catch (Exception ex) {
-            // In caso di errore, comportati in modo prudente: niente incremento
+            // In caso di errore niente incremento
             logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + p.getName());
             qtyLbl.setText(String.valueOf(agg.qty));
             plus.setDisable(true);
             stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
             stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
             stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
-            // listener minus resta valido
             minus.setOnAction(e -> {
                 Session.removeFromCart(p);
                 loadCartItems();
@@ -210,7 +210,7 @@ public class CartController {
             return qtyBox;
         }
 
-        // Se già al massimo, disabilita il +
+        // Se già al massimo disabilità il +
         if (agg.qty >= stock) {
             plus.setDisable(true);
             stockLabelTooltip(plus, "Quantità massima raggiunta: " + stock);
@@ -311,7 +311,7 @@ public class CartController {
         return new CheckoutData(items, total);
     }
 
-    // Trova la finestra "owner" corretta per la dialog
+    // Trova la finestra owner corretta per la dialog
     private Window resolveOwnerWindow() {
         Window owner = null;
 

@@ -14,7 +14,7 @@ public class ProductDaoFs implements ProductDao {
     private final FsStore store;
 
     public ProductDaoFs(Path dataRoot) { this.store = new FsStore(dataRoot); }
-    public ProductDaoFs() { this(null); } // usa resources/data
+    public ProductDaoFs() { this(null); }
 
     private static final String PRODUCTS = "products.json";
     private static final String AVAILABILITY = "product_availability.json";
