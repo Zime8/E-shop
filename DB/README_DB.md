@@ -1,3 +1,1 @@
-# Lo script E-commerceDB rappresenta il database completo con tabelle,
-# stored procedures e triggers. Mentre lo script Blob images serve a 
-# caricare le immagini dei prodotti. 
+# Lo script E-commerceDB rappresenta il database completo con tabelle, stored procedures e triggers. Mentre lo script Blob images serve acaricare le immagini dei prodotti.Per funzionare correttamente è necessario runnare prima E-commerceDB e poi Blob images
