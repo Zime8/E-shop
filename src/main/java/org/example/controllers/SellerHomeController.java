@@ -883,6 +883,154 @@
             protected void prefillEditMode(CatalogForm initial, ProductUI ui) {
                 SellerHomeController.this.prefillEditMode(initial, ui);
             }
+
+            private void installShowAllOnOpen(ComboBox<SellerDAO.ProductOption> cb) {
+                cb.showingProperty().addListener((obs, was, showing) -> {
+                    if (!Boolean.TRUE.equals(showing)) return;
+                    if (normalizeQuery(cb.getEditor().getText()).isEmpty()) {
+                        loadAllProducts(cb);
+                    }
+                });
+            }
+
+            private void blockEnterCommit(ComboBox<SellerDAO.ProductOption> cb) {
+                cb.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                    if (e.getCode() == KeyCode.ENTER) e.consume();
+                });
+                cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                    if (e.getCode() == KeyCode.ENTER) e.consume();
+                });
+            }
+
+            private void fixPopupSpaceIssue(ComboBox<SellerDAO.ProductOption> cb) {
+                final AtomicBoolean suppressNext = new AtomicBoolean(false);
+
+                cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
+                    if (" ".equals(e.getCharacter()) && suppressNext.get()) {
+                        e.consume();
+                        suppressNext.set(false);
+                    }
+                });
+
+                cb.skinProperty().addListener((obs, oldSkin, newSkin) -> {
+                    if (!(newSkin instanceof ComboBoxListViewSkin<?> skin)) return;
+                    Node popupContent = skin.getPopupContent();
+                    if (!(popupContent instanceof ListView<?> lv)) return;
+
+                    lv.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                        if (e.getCode() == KeyCode.SPACE && cb.getEditor().isFocused()) {
+                            var ed = cb.getEditor();
+                            ed.insertText(ed.getCaretPosition(), " ");
+                            suppressNext.set(true);
+                            e.consume();
+                            return;
+                        }
+                        if (e.getCode() == KeyCode.ENTER) {
+                            e.consume();
+                        }
+                    });
+                });
+            }
+
+            private void attachTypeahead(ComboBox<SellerDAO.ProductOption> cb) {
+                final PauseTransition debounce = new PauseTransition(Duration.millis(250));
+                final String[] lastQ = { "" };
+
+                cb.getEditor().textProperty().addListener((o, old, neu) -> {
+                    if (handleSelectionSuppressed(cb)) return;
+
+                    String q = extractNameForSearch(neu);
+                    if (handleEmptyOrUnchangedQuery(cb, debounce, lastQ, q)) return;
+
+                    boolean wasShowing = cb.isShowing();
+                    String[] tokens = q.split(" ");
+                    String first = tokens[0];
+
+                    scheduleTypeaheadSearch(cb, debounce, tokens, first, q, lastQ, wasShowing);
+                });
+            }
+
+            private boolean handleSelectionSuppressed(ComboBox<?> cb) {
+                if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) {
+                    cb.getProperties().put(PROP_SUPPRESS_TA_ONCE, Boolean.FALSE);
+                    return true;
+                }
+                return false;
+            }
+
+            private boolean handleEmptyOrUnchangedQuery(ComboBox<SellerDAO.ProductOption> cb,
+                                                        PauseTransition debounce,
+                                                        String[] lastQ,
+                                                        String q) {
+                if (q.isEmpty()) {
+                    debounce.stop();
+                    lastQ[0] = "";
+                    if (cb.isShowing()) loadAllProducts(cb);
+                    return true;
+                }
+                return q.equalsIgnoreCase(lastQ[0]);
+            }
+
+            private void scheduleTypeaheadSearch(ComboBox<SellerDAO.ProductOption> cb,
+                                                 PauseTransition debounce,
+                                                 String[] tokens,
+                                                 String first,
+                                                 String q,
+                                                 String[] lastQ,
+                                                 boolean wasShowing) {
+                debounce.stop();
+                debounce.setOnFinished(evt -> runAsync(
+                        () -> SellerDAO.listProductOptionsByNameLike(first, 100),
+                        opts -> {
+                            var filtered = opts.stream().filter(o2 -> matchesAllTokens(o2, tokens)).toList();
+                            if (!filtered.isEmpty()) {
+                                cb.getItems().setAll(filtered);
+                                if (wasShowing) cb.show();
+                            } else {
+                                cb.getItems().clear();
+                                cb.hide();
+                            }
+                            lastQ[0] = q;
+                        },
+                        ex -> showAlert(Alert.AlertType.ERROR, "Errore ricerca prodotti: " + ex.getMessage())
+                ));
+                debounce.playFromStart();
+            }
+
+            private void bindEditorToValue(ComboBox<SellerDAO.ProductOption> cb) {
+                cb.valueProperty().addListener((obs, oldV, newV) -> {
+                    if (newV == null) return;
+                    cb.getProperties().put(PROP_SUPPRESS_TA_ONCE, Boolean.TRUE);
+                    Platform.runLater(() -> cb.getEditor().setText(cb.getConverter().toString(newV)));
+                });
+            }
+
+            private void syncEditorOnBlur(ComboBox<SellerDAO.ProductOption> cb) {
+                cb.focusedProperty().addListener((obs, was, now) -> {
+                    if (Boolean.TRUE.equals(now)) return;
+                    var val = cb.getValue();
+                    if (val != null) cb.getEditor().setText(cb.getConverter().toString(val));
+                    else cb.getEditor().clear();
+                });
+            }
+
+            private void dropValueOnTyping(ComboBox<SellerDAO.ProductOption> cb) {
+                cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
+                    if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
+                    if (cb.getValue() != null) cb.setValue(null);
+                });
+                cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
+                    switch (e.getCode()) {
+                        case BACK_SPACE, DELETE -> {
+                            if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
+                            if (cb.getValue() != null) cb.setValue(null);
+                        }
+                        default -> {
+                            // Il comportamento è gestito altrove
+                        }
+                    }
+                });
+            }
         }
 
         private final class AddCatalogDialog extends CatalogDialogCreator {
@@ -977,158 +1125,6 @@
                     return new CatalogForm(pid, size, price, qty);
                 }
                 return null;
-            });
-        }
-
-        // Modalità Aggiungi
-    
-        private void installShowAllOnOpen(ComboBox<SellerDAO.ProductOption> cb) {
-            cb.showingProperty().addListener((obs, was, showing) -> {
-                if (!Boolean.TRUE.equals(showing)) return;
-                if (normalizeQuery(cb.getEditor().getText()).isEmpty()) {
-                    loadAllProducts(cb);
-                }
-            });
-        }
-    
-        private void blockEnterCommit(ComboBox<SellerDAO.ProductOption> cb) {
-            cb.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-                if (e.getCode() == KeyCode.ENTER) e.consume();
-            });
-            cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-                if (e.getCode() == KeyCode.ENTER) e.consume();
-            });
-        }
-    
-        private void fixPopupSpaceIssue(ComboBox<SellerDAO.ProductOption> cb) {
-            final AtomicBoolean suppressNext = new AtomicBoolean(false);
-    
-            cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
-                if (" ".equals(e.getCharacter()) && suppressNext.get()) {
-                    e.consume();
-                    suppressNext.set(false);
-                }
-            });
-    
-            cb.skinProperty().addListener((obs, oldSkin, newSkin) -> {
-                if (!(newSkin instanceof ComboBoxListViewSkin<?> skin)) return;
-                Node popupContent = skin.getPopupContent();
-                if (!(popupContent instanceof ListView<?> lv)) return;
-    
-                lv.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-                    if (e.getCode() == KeyCode.SPACE && cb.getEditor().isFocused()) {
-                        var ed = cb.getEditor();
-                        ed.insertText(ed.getCaretPosition(), " ");
-                        suppressNext.set(true);
-                        e.consume();
-                        return;
-                    }
-                    if (e.getCode() == KeyCode.ENTER) {
-                        e.consume();
-                    }
-                });
-            });
-        }
-    
-        private void attachTypeahead(ComboBox<SellerDAO.ProductOption> cb) {
-            final PauseTransition debounce = new PauseTransition(Duration.millis(250));
-            final String[] lastQ = { "" };
-    
-            cb.getEditor().textProperty().addListener((o, old, neu) -> {
-                if (handleSelectionSuppressed(cb)) return;
-    
-                String q = extractNameForSearch(neu);
-                if (handleEmptyOrUnchangedQuery(cb, debounce, lastQ, q)) return;
-    
-                boolean wasShowing = cb.isShowing();
-                String[] tokens = q.split(" ");
-                String first = tokens[0];
-    
-                scheduleTypeaheadSearch(cb, debounce, tokens, first, q, lastQ, wasShowing);
-            });
-        }
-    
-        private boolean handleSelectionSuppressed(ComboBox<?> cb) {
-            if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) {
-                cb.getProperties().put(PROP_SUPPRESS_TA_ONCE, Boolean.FALSE);
-                return true;
-            }
-            return false;
-        }
-    
-        private boolean handleEmptyOrUnchangedQuery(ComboBox<SellerDAO.ProductOption> cb,
-                                                    PauseTransition debounce,
-                                                    String[] lastQ,
-                                                    String q) {
-            if (q.isEmpty()) {
-                debounce.stop();
-                lastQ[0] = "";
-                if (cb.isShowing()) loadAllProducts(cb);
-                return true;
-            }
-            return q.equalsIgnoreCase(lastQ[0]);
-        }
-    
-        private void scheduleTypeaheadSearch(ComboBox<SellerDAO.ProductOption> cb,
-                                             PauseTransition debounce,
-                                             String[] tokens,
-                                             String first,
-                                             String q,
-                                             String[] lastQ,
-                                             boolean wasShowing) {
-            debounce.stop();
-            debounce.setOnFinished(evt -> runAsync(
-                    () -> SellerDAO.listProductOptionsByNameLike(first, 100),
-                    opts -> {
-                        var filtered = opts.stream().filter(o2 -> matchesAllTokens(o2, tokens)).toList();
-                        if (!filtered.isEmpty()) {
-                            cb.getItems().setAll(filtered);
-                            if (wasShowing) cb.show();
-                        } else {
-                            cb.getItems().clear();
-                            cb.hide();
-                        }
-                        lastQ[0] = q;
-                    },
-                    ex -> showAlert(Alert.AlertType.ERROR, "Errore ricerca prodotti: " + ex.getMessage())
-            ));
-            debounce.playFromStart();
-        }
-    
-        private void bindEditorToValue(ComboBox<SellerDAO.ProductOption> cb) {
-            cb.valueProperty().addListener((obs, oldV, newV) -> {
-                if (newV == null) return;
-                cb.getProperties().put(PROP_SUPPRESS_TA_ONCE, Boolean.TRUE);
-                Platform.runLater(() -> cb.getEditor().setText(cb.getConverter().toString(newV)));
-            });
-        }
-    
-        private void syncEditorOnBlur(ComboBox<SellerDAO.ProductOption> cb) {
-            cb.focusedProperty().addListener((obs, was, now) -> {
-                if (Boolean.TRUE.equals(now)) return;
-                var val = cb.getValue();
-                if (val != null) cb.getEditor().setText(cb.getConverter().toString(val));
-                else cb.getEditor().clear();
-            });
-        }
-    
-        private void dropValueOnTyping(ComboBox<SellerDAO.ProductOption> cb) {
-            cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
-                if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
-                if (cb.getValue() != null) cb.setValue(null);
-            });
-            cb.getEditor().addEventFilter(KeyEvent.KEY_PRESSED, e -> {
-                switch (e.getCode()) {
-                    case BACK_SPACE, DELETE -> {
-                        if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
-                        if (cb.getValue() != null) cb.setValue(null);
-                    }
-                    default -> {
-                        // Intentionally left blank:
-                        // gli altri tasti non richiedono gestione qui.
-                        // Il comportamento (typeahead, invio bloccato, ecc.) è gestito altrove.
-                    }
-                }
             });
         }
     
