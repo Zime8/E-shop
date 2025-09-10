@@ -880,8 +880,25 @@
                 syncEditorOnBlur(cb);
             }
 
-            protected void prefillEditMode(CatalogForm initial, ProductUI ui) {
-                SellerHomeController.this.prefillEditMode(initial, ui);
+            private void prefillEditMode(CatalogForm initial, ProductUI ui) {
+                ui.size.setText(initial.size());
+                ui.size.setDisable(true);
+                ui.price.setText(initial.price().toPlainString());
+                ui.qty.setText(String.valueOf(initial.quantity()));
+                runAsync(
+                        SellerDAO::listAllProductOptions,
+                        opts -> opts.stream()
+                                .filter(o -> o.productId() == initial.productId())
+                                .findFirst()
+                                .ifPresentOrElse(
+                                        o -> ui.name.setText(o.name()),
+                                        () -> ui.name.setText("Prodotto #" + initial.productId())
+                                ),
+                        ex -> {
+                            ui.name.setText("Prodotto #" + initial.productId());
+                            showAlert(Alert.AlertType.ERROR, "Errore nel caricamento prodotto: " + ex.getMessage());
+                        }
+                );
             }
 
             private void installShowAllOnOpen(ComboBox<SellerDAO.ProductOption> cb) {
@@ -1163,29 +1180,6 @@
                         if (cb.isShowing()) cb.show();
                     },
                     ex -> showAlert(Alert.AlertType.ERROR, "Errore nel caricamento prodotti: " + ex.getMessage())
-            );
-        }
-    
-        // Modalità "Modifica"
-    
-        private void prefillEditMode(CatalogForm initial, ProductUI ui) {
-            ui.size.setText(initial.size());
-            ui.size.setDisable(true);
-            ui.price.setText(initial.price().toPlainString());
-            ui.qty.setText(String.valueOf(initial.quantity()));
-            runAsync(
-                    SellerDAO::listAllProductOptions,
-                    opts -> opts.stream()
-                            .filter(o -> o.productId() == initial.productId())
-                            .findFirst()
-                            .ifPresentOrElse(
-                                    o -> ui.name.setText(o.name()),
-                                    () -> ui.name.setText("Prodotto #" + initial.productId())
-                            ),
-                    ex -> {
-                        ui.name.setText("Prodotto #" + initial.productId());
-                        showAlert(Alert.AlertType.ERROR, "Errore nel caricamento prodotto: " + ex.getMessage());
-                    }
             );
         }
     
