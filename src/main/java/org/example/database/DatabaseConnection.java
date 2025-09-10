@@ -48,7 +48,9 @@ public class DatabaseConnection {
     // Ritorna una nuova Connection
     public static Connection getInstance() throws SQLException {
         try {
-            final String url, user, password;
+            final String url;
+            final String user;
+            final String password;
             if (urlOverride != null) {
                 url = urlOverride;
                 user = userOverride;
