@@ -221,7 +221,7 @@
     
         @FXML
         private void onAddProduct() {
-            var dialog = buildCatalogDialog("Aggiungi Prodotto", null);
+            var dialog = new AddCatalogDialog().newDialog();
             dialog.showAndWait().ifPresent(data -> runAsync(
                     () -> {
                         SellerDAO.upsertCatalogRow(currentShopId, data.productId, data.size, data.price, data.quantity);
@@ -239,10 +239,9 @@
                 showAlert(Alert.AlertType.INFORMATION, "Seleziona una riga da modificare.");
                 return;
             }
-            var dialog = buildCatalogDialog(
-                    "Modifica Prodotto",
+            var dialog = new EditCatalogDialog(
                     new CatalogForm(sel.productId(), sel.size(), nonNull(sel.price()), sel.quantity())
-            );
+            ).newDialog();
             dialog.showAndWait().ifPresent(data -> runAsync(
                     () -> {
                         SellerDAO.updateCatalogRow(currentShopId, sel.productId(), sel.size(), data.price, data.quantity);
@@ -636,42 +635,73 @@
         }
     
         // Dialog per Aggiungi/Modifica catalogo
-    
+
         private record CatalogForm(int productId, String size, BigDecimal price, int quantity) {}
-    
-        private Dialog<CatalogForm> buildCatalogDialog(String title, CatalogForm initial) {
-            Dialog<CatalogForm> dialog = createBaseDialog(title);
-            DialogPane pane = dialog.getDialogPane();
-    
-            String subtitle = (initial == null)
-                    ? "Cerca o seleziona il prodotto dalla tendina. La scelta avviene solo cliccando sulla lista."
-                    : "Stai modificando questo prodotto.";
-            pane.setHeader(buildHeader(title, subtitle));
-    
-            ProductUI ui = createProductUI(initial);
-    
-            Styles styles = makeStyles();
-            applyFieldStyles(ui, styles, initial == null);
-    
-            if (initial == null) {
-                setupAddModeHandlers(ui.combo);
-                loadAllProducts(ui.combo);
-            } else {
-                prefillEditMode(initial, ui);
+
+        private abstract class CatalogDialogCreator {
+            protected final String title;
+            protected final CatalogForm initial;
+
+            protected CatalogDialogCreator(String title, CatalogForm initial) {
+                this.title = title;
+                this.initial = initial;
             }
-    
-            pane.setContent(buildFormGrid(ui, initial != null));
-    
-            styleButtons(pane);
-            attachValidationAndResult(dialog, ui, styles, initial);
-    
-            dialog.setOnShown(ev -> {
-                Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
-                stage.sizeToScene();
-            });
-    
-            Platform.runLater(() -> (initial != null ? ui.price : ui.combo.getEditor()).requestFocus());
-            return dialog;
+
+            // Factory Method: crea e configura il Dialog
+            public final Dialog<CatalogForm> newDialog() {
+                // Crea la base del dialog
+                Dialog<CatalogForm> dialog = createBaseDialog(title);
+                DialogPane pane = dialog.getDialogPane();
+
+                // Header
+                String subtitle = (initial == null)
+                        ? "Cerca o seleziona il prodotto dalla tendina. La scelta avviene solo cliccando sulla lista."
+                        : "Stai modificando questo prodotto.";
+                pane.setHeader(buildHeader(title, subtitle));
+
+                // UI
+                ProductUI ui = createProductUI(initial);
+
+                // Stili
+                Styles styles = makeStyles();
+                applyFieldStyles(ui, styles, initial == null);
+
+                // Scegli se aggiungere o modificare
+                if (initial == null) {
+                    // ADD mode
+                    setupAddModeHandlers(ui.combo);
+                    loadAllProducts(ui.combo);
+                } else {
+                    // EDIT mode
+                    prefillEditMode(initial, ui);
+                }
+
+                // Layout, bottoni, validazione/result converter
+                pane.setContent(buildFormGrid(ui, initial != null));
+                styleButtons(pane);
+                attachValidationAndResult(dialog, ui, styles, initial);
+
+                // Sizing e focus
+                dialog.setOnShown(ev -> {
+                    Stage stage = (Stage) dialog.getDialogPane().getScene().getWindow();
+                    stage.sizeToScene();
+                });
+                Platform.runLater(() -> (initial != null ? ui.price : ui.combo.getEditor()).requestFocus());
+
+                return dialog;
+            }
+        }
+
+        private final class AddCatalogDialog extends CatalogDialogCreator {
+            AddCatalogDialog() {
+                super("Aggiungi Prodotto", null);
+            }
+        }
+
+        private final class EditCatalogDialog extends CatalogDialogCreator {
+            EditCatalogDialog(CatalogForm initial) {
+                super("Modifica Prodotto", initial);
+            }
         }
     
         // Helper di struttura

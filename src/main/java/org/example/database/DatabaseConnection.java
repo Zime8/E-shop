@@ -6,16 +6,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 public class DatabaseConnection {
 
-    private static volatile Connection connection;
     private static final String CONFIG_FILE = "/db.properties";
-    private static final Logger logger = Logger.getLogger(DatabaseConnection.class.getName());
 
-    // campi override per i test
+    // Campi override per i test
     private static volatile String urlOverride;
     private static volatile String userOverride;
     private static volatile String passwordOverride;
@@ -27,24 +23,13 @@ public class DatabaseConnection {
         urlOverride = url;
         userOverride = user;
         passwordOverride = password;
-        closeConnection(); // assicura ricreazione con i nuovi parametri
     }
 
-    // Rimuove l’override (torna a usare db.properties / system properties)
+    // Rimuove l’override
     public static synchronized void clearOverride() {
         urlOverride = null;
         userOverride = null;
         passwordOverride = null;
-        closeConnection();
-    }
-
-    private static boolean isReusable(Connection c) {
-        try {
-            return c != null && !c.isClosed() && c.isValid(2);
-        } catch (SQLException ignore) {
-            closeConnection();
-            return false;
-        }
     }
 
     private static Properties loadConfigProperties() {
@@ -60,14 +45,10 @@ public class DatabaseConnection {
         }
     }
 
-    public static synchronized Connection getInstance() throws SQLException {
-        String url;
-        String user;
+    // Ritorna una nuova Connection
+    public static Connection getInstance() throws SQLException {
         try {
-            if (isReusable(connection)) return connection;
-
-            String password;
-
+            final String url, user, password;
             if (urlOverride != null) {
                 url = urlOverride;
                 user = userOverride;
@@ -78,24 +59,13 @@ public class DatabaseConnection {
                 user = System.getProperty("db.user", props.getProperty("db.user"));
                 password = System.getProperty("db.password", props.getProperty("db.password"));
             }
-
-            connection = DriverManager.getConnection(url, user, password);
-            return connection;
+            return DriverManager.getConnection(url, user, password);
         } catch (SQLException ex) {
-            throw new SQLException(
-                    "Impossibile aprire la connessione DB", ex
-            );
+            throw new SQLException("Impossibile aprire la connessione DB", ex);
         }
     }
 
-    public static synchronized void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-                connection = null;
-            }
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore durante la chiusura della connessione", e);
-        }
+    public static void closeConnection() {
+        // ogni DAO chiude la sua connessione nel try-with-resources
     }
 }
