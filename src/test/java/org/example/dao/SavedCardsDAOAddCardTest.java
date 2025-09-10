@@ -1,7 +1,4 @@
-/*
- * Responsabile test: Anna Bianchi (matricola 654321)
- * Modulo: SavedCardsDAO – Aggiunta carta cliente (DB originale)
- */
+
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
