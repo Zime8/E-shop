@@ -1,5 +1,6 @@
 package org.example.controllers;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -21,6 +22,8 @@ import java.util.logging.Logger;
 public class LoginController {
 
     private static final Logger logger = Logger.getLogger(LoginController.class.getName());
+    private static final double LOGIN_WIDTH = 600;
+    private static final double LOGIN_HEIGHT = 500;
 
     @FXML private Button loginButton;
     @FXML private TextField usernameField;
@@ -28,6 +31,7 @@ public class LoginController {
 
     @FXML public void initialize() {
         Session.setDemo(false);
+        Platform.runLater(this::applyLoginWindowSizing);
     }
 
     @FXML
@@ -93,21 +97,19 @@ public class LoginController {
     @FXML
     private void onDemoMode() {
         try {
-            // 1) nuova identità guest univoca
+            // Nuova identità guest univoca
             String guest = "ospite-" + java.util.UUID.randomUUID().toString().substring(0, 8);
 
-            // opzionale: contatore id demo (aggiungi in DemoData: AtomicInteger NEXT_DEMO_USER_ID = new AtomicInteger(-1000);)
             int demoId = DemoData.NEXT_DEMO_USER_ID.getAndDecrement();
 
-            // 2) pulisci sessione precedente
+            // Pulisci sessione precedente
             org.example.util.Session.clear();
 
-            // 3) attiva demo e setta credenziali guest
+            // Attiva demo e setta credenziali guest
             org.example.util.Session.setDemo(true);
             org.example.util.Session.setUser(guest);
             org.example.util.Session.setUserId(demoId);
 
-            // 4) (facoltativo) registra il guest in DemoData.USERS per mostrare il nome in giro (recensioni, ecc.)
             org.example.demo.DemoData.ensureLoaded();
             org.example.demo.DemoData.users().putIfAbsent(
                     guest, new org.example.demo.DemoData.User(demoId, guest, null, "utente", null, null)
@@ -137,6 +139,15 @@ public class LoginController {
             logger.log(Level.SEVERE, logContext, e);
             showAlert(Alert.AlertType.ERROR, userFacingErrorMsg);
         }
+    }
+
+    private void applyLoginWindowSizing() {
+        Stage stage = (Stage) loginButton.getScene().getWindow();
+        stage.setMaximized(false);
+        stage.setResizable(true);
+        stage.setWidth(LOGIN_WIDTH);
+        stage.setHeight(LOGIN_HEIGHT);
+        stage.centerOnScreen();
     }
 
     private void showAlert(Alert.AlertType type, String msg) {

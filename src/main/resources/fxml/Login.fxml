@@ -34,7 +34,7 @@
             </columnConstraints>
 
             <!-- Titolo card -->
-            <Label text="E-Commerce"
+            <Label text="E-Shop"
                    GridPane.rowIndex="0" GridPane.columnIndex="0" GridPane.columnSpan="2"
                    style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #d32f2f; -fx-alignment:center"
                    maxWidth="Infinity" GridPane.halignment="CENTER"/>
