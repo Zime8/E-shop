@@ -53,7 +53,10 @@ public final class DatabaseConnection {
 
     // Apre una nuova Connection. Usa try-with-resources lato chiamante
     public static Connection getConnection() throws SQLException {
-        final String url, user, pwd;
+        final String url;
+        final String user;
+        final String pwd;
+
         if (urlOverride != null) {
             url = urlOverride; user = userOverride; pwd = passwordOverride;
         } else {
