@@ -29,6 +29,7 @@ public final class DatabaseConnection {
         passwordOverride = null;
     }
 
+    // Carica e restituisce le proprietà del file db.properties
     private static Properties props() {
         Properties p = cachedProps;
         if (p == null) {
