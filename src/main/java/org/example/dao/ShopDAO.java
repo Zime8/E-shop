@@ -17,7 +17,7 @@ public final class ShopDAO {
     // Saldo del venditore
     public static BigDecimal getBalance(long userId) throws SQLException {
         final String call = "{ call sp_shop_get_balance_by_user(?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setLong(1, userId);
             try (ResultSet rs = cs.executeQuery()) {
@@ -39,7 +39,7 @@ public final class ShopDAO {
         try { Thread.sleep(900); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
 
         final String call = "{ call sp_shop_request_withdraw(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setLong(1, userId);
             cs.setBigDecimal(2, amount);
@@ -54,7 +54,7 @@ public final class ShopDAO {
     // Restituisce il negozio con via e telefono
     public static Shop getById(long idShop) {
         final String call = "{ call sp_shop_get_by_id(?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setLong(1, idShop);
             try (ResultSet rs = cs.executeQuery()) {

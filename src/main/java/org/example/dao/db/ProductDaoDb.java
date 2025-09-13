@@ -15,7 +15,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public List<Product> findLatest(int limit) {
         String call = "{ call sp_find_latest(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setInt(1, limit);
             try (ResultSet rs = cs.executeQuery()) {
@@ -33,7 +33,7 @@ public class ProductDaoDb implements ProductDao {
     public List<Product> searchByName(String name) throws SQLException {
         List<Product> products = new ArrayList<>();
         String call = "{ call sp_search_by_name(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, name);
             try (ResultSet rs = cs.executeQuery()) {
@@ -54,7 +54,7 @@ public class ProductDaoDb implements ProductDao {
         String categoryVal = blankToNull(category);
         Integer shopId     = resolveShopId(shop);
 
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             if (sportVal == null) cs.setNull(1, Types.VARCHAR); else cs.setString(1, sportVal);
             if (brandVal == null) cs.setNull(2, Types.VARCHAR); else cs.setString(2, brandVal);
@@ -73,7 +73,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public int getShopIdByName(String shopName) throws SQLException {
         String call = "{ call sp_get_shop_id_by_name(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, shopName);
             try (ResultSet rs = cs.executeQuery()) {
@@ -86,7 +86,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public List<String> getAvailableSizes(long productId, int idShop) throws SQLException {
         String call = "{ call sp_get_available_sizes(?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setLong(1, productId);
             cs.setInt(2, idShop);
@@ -101,7 +101,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public double getPriceFor(long productId, int idShop, String size) throws SQLException {
         String call = "{ call sp_get_price_for(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setLong(1, productId);
             cs.setInt(2, idShop);
@@ -117,7 +117,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public Integer getStockFor(long productId, int shopId, String size) throws SQLException {
         String call = "{ call sp_get_stock_for(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setLong(1, productId);
             cs.setInt(2, shopId);
@@ -132,7 +132,7 @@ public class ProductDaoDb implements ProductDao {
     @Override
     public boolean existsWish(String username, long productId, int shopId, String size) throws SQLException {
         String call = "{ call sp_exists_wish(?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             cs.setLong(2, productId);

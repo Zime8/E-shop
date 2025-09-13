@@ -5,7 +5,6 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.example.database.DatabaseConnection;
 import java.util.Objects;
 
 public class Main extends Application {
@@ -15,13 +14,6 @@ public class Main extends Application {
         stage.setScene(new Scene(root));
         stage.setTitle("Login");
         stage.show();
-    }
-
-    @Override
-    public void stop() throws Exception {
-        super.stop();
-        // Chiudo la connessione al termine dell'app
-        DatabaseConnection.closeConnection();
     }
 
     public static void main(String[] args) {

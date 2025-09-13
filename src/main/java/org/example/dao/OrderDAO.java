@@ -173,7 +173,7 @@ public final class OrderDAO {
     private static CreationResult placeOrderDb(int userId, List<CartItem> items, String address) throws SQLException {
         final String CALL = "{ call sp_place_order(?, ?, ?) }";
 
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(CALL)) {
 
             boolean oldAuto = beginTx(conn);
@@ -354,7 +354,7 @@ public final class OrderDAO {
         final String CALL_H = "{ call sp_list_orders_header(?) }";
         final String CALL_L = "{ call sp_list_orders_lines(?) }";
 
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement csH = conn.prepareCall(CALL_H)) {
 
             csH.setInt(1, userId);

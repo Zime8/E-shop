@@ -51,7 +51,7 @@ public final class SellerDAO {
 
     public static SellerShop findShopForUser(int userId) throws SQLException {
         final String call = "{ call sp_seller_find_shop(?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, userId);
             try (ResultSet rs = cs.executeQuery()) {
@@ -67,7 +67,7 @@ public final class SellerDAO {
 
     public static List<CatalogRow> listCatalog(int shopId, String search) throws SQLException {
         final String call = "{ call sp_seller_list_catalog(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setString(2, (search == null || search.isBlank()) ? null : search.trim());
@@ -93,7 +93,7 @@ public final class SellerDAO {
     public static void upsertCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
         Objects.requireNonNull(size, "size");
         final String call = "{ call sp_seller_upsert_catalog(?, ?, ?, ?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setInt(2, productId);
@@ -106,7 +106,7 @@ public final class SellerDAO {
 
     public static void updateCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
         final String call = "{ call sp_seller_update_catalog(?, ?, ?, ?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setInt(2, productId);
@@ -119,7 +119,7 @@ public final class SellerDAO {
 
     public static void deleteCatalogRow(int shopId, int productId, String size) throws SQLException {
         final String call = "{ call sp_seller_delete_catalog(?, ?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setInt(2, productId);
@@ -130,7 +130,7 @@ public final class SellerDAO {
 
     public static List<ProductOption> listAllProductOptions() throws SQLException {
         final String call = "{ call sp_seller_list_all_product_options() }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call);
              ResultSet rs = cs.executeQuery()) {
             List<ProductOption> out = new ArrayList<>();
@@ -149,7 +149,7 @@ public final class SellerDAO {
 
     public static List<ProductOption> listProductOptionsByNameLike(String query, int limit) throws SQLException {
         final String call = "{ call sp_seller_list_product_options_by_name(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setString(1, query == null ? "" : query.trim());
             cs.setInt(2, Math.max(1, limit));
@@ -173,7 +173,7 @@ public final class SellerDAO {
 
     public static List<ShopOrderSummary> listShopOrders(int shopId, String stateFilter) throws SQLException {
         final String call = "{ call sp_seller_list_shop_orders(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setString(2, (stateFilter == null || stateFilter.isBlank()) ? null : stateFilter.trim());
@@ -196,7 +196,7 @@ public final class SellerDAO {
 
     public static List<ShopOrderLine> listShopOrderLines(int shopId, int orderId) throws SQLException {
         final String call = "{ call sp_seller_list_shop_order_lines(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
             cs.setInt(2, orderId);
@@ -218,7 +218,7 @@ public final class SellerDAO {
 
     public static void updateOrderState(int orderId, String newState) throws SQLException {
         final String call = "{ call sp_seller_update_order_state(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, orderId);
             cs.setString(2, newState);

@@ -48,7 +48,7 @@ public final class SavedCardsDAO {
 
     private static List<Row> getRows(int userId, String call) throws SQLException {
         List<Row> out = new ArrayList<>();
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setInt(1, userId);
             try (ResultSet rs = cs.executeQuery()) {
@@ -84,7 +84,7 @@ public final class SavedCardsDAO {
         }
 
         String call = "{ call sp_cards_insert_if_absent(?, ?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setInt(1, userId);
             cs.setString(2, holder);
@@ -121,7 +121,7 @@ public final class SavedCardsDAO {
         }
 
         String call = "{ call sp_cards_delete(?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setInt(1, cardId);
             cs.setInt(2, userId);
@@ -158,7 +158,7 @@ public final class SavedCardsDAO {
         }
 
         String call = "{ call sp_cards_update(?, ?, ?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setInt(1, cardId);
             cs.setInt(2, userId);

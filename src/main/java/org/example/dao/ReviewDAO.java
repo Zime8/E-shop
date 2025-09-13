@@ -42,7 +42,7 @@ public final class ReviewDAO {
         }
 
         String call = "{ call sp_list_reviews(?, ?) }";
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setLong(1, productId);
             cs.setInt(2, idShop);
@@ -100,7 +100,7 @@ public final class ReviewDAO {
         }
 
         String call = "{ call sp_upsert_review(?, ?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setLong(1, productId);
             cs.setInt(2, idShop);

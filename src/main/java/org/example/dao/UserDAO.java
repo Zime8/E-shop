@@ -42,7 +42,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_login(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             try (ResultSet rs = cs.executeQuery()) {
@@ -99,7 +99,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_register(?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             String hashedPwd = BCrypt.hashpw(password, BCrypt.gensalt(12));
             cs.setString(1, username);
@@ -122,7 +122,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_check_username(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             try (ResultSet rs = cs.executeQuery()) {
@@ -142,7 +142,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_check_email(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, email);
             try (ResultSet rs = cs.executeQuery()) {
@@ -162,7 +162,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_find_id(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             try (ResultSet rs = cs.executeQuery()) {
@@ -185,7 +185,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_find_by_username(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             try (ResultSet rs = cs.executeQuery()) {
@@ -220,7 +220,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_user_update_profile(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, currentUsername);
             cs.setString(2, newUsername);
@@ -253,7 +253,7 @@ public final class UserDAO {
 
         final String call = "{ call sp_user_update_profile_pwd(?, ?, ?, ?, ?) }";
         String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, currentUsername);
             cs.setString(2, newUsername);
@@ -292,7 +292,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_wishlist_add(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             cs.setLong(2, productId);
@@ -313,7 +313,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_wishlist_remove(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             cs.setLong(2, productId);
@@ -331,7 +331,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_wishlist_clear(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             cs.executeUpdate();
@@ -345,7 +345,7 @@ public final class UserDAO {
         }
 
         final String call = "{ call sp_wishlist_get(?) }";
-        try (Connection conn = DatabaseConnection.getInstance();
+        try (Connection conn = DatabaseConnection.getConnection();
              CallableStatement cs = conn.prepareCall(call)) {
             cs.setString(1, username);
             try (ResultSet rs = cs.executeQuery()) {
