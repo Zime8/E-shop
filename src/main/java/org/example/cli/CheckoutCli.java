@@ -9,6 +9,7 @@ import org.example.gateway.PaymentGatewayException;
 import java.math.BigDecimal;
 import java.util.*;
 
+@SuppressWarnings("java:S106")
 final class CheckoutCli {
 
     private CheckoutCli() {}

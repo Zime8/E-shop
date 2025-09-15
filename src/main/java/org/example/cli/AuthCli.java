@@ -9,6 +9,7 @@ import java.io.Console;
 import java.util.HashMap;
 import java.util.Map;
 
+@SuppressWarnings("java:S106")
 final class AuthCli {
 
     private AuthCli() {}

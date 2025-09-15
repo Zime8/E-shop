@@ -7,6 +7,7 @@ import org.example.models.Product;
 import java.sql.SQLException;
 import java.util.*;
 
+@SuppressWarnings("java:S106")
 final class ProductCli {
 
     private static final ProductDao dao = new ProductDaoDb();
