@@ -54,23 +54,22 @@ public final class MainCli {
     // legge comandi da stdin e li esegue finché l'utente non esce
     private static void interactiveShell() {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-            while (true) {
+            boolean running = true;
+            while (running) {
                 System.out.print(PROMPT);
                 String line = br.readLine();
+
                 if (line == null) {
-                    break;
-                }
-
-                line = line.trim();
-                if ("exit".equalsIgnoreCase(line) || "quit".equalsIgnoreCase(line)) {
-                    break;
-                }
-
-                if (!line.isEmpty()) {
-                    String[] argv = splitArgs(line);
-                    if (argv.length > 0) {
-                        // Esegue senza terminare il processo all'errore
-                        executeOnce(argv /*interactive=*/);
+                    running = false;
+                } else {
+                    line = line.trim();
+                    if ("exit".equalsIgnoreCase(line) || "quit".equalsIgnoreCase(line)) {
+                        running = false;
+                    } else if (!line.isEmpty()) {
+                        String[] argv = splitArgs(line);
+                        if (argv.length > 0) {
+                            executeOnce(argv);
+                        }
                     }
                 }
             }
@@ -114,7 +113,7 @@ public final class MainCli {
         return 0;
     }
 
-    /** Split degli argomenti rispettando virgolette e backslash. */
+    // Split degli argomenti rispettando virgolette e backslash
     private static String[] splitArgs(String line) {
         List<String> tokens = new ArrayList<>();
         StringBuilder cur = new StringBuilder();
@@ -125,33 +124,32 @@ public final class MainCli {
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
 
-            if (escape) { cur.append(c); escape = false; continue; }
-            if (c == '\\') { escape = true; continue; }
-
-            if (inQuotes) {
+            if (escape) {
+                cur.append(c);
+                escape = false;
+            } else if (c == '\\') {
+                escape = true;
+            } else if (inQuotes) {
                 if (c == quoteChar) {
                     inQuotes = false;
                 } else {
                     cur.append(c);
                 }
-                continue;
-            }
-
-            if (c == '"' || c == '\'') {
+            } else if (c == '"' || c == '\'') {
                 inQuotes = true;
                 quoteChar = c;
-                continue;
-            }
-
-            if (Character.isWhitespace(c)) {
-                if (!cur.isEmpty()) { tokens.add(cur.toString()); cur.setLength(0); }
+            } else if (Character.isWhitespace(c)) {
+                if (!cur.isEmpty()) {
+                    tokens.add(cur.toString());
+                    cur.setLength(0);
+                }
             } else {
                 cur.append(c);
             }
         }
-        if (!cur.isEmpty()) tokens.add(cur.toString());
-
-        // Se l'utente ha lasciato una quote aperta, trattiamo comunque quanto letto
+        if (!cur.isEmpty()) {
+            tokens.add(cur.toString());
+        }
         return tokens.toArray(new String[0]);
     }
 
