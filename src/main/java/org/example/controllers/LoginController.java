@@ -103,16 +103,16 @@ public class LoginController {
             int demoId = DemoData.NEXT_DEMO_USER_ID.getAndDecrement();
 
             // Pulisci sessione precedente
-            org.example.util.Session.clear();
+            Session.clear();
 
             // Attiva demo e setta credenziali guest
-            org.example.util.Session.setDemo(true);
-            org.example.util.Session.setUser(guest);
-            org.example.util.Session.setUserId(demoId);
+            Session.setDemo(true);
+            Session.setUser(guest);
+            Session.setUserId(demoId);
 
-            org.example.demo.DemoData.ensureLoaded();
-            org.example.demo.DemoData.users().putIfAbsent(
-                    guest, new org.example.demo.DemoData.User(demoId, guest, null, "utente", null, null)
+            DemoData.ensureLoaded();
+            DemoData.users().putIfAbsent(
+                    guest, new DemoData.User(demoId, guest, null, "utente", null, null)
             );
 
             goHome();
