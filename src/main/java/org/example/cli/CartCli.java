@@ -49,14 +49,22 @@ final class CartCli {
 
     private static Map<String, String> parseArgs(String[] args) {
         Map<String, String> m = new HashMap<>();
-        for (int i=0; i<args.length; i++) {
-            String a = args[i];
-            if (a.startsWith("--") && i+1 < args.length) {
-                m.put(a.substring(2), args[++i]);
+        String pendingKey = null;
+
+        for (String tok : args) {
+            if (pendingKey != null) {
+                m.put(pendingKey, tok);
+                pendingKey = null;
+                continue;
+            }
+            if (tok.startsWith("--")) {
+                pendingKey = tok.substring(2);
             }
         }
+
         return m;
     }
+
 
     private static void add(String[] args) throws SQLException {
         Map<String, String> p = parseArgs(args);
