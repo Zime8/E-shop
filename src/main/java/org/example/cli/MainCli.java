@@ -116,41 +116,69 @@ public final class MainCli {
     // Split degli argomenti rispettando virgolette e backslash
     private static String[] splitArgs(String line) {
         List<String> tokens = new ArrayList<>();
-        StringBuilder cur = new StringBuilder();
-        boolean inQuotes = false;
-        char quoteChar = 0;
+        ArgLexer lx = new ArgLexer();
         boolean escape = false;
 
         for (int i = 0; i < line.length(); i++) {
             char c = line.charAt(i);
 
             if (escape) {
-                cur.append(c);
+                lx.append(c);
                 escape = false;
             } else if (c == '\\') {
-                escape = true;
-            } else if (inQuotes) {
-                if (c == quoteChar) {
-                    inQuotes = false;
-                } else {
-                    cur.append(c);
-                }
-            } else if (c == '"' || c == '\'') {
-                inQuotes = true;
-                quoteChar = c;
-            } else if (Character.isWhitespace(c)) {
-                if (!cur.isEmpty()) {
-                    tokens.add(cur.toString());
-                    cur.setLength(0);
-                }
+                escape = true;                  // backslash: il prossimo char è “letterale”
             } else {
-                cur.append(c);
+                lx.onChar(c, tokens);           // delega la logica di quote/flush
             }
         }
-        if (!cur.isEmpty()) {
-            tokens.add(cur.toString());
-        }
+        lx.finish(tokens);                      // flush finale
         return tokens.toArray(new String[0]);
+    }
+
+    // Piccolo lexer che gestisce stato (virgolette) e flush dei token
+    private static final class ArgLexer {
+        private final StringBuilder cur = new StringBuilder();
+        private boolean inQuotes = false;
+        private char quoteChar = 0;
+
+        void onChar(char c, List<String> out) {
+            if (inQuotes) {
+                if (c == quoteChar) {
+                    inQuotes = false;           // chiude le virgolette
+                } else {
+                    cur.append(c);              // testo dentro virgolette
+                }
+                return;
+            }
+
+            if (c == '"' || c == '\'') {
+                inQuotes = true;
+                quoteChar = c;                  // apre virgolette
+                return;
+            }
+
+            if (Character.isWhitespace(c)) {
+                flush(out);                     // separatore tra token
+                return;
+            }
+
+            cur.append(c);                      // testo non quotato
+        }
+
+        void append(char c) {                   // usato per gestire l'escape nel metodo esterno
+            cur.append(c);
+        }
+
+        void finish(List<String> out) {         // flush finale
+            flush(out);
+        }
+
+        private void flush(List<String> out) {
+            if (!cur.isEmpty()) {
+                out.add(cur.toString());
+                cur.setLength(0);
+            }
+        }
     }
 
     private static String[] slice(String[] arr) {
