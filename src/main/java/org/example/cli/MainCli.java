@@ -47,27 +47,32 @@ public final class MainCli {
         }
 
         // Modalità batch: un singolo comando passato da riga di comando
-        int code = executeOnce(args, /*interactive=*/false);
+        int code = executeOnce(args /*interactive=*/);
         if (code != 0) System.exit(code);
     }
 
-    /** Loop REPL: legge comandi da stdin e li esegue finché l'utente non esce. */
+    // legge comandi da stdin e li esegue finché l'utente non esce
     private static void interactiveShell() {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
-            String line;
             while (true) {
                 System.out.print(PROMPT);
-                line = br.readLine();
-                if (line == null) break; // EOF (Ctrl+D)
+                String line = br.readLine();
+                if (line == null) {
+                    break;
+                }
+
                 line = line.trim();
-                if (line.isEmpty()) continue;
-                if ("exit".equalsIgnoreCase(line) || "quit".equalsIgnoreCase(line)) break;
+                if ("exit".equalsIgnoreCase(line) || "quit".equalsIgnoreCase(line)) {
+                    break;
+                }
 
-                String[] argv = splitArgs(line);
-                if (argv.length == 0) continue;
-
-                // Esegue senza terminare il processo all'errore
-                executeOnce(argv, /*interactive=*/true);
+                if (!line.isEmpty()) {
+                    String[] argv = splitArgs(line);
+                    if (argv.length > 0) {
+                        // Esegue senza terminare il processo all'errore
+                        executeOnce(argv /*interactive=*/);
+                    }
+                }
             }
         } catch (IOException e) {
             System.err.println("Errore I/O: " + e.getMessage());
@@ -75,8 +80,8 @@ public final class MainCli {
         System.out.println("Bye!");
     }
 
-    /** Esegue un singolo comando, restituendo un exit code. */
-    private static int executeOnce(String[] args, boolean interactive) {
+    // Esegue un singolo comando, restituendo un exit code
+    private static int executeOnce(String[] args) {
         String cmd = args[0].toLowerCase();
         String[] rest = slice(args);
 

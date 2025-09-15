@@ -53,7 +53,6 @@ final class CheckoutCli {
         return m;
     }
 
-
     private static void review() {
         List<CartItem> items = CartCli.items();
         if (items.isEmpty()) {
