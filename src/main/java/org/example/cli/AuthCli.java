@@ -28,7 +28,7 @@ final class AuthCli {
 
         try {
             Session.setDemo(false);
-        } catch (Throwable ignored) {
+        } catch (Exception ignored) {
             // Ok
         }
 
@@ -48,13 +48,23 @@ final class AuthCli {
 
     private static Map<String, String> parseArgs(String[] args) {
         Map<String, String> m = new HashMap<>();
-        for (int i = 0; i < args.length; i++) {
-            String a = args[i];
-            if ("--user".equals(a) && i + 1 < args.length) {
-                m.put("user", args[++i]);
-            } else if ("--pass".equals(a) && i + 1 < args.length) {
-                m.put("pass", args[++i]);
+        String expecting = null;
+
+        for (String arg : args) {
+            if (expecting != null) {
+                m.put(expecting, arg);
+                expecting = null;
+                continue;
             }
+            switch (arg) {
+                case "--user" -> expecting = "user";
+                case "--pass" -> expecting = "pass";
+                default -> { /* ignora token non riconosciuti */ }
+            }
+        }
+
+        if (expecting != null) {
+            throw new IllegalArgumentException("Manca il valore per --" + expecting);
         }
         return m;
     }
