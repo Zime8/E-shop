@@ -48,14 +48,30 @@ final class ProductCli {
 
     private static Map<String, String> parseArgs(String[] args) {
         Map<String, String> m = new HashMap<>();
-        for (int i=0; i<args.length; i++) {
-            String a = args[i];
-            if (a.startsWith("--") && i+1 < args.length) {
-                m.put(a.substring(2), args[++i]);
+        String expecting = null;
+
+        for (String tok : args) {
+            if (expecting != null) {
+                m.put(expecting, tok);
+                expecting = null;
+                continue;
+            }
+
+            if (tok.startsWith("--")) {
+                int eq = tok.indexOf('=');
+                if (eq > 2) {
+                    // formato --key=value
+                    m.put(tok.substring(2, eq), tok.substring(eq + 1));
+                } else {
+                    // formato --key value
+                    expecting = tok.substring(2);
+                }
             }
         }
+
         return m;
     }
+
 
     private static void search(String[] args) throws SQLException {
         Map<String, String> p = parseArgs(args);
