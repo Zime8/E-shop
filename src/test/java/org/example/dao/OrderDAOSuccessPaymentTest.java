@@ -23,7 +23,7 @@ class OrderDAOSuccessPaymentTest {
         Session.setDemo(false);
 
         // la connessione deve aprirsi
-        Connection ignored = DatabaseConnection.getConnection();
+        DatabaseConnection.getConnection();
     }
 
     @AfterEach

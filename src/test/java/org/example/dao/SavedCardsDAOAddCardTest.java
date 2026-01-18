@@ -5,7 +5,6 @@ import org.example.database.DatabaseConnection;
 import org.example.util.Session;
 import org.junit.jupiter.api.*;
 
-import java.sql.Connection;
 import java.util.List;
 import java.util.Optional;
 
@@ -22,7 +21,7 @@ class SavedCardsDAOAddCardTest {
         Session.setDemo(false);
 
         // la connessione deve aprirsi senza eccezioni
-        Connection ignored = DatabaseConnection.getConnection();
+        DatabaseConnection.getConnection();
     }
 
     @AfterEach

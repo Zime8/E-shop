@@ -4,7 +4,6 @@ import org.example.database.DatabaseConnection;
 import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.util.*;
 
@@ -20,7 +19,7 @@ class SellerDAOInsertProductTest {
 
     @BeforeAll
     void sanity() throws Exception {
-        Connection ignored = DatabaseConnection.getConnection();
+        DatabaseConnection.getConnection();
         var shop = SellerDAO.findShopForUser(VENDOR_USER_ID);
         assertNotNull(shop, "Nessuno shop associato al venditore");
         shopId = shop.shopId();
