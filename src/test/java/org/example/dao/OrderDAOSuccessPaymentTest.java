@@ -23,14 +23,14 @@ class OrderDAOSuccessPaymentTest {
         Session.setDemo(false);
 
         // la connessione deve aprirsi
-        try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
+        Connection ignored = DatabaseConnection.getConnection();
     }
 
     @AfterEach
     void cleanup() throws Exception {
         if (createdOrderId == null) return;
 
-        try (Connection c = DatabaseConnection.getInstance()) {
+        try (Connection c = DatabaseConnection.getConnection()) {
             c.setAutoCommit(false);
             try {
                 // Prendo le righe d’ordine per ripristinare stock e calcolare il totale per saldo negozio
@@ -123,7 +123,7 @@ class OrderDAOSuccessPaymentTest {
         int buyQty = 2;
 
         // prendo una riga reale dal catalogo
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      """
                      SELECT id_shop, product_id, size, price, quantity
@@ -159,7 +159,7 @@ class OrderDAOSuccessPaymentTest {
         createdOrderId = orderId; // salva per il cleanup
 
         // verifica che l'ordine esista e appartenga all'utente
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      """
                      SELECT id_user, state_order
@@ -181,7 +181,7 @@ class OrderDAOSuccessPaymentTest {
 
     // --- helpers ---
     private int getStock(int shopId, int productId, String size) throws Exception {
-        try (Connection c = DatabaseConnection.getInstance();
+        try (Connection c = DatabaseConnection.getConnection();
              PreparedStatement ps = c.prepareStatement(
                      """
                      SELECT quantity

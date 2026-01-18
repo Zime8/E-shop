@@ -20,7 +20,7 @@ class SellerDAOInsertProductTest {
 
     @BeforeAll
     void sanity() throws Exception {
-        try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
+        Connection ignored = DatabaseConnection.getConnection();
         var shop = SellerDAO.findShopForUser(VENDOR_USER_ID);
         assertNotNull(shop, "Nessuno shop associato al venditore");
         shopId = shop.shopId();
@@ -29,7 +29,7 @@ class SellerDAOInsertProductTest {
     @AfterEach
     void cleanup() throws Exception {
         if (createdSize == null) return;
-        try (var c = DatabaseConnection.getInstance();
+        try (var c = DatabaseConnection.getConnection();
              var ps = c.prepareStatement(
                      "DELETE FROM product_availability WHERE id_shop=? AND product_id=? AND size=?")) {
             ps.setInt(1, shopId);
@@ -75,7 +75,7 @@ class SellerDAOInsertProductTest {
     // Restituisce la prima taglia giusta non presente per (shopId, productId)
     private String findFreeSize(int shopId) throws Exception {
         Set<String> used = new HashSet<>();
-        try (var c = DatabaseConnection.getInstance();
+        try (var c = DatabaseConnection.getConnection();
              var ps = c.prepareStatement("""
                  SELECT size FROM product_availability
                  WHERE id_shop=? AND product_id=?""")) {

@@ -22,13 +22,13 @@ class SavedCardsDAOAddCardTest {
         Session.setDemo(false);
 
         // la connessione deve aprirsi senza eccezioni
-        try (Connection ignored = DatabaseConnection.getInstance()) { /* ok */ }
+        Connection ignored = DatabaseConnection.getConnection();
     }
 
     @AfterEach
     void cleanup() throws Exception {
         if (insertedCardId != null) {
-            try (var c = DatabaseConnection.getInstance();
+            try (var c = DatabaseConnection.getConnection();
                  var ps = c.prepareStatement("DELETE FROM saved_cards WHERE card_id=? AND id_user=?")) {
                 ps.setInt(1, insertedCardId);
                 ps.setInt(2, USER_ID);

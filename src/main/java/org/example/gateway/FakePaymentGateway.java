@@ -3,7 +3,6 @@ package org.example.gateway;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.util.Map;
-import java.util.SplittableRandom;
 import java.util.UUID;
 import java.util.function.DoubleSupplier;
 
@@ -18,20 +17,11 @@ public class FakePaymentGateway implements PaymentGateway {
         this(simulatedDelayMs, failRate, new SecureRandom()::nextDouble);
     }
 
-    // Versione deterministica
-    public FakePaymentGateway(long simulatedDelayMs, double failRate, long seed) {
-        this(simulatedDelayMs, failRate, new SplittableRandom(seed)::nextDouble);
-    }
-
     // Costruttore principale
     private FakePaymentGateway(long simulatedDelayMs, double failRate, DoubleSupplier rng) {
         this.simulatedDelayMs = simulatedDelayMs;
         this.failRate = failRate;
         this.rng = rng;
-    }
-
-    public synchronized void forceNext(boolean success) {
-        this.forceNext = success;
     }
 
     @Override

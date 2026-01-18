@@ -139,14 +139,14 @@ public class PaymentSelectionController {
         if (selected == null) { showInfo("Seleziona una carta salvata per procedere."); return; }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (!CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre) per la carta selezionata."); return; }
+        if (CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre) per la carta selezionata."); return; }
 
         setProcessing(true);
 
         Map<String, String> paymentData = new HashMap<>();
         paymentData.put("card_number", selected.getNumber());
-        paymentData.put("expiry",      selected.getExpiry());
-        paymentData.put("cvv",         cvv);
+        paymentData.put("expiry", selected.getExpiry());
+        paymentData.put("cvv", cvv);
         logger.log(Level.FINE, "CVV presente: {0}", !cvv.isBlank() ? "***" : "no");
 
         Task<OrderDAO.CreationResult> task = getCreationResultTask(userId, paymentData, selected, address);

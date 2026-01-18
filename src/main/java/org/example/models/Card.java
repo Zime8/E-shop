@@ -37,7 +37,6 @@ public class Card {
     // METODI PROPERTY per TableView
     public SimpleIntegerProperty idProperty() { return id; }
     public SimpleStringProperty holderProperty() { return holder; }
-    public SimpleStringProperty numberProperty() { return number; }
     public SimpleStringProperty expiryProperty() { return expiry; }
     public SimpleStringProperty typeProperty() { return type; }
 }

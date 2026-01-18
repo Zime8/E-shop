@@ -93,6 +93,10 @@ public final class SellerDAO {
     public static void upsertCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
         Objects.requireNonNull(size, "size");
         final String call = "{ call sp_seller_upsert_catalog(?, ?, ?, ?, ?) }";
+        catalogRow(shopId, productId, size, price, qty, call);
+    }
+
+    private static void catalogRow(int shopId, int productId, String size, BigDecimal price, int qty, String call) throws SQLException {
         try (Connection c = DatabaseConnection.getConnection();
              CallableStatement cs = c.prepareCall(call)) {
             cs.setInt(1, shopId);
@@ -106,15 +110,7 @@ public final class SellerDAO {
 
     public static void updateCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
         final String call = "{ call sp_seller_update_catalog(?, ?, ?, ?, ?) }";
-        try (Connection c = DatabaseConnection.getConnection();
-             CallableStatement cs = c.prepareCall(call)) {
-            cs.setInt(1, shopId);
-            cs.setInt(2, productId);
-            cs.setString(3, size);
-            cs.setBigDecimal(4, price);
-            cs.setInt(5, qty);
-            cs.executeUpdate();
-        }
+        catalogRow(shopId, productId, size, price, qty, call);
     }
 
     public static void deleteCatalogRow(int shopId, int productId, String size) throws SQLException {

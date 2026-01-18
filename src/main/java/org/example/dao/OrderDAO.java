@@ -236,7 +236,7 @@ public final class OrderDAO {
 
     // Avanza nei risultati finché non trova un ResultSet con colonne id_order/order_id.
     private static boolean advanceToFinalResultSet(CallableStatement cs) throws SQLException {
-        boolean has = true;
+        boolean has;
         while (true) {
             has = cs.getMoreResults();
             if (has) {

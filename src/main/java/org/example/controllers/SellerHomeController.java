@@ -692,11 +692,11 @@
                 DialogPane pane = dialog.getDialogPane();
                 pane.getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
                 pane.setStyle("""
-            -fx-background-color: %s;
-            -fx-background-radius: %s;
-            -fx-padding: 18 18 16 18;
-            -fx-effect: %s;
-        """.formatted(SURFACE, RADIUS_LG, SHADOW));
+                -fx-background-color: %s;
+                -fx-background-radius: %s;
+                -fx-padding: 18 18 16 18;
+                -fx-effect: %s;
+                """.formatted(SURFACE, RADIUS_LG, SHADOW));
                 return dialog;
             }
 
@@ -710,10 +710,10 @@
                 VBox headerBox = new VBox(headerTitle, headerSubtitle);
                 headerBox.setSpacing(4);
                 headerBox.setStyle("""
-            -fx-padding: 0 0 12 0;
-            -fx-border-color: transparent transparent %s transparent;
-            -fx-border-width: 0 0 1 0;
-        """.formatted(BORDER));
+                -fx-padding: 0 0 12 0;
+                -fx-border-color: transparent transparent %s transparent;
+                -fx-border-width: 0 0 1 0;
+                """.formatted(BORDER));
                 return headerBox;
             }
 
@@ -772,10 +772,10 @@
 
             protected Styles makeStyles() {
                 String base = """
-            -fx-background-radius: %s; -fx-border-radius: %s; -fx-padding: 10 12;
-            -fx-background-color: %s; -fx-border-color: %s; -fx-border-width: 1;
-            -fx-text-fill: %s; -fx-prompt-text-fill: #94a3b8;
-        """.formatted(RADIUS_SM, RADIUS_SM, SURFACE, BORDER, TEXT_DARK);
+                -fx-background-radius: %s; -fx-border-radius: %s; -fx-padding: 10 12;
+                -fx-background-color: %s; -fx-border-color: %s; -fx-border-width: 1;
+                -fx-text-fill: %s; -fx-prompt-text-fill: #94a3b8;
+                """.formatted(RADIUS_SM, RADIUS_SM, SURFACE, BORDER, TEXT_DARK);
                 String hover = base + "-fx-background-insets: 0; -fx-border-color: #d1d5db;";
                 String focus = base + "-fx-effect: dropshadow(gaussian, rgba(211,47,47,0.18), 10, 0.2, 0, 2); -fx-border-color: " + ACCENT + ";";
                 String error = base + "-fx-border-color: #ef4444; -fx-border-width: 1.5;";

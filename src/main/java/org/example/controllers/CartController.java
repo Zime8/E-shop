@@ -36,6 +36,7 @@ public class CartController {
     public CartController(ProductDao productDao) {
         this.productDao = productDao;
     }
+
     public CartController() { this(ProductDaos.create()); }
 
     @FXML private VBox cartItemsContainer;
@@ -152,7 +153,7 @@ public class CartController {
         imageView.setFitWidth(40);
         imageView.setFitHeight(40);
         imageView.setPreserveRatio(true);
-
+ 
         Image img = toImage(p.getImageData());
         imageView.setImage(img);
 
@@ -201,7 +202,7 @@ public class CartController {
             stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
             stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
             stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
-            minus.setOnAction(e -> {
+            minus.setOnAction(ignored -> {
                 Session.removeFromCart(p);
                 loadCartItems();
                 if (onCartUpdated != null) onCartUpdated.run();
@@ -216,13 +217,13 @@ public class CartController {
             stockLabelTooltip(plus, "Quantità massima raggiunta: " + stock);
         }
 
-        minus.setOnAction(e -> {
+        minus.setOnAction(ignored -> {
             Session.removeFromCart(p);
             loadCartItems();
             if (onCartUpdated != null) onCartUpdated.run();
         });
 
-        plus.setOnAction(e -> {
+        plus.setOnAction(ignored -> {
             Session.addToCart(Product.copyOf(p));
             loadCartItems();
             if (onCartUpdated != null) onCartUpdated.run();
@@ -249,7 +250,7 @@ public class CartController {
                 new Image(Objects.requireNonNull(getClass().getResourceAsStream("/icons/basket.png")),
                         16, 16, true, true)));
 
-        removeAll.setOnAction(e -> {
+        removeAll.setOnAction(ignored -> {
             Session.removeLineFromCart(p.getProductId(), p.getIdShop(), p.getSize());
             loadCartItems();
             if (onCartUpdated != null) onCartUpdated.run();
@@ -276,7 +277,7 @@ public class CartController {
         Map<Key, Aggregated> map = new LinkedHashMap<>();
         for (Product p : products) {
             Key k = new Key(p.getProductId(), p.getIdShop(), p.getSize());
-            map.compute(k, (key, agg) -> {
+            map.compute(k, (ignored, agg) -> {
                 if (agg == null) return new Aggregated(p, 1);
                 agg.qty += 1;
                 return agg;

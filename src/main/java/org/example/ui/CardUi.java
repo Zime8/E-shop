@@ -50,7 +50,7 @@ public final class CardUi {
 
     // CVV valido = 3 cifre
     public static boolean isValidCvv(String cvv) {
-        return cvv != null && cvv.matches("\\d{3}");
+        return cvv == null || !cvv.matches("\\d{3}");
     }
 
     public static void bindWidth(TableView<?> table, TableColumn<?, ?> col, double ratio) {

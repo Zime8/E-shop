@@ -205,14 +205,7 @@ public final class UserDAO {
             DemoData.ensureLoaded();
             DemoData.User old = DemoData.users().get(currentUsername);
             if (old == null) return;
-            if (!Objects.equals(currentUsername, newUsername)) {
-                if (DemoData.users().containsKey(newUsername)) {
-                    throw new SQLException("Username già esistente (demo)");
-                }
-                List<Product> wl = DemoData.wishlists().remove(currentUsername);
-                if (wl != null) DemoData.wishlists().put(newUsername, wl);
-                DemoData.users().remove(currentUsername);
-            }
+            usernameExists(currentUsername, newUsername);
             DemoData.users().put(newUsername, new DemoData.User(
                     old.id(), newUsername, old.passHash(), old.role(), email, phone
             ));
@@ -230,6 +223,17 @@ public final class UserDAO {
         }
     }
 
+    private static void usernameExists(String currentUsername, String newUsername) throws SQLException {
+        if (!Objects.equals(currentUsername, newUsername)) {
+            if (DemoData.users().containsKey(newUsername)) {
+                throw new SQLException("Username già esistente (demo)");
+            }
+            List<Product> wl = DemoData.wishlists().remove(currentUsername);
+            if (wl != null) DemoData.wishlists().put(newUsername, wl);
+            DemoData.users().remove(currentUsername);
+        }
+    }
+
     public static void updateProfileWithPassword(String currentUsername, String newUsername,
                                                  String email, String phone, String plainPassword) throws SQLException {
         if (Session.isDemo()) {
@@ -237,14 +241,7 @@ public final class UserDAO {
             DemoData.User old = DemoData.users().get(currentUsername);
             if (old == null) return;
             String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
-            if (!Objects.equals(currentUsername, newUsername)) {
-                if (DemoData.users().containsKey(newUsername)) {
-                    throw new SQLException("Username già esistente (demo)");
-                }
-                List<Product> wl = DemoData.wishlists().remove(currentUsername);
-                if (wl != null) DemoData.wishlists().put(newUsername, wl);
-                DemoData.users().remove(currentUsername);
-            }
+            usernameExists(currentUsername, newUsername);
             DemoData.users().put(newUsername, new DemoData.User(
                     old.id(), newUsername, hashedPwd, old.role(), email, phone
             ));

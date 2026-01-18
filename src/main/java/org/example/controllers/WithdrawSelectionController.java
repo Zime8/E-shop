@@ -120,7 +120,7 @@ public class WithdrawSelectionController {
         if (selected == null) { showInfo("Seleziona una carta salvata."); return; }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (!CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
+        if (CardUi.isValidCvv(cvv)) { showInfo("Inserisci il CVV (3 cifre)."); return; }
 
         BigDecimal amount;
         try {
