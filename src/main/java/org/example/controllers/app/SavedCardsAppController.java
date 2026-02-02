@@ -57,8 +57,8 @@ public class SavedCardsAppController implements SavedCardsControl {
             }
             return new Card(cardId, holder, number, expiry, type);
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore aggiornamento carta ID=" + cardId, e);
-            throw new IllegalStateException("Errore database: " + e.getMessage(), e);
+            logger.log(Level.SEVERE, "Errore aggiornamento carta: ", e);
+            return null;
         }
     }
 

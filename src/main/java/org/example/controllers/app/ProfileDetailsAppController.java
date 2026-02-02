@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 
 public class ProfileDetailsAppController {
 
-    private static final String psw = "******";
+    private static final String PSW = "******";
     private static final Logger logger = Logger.getLogger(ProfileDetailsAppController.class.getName());
 
     private final UserDAO userDAO = UserDAO.getInstance();
@@ -16,21 +16,21 @@ public class ProfileDetailsAppController {
     public void loadUserData(Consumer<String[]> onDataLoaded) {
         String username = Session.getUser();
         if (username == null) {
-            onDataLoaded.accept(new String[]{"", psw, "", ""});
+            onDataLoaded.accept(new String[]{"", PSW, "", ""});
             return;
         }
 
         try {
             var u = userDAO.findByUsername(username);
             if (u == null) {
-                onDataLoaded.accept(new String[]{"", psw, "", ""});
+                onDataLoaded.accept(new String[]{"", PSW, "", ""});
                 return;
             }
 
             // ← Prepara dati "sicuri" per UI (maschera password)
             String[] data = {
                     u.getUsername(),
-                    psw,
+                    PSW,
                     u.getEmail(),
                     u.getPhone()
             };

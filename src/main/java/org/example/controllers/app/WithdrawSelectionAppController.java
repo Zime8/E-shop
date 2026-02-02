@@ -82,11 +82,10 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
         try {
             // Esegui prelievo (Entity)
             ShopDAO.requestWithdraw(userId, amount);
-            logger.log(Level.INFO, "Withdraw effettuato: {0}€ per user {1}",
+            logger.log(Level.INFO, "Prelievo effettuato: {0}€ per user {1}",
                     new Object[]{amount, userId});
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore confirm withdraw", e);
-            throw new RuntimeException("Errore elaborazione prelievo: " + e.getMessage(), e);
+            logger.log(Level.SEVERE, "Errore conferma prelievo", e);
         }
     }
 }

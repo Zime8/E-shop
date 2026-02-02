@@ -112,7 +112,7 @@ public class WithdrawSelectionController {
         }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (cvv == null || !CardUi.isValidCvv(cvv)) {
+        if (!CardUi.isValidCvv(cvv)) {
             showInfo("Inserisci il CVV (3 cifre).");
             return;
         }

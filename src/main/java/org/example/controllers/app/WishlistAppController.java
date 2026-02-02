@@ -73,7 +73,7 @@ public class WishlistAppController {
         try {
             return p.getImage();
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Errore caricamento immagine: " + p.getName(), e);
+            logger.log(Level.WARNING, "Errore caricamento immagine: ", e);
             return null;
         }
     }
