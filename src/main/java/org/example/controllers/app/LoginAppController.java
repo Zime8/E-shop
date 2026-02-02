@@ -13,6 +13,8 @@ public class LoginAppController {
     private final UserDAO userDao = new UserDAO();
 
     public LoginResult performLogin(String username, String password) {
+        Session.setDemo(false);
+
         if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
             return new LoginResult(LoginStatus.INVALID_INPUT, null, null);
         }

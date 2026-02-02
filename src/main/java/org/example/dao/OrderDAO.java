@@ -14,9 +14,7 @@ public final class OrderDAO {
 
     private static final String ORDER_ID = "id_order";
 
-    private OrderDAO() {
-        throw new AssertionError("Utility class, no instances allowed");
-    }
+    private OrderDAO() {}
 
     public record CreationResult(
             List<Integer> orderIds,
@@ -84,7 +82,7 @@ public final class OrderDAO {
                 long pid = Long.parseLong(parts[0]);
                 int sid  = Integer.parseInt(parts[1]);
                 String sz = parts[2];
-                throw new SQLException("Stock insufficiente (demo) per product=" + pid
+                throw new SQLException("In demo, esaurito produtto =" + pid
                         + ", shop=" + sid + ", size=" + sz
                         + " (richiesto " + required + ", disponibile " + available + ")");
             }
@@ -307,11 +305,6 @@ public final class OrderDAO {
             throw new IllegalArgumentException("Lista articoli vuota");
         }
     }
-
-    // LETTURA ORDINI
-
-    // Riga tabella ORDINI
-    public record OrderSummary(int idOrder, Timestamp dateOrder, String stateOrder, BigDecimal totalAmount) { }
 
     // Riga tabella DETTAGLIO
     public record OrderLine(int orderId, long productId, int shopId, String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {
