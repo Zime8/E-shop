@@ -8,8 +8,10 @@ public record FilterCriteria(
         double minPrice,
         double maxPrice
 ) {
+    private static final String ALL = "Tutti";
+
     public static FilterCriteria defaults() {
-        return new FilterCriteria("Tutti", "Tutti", "Tutti", "Tutti", 0.0, Double.MAX_VALUE);
+        return new FilterCriteria(ALL, ALL, ALL, ALL, 0.0, Double.MAX_VALUE);
     }
 }
 
