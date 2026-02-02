@@ -42,7 +42,7 @@ public class EditCatalogDialogCreator extends CatalogDialogCreator {
 
         dialog.setResultConverter(btn -> {
             if (btn != ButtonType.OK) return null;
-            return extractForm(ui, initial.productId(), styles);
+            return extractForm(ui, initial.productId());
         });
     }
 

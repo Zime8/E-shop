@@ -498,7 +498,7 @@ public abstract class CatalogDialogCreator {
 
     protected abstract void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial);
 
-    protected CatalogForm extractForm(ProductUI ui, int productId, Styles styles) {
+    protected CatalogForm extractForm(ProductUI ui, int productId) {
         try {
             String size = ui.size().getText().trim();
             BigDecimal price = new BigDecimal(ui.price().getText().trim());
@@ -519,19 +519,8 @@ public abstract class CatalogDialogCreator {
                                TextField size,
                                TextField price,
                                TextField qty) {
-        public ComboBox<SellerDAO.ProductOption> combo() {
-            return combo;
-        }
-        public TextField name() { return name; }
-        public TextField size() { return size; }
-        public TextField price() { return price; }
-        public TextField qty() { return qty; }
     }
 
     protected record Styles(String base, String hover, String focus, String error) {
-        public String base() { return base; }
-        public String hover() { return hover; }
-        public String focus() { return focus; }
-        public String error() { return error; }
     }
 }
