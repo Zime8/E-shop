@@ -73,7 +73,7 @@ public class ProfileDetailsController {
 
         appController.updateProfile(currentUsername, newUsername, newEmail, newPhone, newPwd,
                 success -> {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         passwordField.setText("******");
                         usernameField.setEditable(false);
                         passwordField.setEditable(false);

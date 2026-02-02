@@ -23,10 +23,6 @@ public class ReviewDialogController {
 
     private ReviewDialogAppController appController;
 
-    @FXML
-    private void initialize() {
-    }
-
     public void setController(ReviewDialogAppController appController){
         this.appController = appController;
         appController.setupStars(star1, star2, star3, star4, star5, ratingLabel);
