@@ -12,18 +12,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class ReviewDAO {
-    private static ReviewDAO instance;
 
     private static final Logger logger = Logger.getLogger(ReviewDAO.class.getName());
-
-    private ReviewDAO(){}
-
-    public static synchronized ReviewDAO getInstance() {
-        if (instance == null) {
-            instance = new ReviewDAO();
-        }
-        return instance;
-    }
 
     // Risale a uno username in demo a partire da userId
     private String resolveUsernameDemo(int userId) {

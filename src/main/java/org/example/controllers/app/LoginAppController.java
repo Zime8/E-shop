@@ -10,14 +10,14 @@ import java.util.logging.Logger;
 public class LoginAppController {
     private static final Logger logger = Logger.getLogger(LoginAppController.class.getName());
 
-    private final UserDAO userDAO = UserDAO.getInstance();
+    private final UserDAO userDao = new UserDAO();
 
     public LoginResult performLogin(String username, String password) {
         if (username == null || username.trim().isEmpty() || password == null || password.isEmpty()) {
             return new LoginResult(LoginStatus.INVALID_INPUT, null, null);
         }
 
-        UserDAO.LoginResult daoResult = userDAO.checkLogin(username.trim(), password);
+        UserDAO.LoginResult daoResult = userDao.checkLogin(username.trim(), password);
         if (daoResult.status() == UserDAO.LoginStatus.SUCCESS) {
             Session.setUser(username.trim());
             Session.setUserId(daoResult.userId());

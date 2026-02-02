@@ -11,7 +11,7 @@ public class ProfileDetailsAppController {
     private static final String PSW = "******";
     private static final Logger logger = Logger.getLogger(ProfileDetailsAppController.class.getName());
 
-    private final UserDAO userDAO = UserDAO.getInstance();
+    private final UserDAO userDao = new UserDAO();
 
     public void loadUserData(Consumer<String[]> onDataLoaded) {
         String username = Session.getUser();
@@ -21,7 +21,7 @@ public class ProfileDetailsAppController {
         }
 
         try {
-            var u = userDAO.findByUsername(username);
+            var u = userDao.findByUsername(username);
             if (u == null) {
                 onDataLoaded.accept(new String[]{"", PSW, "", ""});
                 return;
@@ -50,9 +50,9 @@ public class ProfileDetailsAppController {
                               Consumer<Boolean> onSuccess, Consumer<String> onError) {
         try {
             if (newPwd != null && !newPwd.isBlank()) {
-                userDAO.updateProfileWithPassword(currentUsername, newUsername, newEmail, newPhone, newPwd);
+                userDao.updateProfileWithPassword(currentUsername, newUsername, newEmail, newPhone, newPwd);
             } else {
-                userDAO.updateProfile(currentUsername, newUsername, newEmail, newPhone);
+                userDao.updateProfile(currentUsername, newUsername, newEmail, newPhone);
             }
 
             // Aggiorna sessione

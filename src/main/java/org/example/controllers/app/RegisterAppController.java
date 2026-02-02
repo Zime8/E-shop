@@ -3,7 +3,7 @@ package org.example.controllers.app;
 import org.example.dao.UserDAO;
 
 public class RegisterAppController {
-    private final UserDAO userDAO = UserDAO.getInstance();
+    private final UserDAO userDao = new UserDAO();
 
     public RegisterValidationResult validateAndRegister(String username, String password,
                                                         String confirmPassword, String email,
@@ -30,15 +30,15 @@ public class RegisterAppController {
             return RegisterValidationResult.INVALID_PHONE;
         }
 
-        if (userDAO.isUsernameTaken(username)) {
+        if (userDao.isUsernameTaken(username)) {
             return RegisterValidationResult.USERNAME_TAKEN;
         }
 
-        if (userDAO.isEmailTaken(email)) {
+        if (userDao.isEmailTaken(email)) {
             return RegisterValidationResult.EMAIL_TAKEN;
         }
 
-        boolean success = userDAO.registerUser(username, password, role, email, phone);
+        boolean success = userDao.registerUser(username, password, role, email, phone);
         return success ? RegisterValidationResult.SUCCESS : RegisterValidationResult.DATABASE_ERROR;
     }
 

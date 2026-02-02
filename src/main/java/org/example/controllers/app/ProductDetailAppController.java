@@ -13,11 +13,11 @@ import java.util.List;
 public class ProductDetailAppController {
 
     private final ProductDao productDao;
-    private final UserDAO userDAO;
+    private final UserDAO userDao;
 
     public ProductDetailAppController(ProductDao productDao) {
         this.productDao = productDao;
-        this.userDAO = UserDAO.getInstance();
+        this.userDao = new UserDAO();
     }
 
     public ProductDetailAppController() {
@@ -49,7 +49,7 @@ public class ProductDetailAppController {
     }
 
     public void addToWishList(String user, long productId, int shopId, String size) {
-        this.userDAO.addInWishList(user, productId, shopId, size);
+        userDao.addInWishList(user, productId, shopId, size);
     }
 
     public void addToCart(Product product, int quantity) {

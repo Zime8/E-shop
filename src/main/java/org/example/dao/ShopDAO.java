@@ -10,8 +10,6 @@ import java.util.logging.Logger;
 
 public final class ShopDAO {
 
-    private ShopDAO() {}
-
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());
 
     // Saldo del venditore

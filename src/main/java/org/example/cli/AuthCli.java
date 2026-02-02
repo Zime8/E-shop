@@ -12,6 +12,8 @@ import java.util.Map;
 @SuppressWarnings("java:S106")
 final class AuthCli {
 
+    private static final UserDAO dao =  new UserDAO();
+
     private AuthCli() {}
 
     static void handleLoginCommand(String[] args) {
@@ -32,7 +34,6 @@ final class AuthCli {
             // Ok
         }
 
-        UserDAO dao = UserDAO.getInstance();
         LoginResult res = dao.checkLogin(user, pass);
 
         if (res.status() == LoginStatus.SUCCESS) {

@@ -11,8 +11,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ReviewAppController {
-    private final ReviewDAO reviewDao = ReviewDAO.getInstance();
-    private final UserDAO userDao = UserDAO.getInstance();
+    private final ReviewDAO reviewDao =  new ReviewDAO();
+    private final UserDAO userDao = new UserDAO();
     private static final Logger logger = Logger.getLogger(ReviewAppController.class.getName());
 
     public List<Review> loadReviews(Product product) {

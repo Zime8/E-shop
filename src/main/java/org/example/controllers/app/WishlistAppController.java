@@ -17,10 +17,10 @@ public class WishlistAppController {
     private Consumer<Product> notifyCartCallback;
 
     private static final Logger logger = Logger.getLogger(WishlistAppController.class.getName());
-    private final UserDAO userDAO;
+    private final UserDAO userDao;
 
     public WishlistAppController() {
-        this.userDAO = UserDAO.getInstance();
+        this.userDao = new UserDAO();
     }
 
     public void init(Consumer<List<Product>> showItems,
@@ -34,7 +34,7 @@ public class WishlistAppController {
 
     public void loadItems() {
         try {
-            List<Product> products = userDAO.getFavorites(Session.getUser());
+            List<Product> products = userDao.getFavorites(Session.getUser());
             showItemsCallback.accept(products);
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore caricamento wishlist", e);
@@ -44,7 +44,7 @@ public class WishlistAppController {
 
     public void removeFromWishlist(Product p) {
         try {
-            userDAO.removeInWishlist(Session.getUser(), p.getProductId(), p.getIdShop(), p.getSize());
+            userDao.removeInWishlist(Session.getUser(), p.getProductId(), p.getIdShop(), p.getSize());
             loadItems();
         } catch (Exception ex) {
             logger.log(Level.SEVERE, String.format(
@@ -61,7 +61,7 @@ public class WishlistAppController {
 
     public void clearWishlist() {
         try {
-            userDAO.clearWishlist(Session.getUser());
+            userDao.clearWishlist(Session.getUser());
             loadItems();
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore nello svuotamento wishlist", e);
