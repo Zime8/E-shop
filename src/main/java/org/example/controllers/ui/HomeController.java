@@ -295,10 +295,10 @@ public class HomeController implements Initializable {
 
         try {
             List<Product> filteredProducts = appController.searchByFilters(criteria);
-            int min = (int) criteria.minPrice;
-            int max = (int) criteria.maxPrice;
-            sectionTitle.setText("Filtrati per: " + criteria.sport + ", " + criteria.brand +
-                    ", " + criteria.shop + ", " + criteria.category + ", Prezzo: " +
+            int min = (int) criteria.minPrice();
+            int max = (int) criteria.maxPrice();
+            sectionTitle.setText("Filtrati per: " + criteria.sport() + ", " + criteria.brand() +
+                    ", " + criteria.shop() + ", " + criteria.category() + ", Prezzo: " +
                     min + " - " + max);
             displayProducts(filteredProducts.isEmpty() ? List.of() : filteredProducts);
 
@@ -313,12 +313,12 @@ public class HomeController implements Initializable {
         FilterCriteria defaults = appController.resetFilters();
 
         // UI applica valori da Control
-        sportFilter.setValue(defaults.sport);
-        brandFilter.setValue(defaults.brand);
-        shopFilter.setValue(defaults.shop);
-        categoryFilter.setValue(defaults.category);
-        priceRangeSlider.setLowValue(defaults.minPrice);
-        priceRangeSlider.setHighValue(defaults.maxPrice);
+        sportFilter.setValue(defaults.sport());
+        brandFilter.setValue(defaults.brand());
+        shopFilter.setValue(defaults.shop());
+        categoryFilter.setValue(defaults.category());
+        priceRangeSlider.setLowValue(defaults.minPrice());
+        priceRangeSlider.setHighValue(defaults.maxPrice());
         updatePriceLabel();
 
         sectionTitle.setText(LAST);

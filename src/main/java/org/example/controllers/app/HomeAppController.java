@@ -27,11 +27,11 @@ public class HomeAppController {
 
     public List<Product> searchByFilters(FilterCriteria criteria) {
         return productDao.searchByFilters(
-                criteria.sport.equals(ALL) ? null : criteria.sport,
-                criteria.brand.equals(ALL) ? null : criteria.brand,
-                criteria.shop.equals(ALL) ? null : criteria.shop,
-                criteria.category.equals(ALL) ? null : criteria.category,
-                criteria.minPrice, criteria.maxPrice
+                criteria.sport().equals(ALL) ? null : criteria.sport(),
+                criteria.brand().equals(ALL) ? null : criteria.brand(),
+                criteria.shop().equals(ALL) ? null : criteria.shop(),
+                criteria.category().equals(ALL) ? null : criteria.category(),
+                criteria.minPrice(), criteria.maxPrice()
         );
     }
 

@@ -12,6 +12,8 @@ public final class ShopDAO {
 
     private static final Logger logger = Logger.getLogger(ShopDAO.class.getName());
 
+    private ShopDAO(){}
+
     // Saldo del venditore
     public static BigDecimal getBalance(long userId) throws SQLException {
         final String call = "{ call sp_shop_get_balance_by_user(?) }";

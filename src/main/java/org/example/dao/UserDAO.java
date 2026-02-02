@@ -203,7 +203,7 @@ public final class UserDAO {
                 }
             }
         } catch (SQLException e) {
-            logger.log(Level.WARNING, "Errore durante findByUsername:" + username, e);
+            logger.log(Level.WARNING, "Errore durante findByUsername", e);
             return null;
         }
     }
@@ -384,7 +384,7 @@ public final class UserDAO {
             }
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Errore durante getFavorites", e);
-            return null;
+            return Collections.emptyList();
         }
     }
 
