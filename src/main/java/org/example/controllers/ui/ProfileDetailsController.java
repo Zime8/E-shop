@@ -72,8 +72,8 @@ public class ProfileDetailsController {
         String newPwd      = passwordField.getText();
 
         appController.updateProfile(currentUsername, newUsername, newEmail, newPhone, newPwd,
-                success ->{
-                    if(success){
+                success -> {
+                    if (success) {
                         passwordField.setText("******");
                         usernameField.setEditable(false);
                         passwordField.setEditable(false);

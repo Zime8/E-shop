@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -53,9 +52,6 @@ public class ProductDetailController {
     private ProductDetailAppController appController;
     private Product product;
     private Runnable onCartUpdate;
-
-    @FXML public void initialize() {
-    }
 
     public void setOnCartUpdate(Runnable callback) {
         this.onCartUpdate = callback;
@@ -87,7 +83,7 @@ public class ProductDetailController {
                     product.setSize(newSel);
                     try {
                         refreshForSelectedSize(newSel);
-                    } catch (SQLException e) {
+                    } catch (Exception e) {
                         logger.log(Level.WARNING, "Errore aggiornando per taglia " + newSel, e);
                     }
                 });
@@ -95,7 +91,7 @@ public class ProductDetailController {
                 sizeCombo.setDisable(true);
                 updateStockAndQtyRange();
             }
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             logger.log(Level.WARNING, "Errore caricando taglie", ex);
         }
 
@@ -303,7 +299,7 @@ public class ProductDetailController {
         }
     }
 
-    private void refreshForSelectedSize(String sel) throws SQLException {
+    private void refreshForSelectedSize(String sel) {
         double priceSel = appController.getPriceFor(product.getProductId(), product.getIdShop(), sel);
         product.setPrice(priceSel);
         priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
