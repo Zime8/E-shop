@@ -33,8 +33,9 @@ public class HomeController implements Initializable {
 
     private HomeAppController appController;
 
-    // costruttore usato da FXMLLoader
-    public HomeController() {}
+    public HomeController() {
+        // costruttore usato da FXMLLoader
+    }
 
     private static final Logger logger = Logger.getLogger(HomeController.class.getName());
     private static final String ALL = "Tutti";
@@ -324,19 +325,22 @@ public class HomeController implements Initializable {
         loadLatestArrivals();
     }
 
-    private void displayProducts(List<Product> products) throws IOException  {
+    private void displayProducts(List<Product> products) {
         productPane.getChildren().clear();
-        logger.info("🛒 Home.displayProducts() - creo " + products.size() + " cards");
         for (Product p : products) {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
-            Node card = loader.load();
-            ProductCardController ctrl = loader.getController();
-            appController.createProductCard(ctrl, p);
-            ctrl.setOnCartUpdate(() -> {
-                        logger.info("🎯 Home.updateCart() callback ricevuto!");
-                        updateCart();
-                    });
-            productPane.getChildren().add(card);
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
+                Node card = loader.load();
+                ProductCardController ctrl = loader.getController();
+                appController.createProductCard(ctrl, p);
+                ctrl.setOnCartUpdate(() -> {
+                    logger.info("🎯 Home.updateCart() callback ricevuto!");
+                    updateCart();
+                });
+                productPane.getChildren().add(card);
+            } catch (IOException e){
+                logger.log(Level.WARNING, "Errore nel caricamento dei prodotti", e);
+            }
         }
     }
 
