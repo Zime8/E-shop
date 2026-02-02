@@ -18,6 +18,11 @@ public class LoginAppController {
         }
 
         UserDAO.LoginResult daoResult = userDAO.checkLogin(username.trim(), password);
+        if (daoResult.status() == UserDAO.LoginStatus.SUCCESS) {
+            Session.setUser(username.trim());
+            Session.setUserId(daoResult.userId());
+        }
+
         return switch (daoResult.status()) {
             case SUCCESS -> new LoginResult(LoginStatus.SUCCESS, daoResult.role(), daoResult.userId());
             case INVALID_CREDENTIALS -> new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);

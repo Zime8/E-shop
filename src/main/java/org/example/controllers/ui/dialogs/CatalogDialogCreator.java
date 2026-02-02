@@ -515,10 +515,10 @@ public abstract class CatalogDialogCreator {
 
 
     protected record ProductUI(ComboBox<SellerDAO.ProductOption> combo,
-                             TextField name,
-                             TextField size,
-                             TextField price,
-                             TextField qty) {
+                               TextField name,
+                               TextField size,
+                               TextField price,
+                               TextField qty) {
         public ComboBox<SellerDAO.ProductOption> combo() {
             return combo;
         }
