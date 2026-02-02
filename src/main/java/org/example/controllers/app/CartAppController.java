@@ -33,8 +33,14 @@ public class CartAppController {
 
     public static class Aggregated {
         public final Product sample;
-        public int qty;
+        private int qty;
         Aggregated(Product sample, int qty) { this.sample = sample; this.qty = qty; }
+        public int getQty() { return qty; }  // Getter (buona pratica)
+
+        public void incrementQty() {  // ← Aggiungi questo
+            qty++;
+        }
+
         public double unitPrice() { return sample.getPrice(); }
         public double subtotal() { return unitPrice() * qty; }
     }
@@ -51,7 +57,7 @@ public class CartAppController {
             Key k = new Key(p.getProductId(), p.getIdShop(), p.getSize());
             map.compute(k, (ignored, agg) -> {
                 if (agg == null) return new Aggregated(p, 1);
-                agg.qty += 1;
+                agg.incrementQty();
                 return agg;
             });
         }

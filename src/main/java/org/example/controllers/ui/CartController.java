@@ -175,12 +175,12 @@ public class CartController {
         qtyBox.setAlignment(Pos.CENTER);
 
         Button minus = new Button("-");
-        Label qtyLbl = new Label(String.valueOf(agg.qty));
+        Label qtyLbl = new Label(String.valueOf(agg.getQty()));
         Button plus = new Button("+");
 
         try {
             int stock = appController.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
-            setupNormalQtyBox(minus, plus, stock, agg.qty, p);
+            setupNormalQtyBox(minus, plus, stock, agg.getQty(), p);
         } catch (Exception ex) {
             // In caso di errore niente incremento
             logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + p.getName());

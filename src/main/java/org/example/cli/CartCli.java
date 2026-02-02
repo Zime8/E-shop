@@ -5,7 +5,6 @@ import org.example.dao.db.ProductDaoDb;
 import org.example.models.Product;
 import org.example.models.CartItem;
 
-import java.sql.SQLException;
 import java.util.*;
 
 @SuppressWarnings("java:S106")
@@ -33,8 +32,8 @@ final class CartCli {
                     printHelp();
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("Errore DB: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Errore : " + e.getMessage());
             System.exit(2);
         }
     }
@@ -66,7 +65,7 @@ final class CartCli {
     }
 
 
-    private static void add(String[] args) throws SQLException {
+    private static void add(String[] args)  {
         Map<String, String> p = parseArgs(args);
         Long pid = parseLong(p.get("id"));
         Integer shop = parseInt(p.get("shop"));

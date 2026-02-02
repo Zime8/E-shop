@@ -4,7 +4,6 @@ import org.example.dao.api.ProductDao;
 import org.example.dao.db.ProductDaoDb;
 import org.example.models.Product;
 
-import java.sql.SQLException;
 import java.util.*;
 
 @SuppressWarnings("java:S106")
@@ -32,8 +31,8 @@ final class ProductCli {
                     printHelp();
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("Errore DB: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("Errore: " + e.getMessage());
             System.exit(2);
         }
     }
@@ -73,7 +72,7 @@ final class ProductCli {
     }
 
 
-    private static void search(String[] args) throws SQLException {
+    private static void search(String[] args) {
         Map<String, String> p = parseArgs(args);
         String name = p.get("name");
         if (name == null || name.isBlank()) {
@@ -102,7 +101,7 @@ final class ProductCli {
         System.out.println("\nUsa: cart add --id <productId> --shop <shopId> --size <size> [--qty <n>]");
     }
 
-    private static void sizes(String[] args) throws SQLException {
+    private static void sizes(String[] args) {
         Map<String, String> p = parseArgs(args);
         Long pid = parseLong(p.get("id"));
         Integer shop = parseInt(p.get("shop"));
@@ -118,7 +117,7 @@ final class ProductCli {
         }
     }
 
-    private static void price(String[] args) throws SQLException {
+    private static void price(String[] args) {
         Map<String, String> p = parseArgs(args);
         Long pid = parseLong(p.get("id"));
         Integer shop = parseInt(p.get("shop"));

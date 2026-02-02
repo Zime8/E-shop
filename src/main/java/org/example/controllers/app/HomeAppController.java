@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 public class HomeAppController {
     private final ProductDao productDao = ProductDaos.create();
 
+    private static final String ALL = "Tutti";
     private static final Logger logger = Logger.getLogger(HomeAppController.class.getName());
 
     public List<Product> searchByName(String query){
@@ -26,10 +27,10 @@ public class HomeAppController {
 
     public List<Product> searchByFilters(FilterCriteria criteria) {
         return productDao.searchByFilters(
-                criteria.sport.equals("Tutti") ? null : criteria.sport,
-                criteria.brand.equals("Tutti") ? null : criteria.brand,
-                criteria.shop.equals("Tutti") ? null : criteria.shop,
-                criteria.category.equals("Tutti") ? null : criteria.category,
+                criteria.sport.equals(ALL) ? null : criteria.sport,
+                criteria.brand.equals(ALL) ? null : criteria.brand,
+                criteria.shop.equals(ALL) ? null : criteria.shop,
+                criteria.category.equals(ALL) ? null : criteria.category,
                 criteria.minPrice, criteria.maxPrice
         );
     }

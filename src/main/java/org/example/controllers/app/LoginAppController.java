@@ -19,11 +19,7 @@ public class LoginAppController {
 
         UserDAO.LoginResult daoResult = userDAO.checkLogin(username.trim(), password);
         return switch (daoResult.status()) {
-            case SUCCESS -> {
-                Session.setUser(username.trim());
-                Session.setUserId(daoResult.userId());
-                yield new LoginResult(LoginStatus.SUCCESS, daoResult.role(), null);
-            }
+            case SUCCESS -> new LoginResult(LoginStatus.SUCCESS, daoResult.role(), daoResult.userId());
             case INVALID_CREDENTIALS -> new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
             case ERROR -> new LoginResult(LoginStatus.ERROR, null, null);
         };
@@ -43,7 +39,6 @@ public class LoginAppController {
             DemoData.users().putIfAbsent(guest, new DemoData.User(demoId, guest, null, "utente", null, null));
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore modalità demo", e);
-            throw new RuntimeException("Impossibile demo", e);
         }
     }
 
@@ -56,21 +51,7 @@ public class LoginAppController {
         return null;
     }
 
-    public static class LoginResult {
-        private final LoginStatus status;
-        private final String role;
-        private final Integer userId;
-
-        public LoginResult(LoginStatus status, String role, Integer userId) {
-            this.status = status;
-            this.role = role;
-            this.userId = userId;
-        }
-
-        public LoginStatus status() { return status; }
-        public String role() { return role; }
-        public Integer userId() { return userId; }
-    }
+    public record LoginResult(LoginStatus status, String role, Integer userId) {}
 
     public enum LoginStatus {
         SUCCESS, INVALID_INPUT, INVALID_CREDENTIALS, ERROR

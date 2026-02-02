@@ -29,7 +29,7 @@ public class OrderSummaryAppController {
                             it.getProductName(), it.getSize(), it.getQuantity(), unit, it.getProductImage(), subtotal
                     ));
                 } catch (Exception e) {
-                    logger.log(Level.INFO, "Errore process CartItem: " + it, e);
+                    logger.log(Level.WARNING, "Errore process CartItem: " + it, e);
                 }
             }
         }
