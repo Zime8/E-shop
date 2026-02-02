@@ -102,7 +102,7 @@ public class ProductDetailController {
         try {
             boolean alreadyWished = appController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop());
             updateWishButton(alreadyWished);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             logger.log(Level.WARNING, "Errore controllando wishlist", ex);
         }
     }
@@ -139,7 +139,7 @@ public class ProductDetailController {
             addToWishListBtn.setDisable(true);
             addToWishListBtn.setText(TXT_ADDED_TO_WISHLIST);
 
-        } catch (SQLException e) {
+        } catch (Exception e) {
             showError("Impossibile aggiungere ai preferiti:\n" + e.getMessage(), e);
         }
     }
@@ -194,7 +194,7 @@ public class ProductDetailController {
                 return;
             }
             showShopDialog(shop);
-        } catch (SQLException ex) {
+        } catch (Exception ex) {
             showError("Impossibile caricare info negozio:\n" + ex.getMessage(), ex);
         }
     }
@@ -294,7 +294,7 @@ public class ProductDetailController {
                 int current = qtySpinner.getValue() != null ? qtySpinner.getValue() : 1;
                 qtySpinner.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(1, max, Math.min(current, max)));
             }
-        } catch (SQLException e) {
+        } catch (Exception e) {
             logger.log(Level.WARNING, "Errore stock", e);
             stockLabel.setText("Disponibilità: —");
             qtySpinner.setDisable(false);

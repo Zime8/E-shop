@@ -38,7 +38,7 @@ public class LoginAppController {
             DemoData.ensureLoaded();
             DemoData.users().putIfAbsent(guest, new DemoData.User(demoId, guest, null, "utente", null, null));
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore modalità demo", e);
+            logger.log(Level.SEVERE, "Errore modalità demo:", e);
         }
     }
 

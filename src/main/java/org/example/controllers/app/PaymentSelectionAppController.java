@@ -9,7 +9,6 @@ import org.example.models.CardViewModel;
 import org.example.models.CartItem;
 import org.example.models.InlineCardData;
 import org.example.services.CardsService;
-import org.example.services.CardsService.AddCardResult;
 import org.example.ui.CardUi;
 import org.example.util.Session;
 
@@ -37,18 +36,6 @@ public class PaymentSelectionAppController implements PaymentSelectionControl {
             return List.of();
         }
     }
-
-    public CardViewModel addInlineCard(int userId, CardData data) {
-        // Converti CardData → InlineCardData (se diverso) o adatta
-        InlineCardData inlineData = new InlineCardData(data.holder(), data.number(), data.expiry(), data.type());
-        AddCardResult result = CardsService.addInlineCard(userId, inlineData);
-        if (result.ok()) {
-            return new CardViewModel(result.card());
-        }
-        logger.log(Level.WARNING, "Aggiunta carta fallita: {0}", result.message());
-        return null;
-    }
-
 
     @Override
     public PaymentResult confirmPayment(Card card, String cvv, String address,
@@ -119,7 +106,5 @@ public class PaymentSelectionAppController implements PaymentSelectionControl {
     public String getLastOrderIds() {
         return lastOrderIds;
     }
-
-    public record CardData(String holder, String number, String expiry, String type) {}
 
 }

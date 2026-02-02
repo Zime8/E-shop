@@ -8,7 +8,6 @@ import org.example.models.Product;
 import org.example.models.Shop;
 import org.example.util.Session;
 
-import java.sql.SQLException;
 import java.util.List;
 
 public class ProductDetailAppController {
@@ -25,11 +24,11 @@ public class ProductDetailAppController {
         this(ProductDaos.create());
     }
 
-    public Shop getShopInfo(int shopId) throws SQLException {
+    public Shop getShopInfo(int shopId) {
         return ShopDAO.getById(shopId);
     }
 
-    public List<String> getAvailableSizes(long productId, int shopId) throws SQLException {
+    public List<String> getAvailableSizes(long productId, int shopId) {
         return productDao.getAvailableSizes(productId, shopId);
     }
 
@@ -37,11 +36,11 @@ public class ProductDetailAppController {
         return productDao.getPriceFor(productId, shopId, size);
     }
 
-    public Integer getStockFor(long productId, int shopId, String size) throws SQLException {
+    public Integer getStockFor(long productId, int shopId, String size) {
         return productDao.getStockFor(productId, shopId, size);
     }
 
-    public boolean existsWish(String user, long productId, int shopId) throws SQLException {
+    public boolean existsWish(String user, long productId, int shopId) {
         return productDao.existsWish(user, productId, shopId);
     }
 
@@ -49,7 +48,7 @@ public class ProductDetailAppController {
         return productDao.existsWish(user, productId, shopId, size);
     }
 
-    public void addToWishList(String user, long productId, int shopId, String size) throws SQLException {
+    public void addToWishList(String user, long productId, int shopId, String size) {
         this.userDAO.addInWishList(user, productId, shopId, size);
     }
 

@@ -6,7 +6,6 @@ import org.example.models.Product;
 
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.lang.Runnable;
 
 public class ReviewDialogAppController {
     private int rating = 5;
