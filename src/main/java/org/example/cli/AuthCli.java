@@ -32,7 +32,8 @@ final class AuthCli {
             // Ok
         }
 
-        LoginResult res = UserDAO.checkLogin(user, pass);
+        UserDAO dao = UserDAO.getInstance();
+        LoginResult res = dao.checkLogin(user, pass);
 
         if (res.status() == LoginStatus.SUCCESS) {
             CliSession.setAuthenticated(user, res.userId(), res.role());

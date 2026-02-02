@@ -1,4 +1,4 @@
-package org.example.controllers;
+package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,20 +15,20 @@ import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
-import org.example.dao.ReviewDAO;
-import org.example.dao.UserDAO;
+import org.example.controllers.app.ReviewAppController;
+import org.example.controllers.app.ReviewDialogAppController;
 import org.example.models.Product;
-import org.example.models.Review;        // ⬅️ usa il model
+import org.example.models.Review;
 import org.example.util.Session;
 
-import java.sql.SQLException;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ListReviewController {
+public class ReviewController {
 
     @FXML private Label productTitle;
     @FXML private Label avgLabel;
@@ -38,8 +38,13 @@ public class ListReviewController {
     @FXML private Button addBtn;
     @FXML private ProgressIndicator progress;
 
-    private static final Logger logger = Logger.getLogger(ListReviewController.class.getName());
+    private ReviewAppController appController;
     private Product product;
+    private static final Logger logger = Logger.getLogger(ReviewController.class.getName());
+
+    public void initialize() {
+        appController = new ReviewAppController();
+    }
 
     public void init(Product product) {
         this.product = product;
@@ -53,31 +58,27 @@ public class ListReviewController {
         reviewsBox.getChildren().clear();
         progress.setVisible(true);
 
-        try {
-            List<Review> list = ReviewDAO.listByProductShop(product.getProductId(), product.getIdShop());
+        List<Review> list = appController.loadReviews(product);
 
-            double avg = list.stream().mapToInt(Review::getRating).average().orElse(0.0);
-            int count = list.size();
-            avgLabel.setText(String.format("Voto medio: %.1f/5", avg));
-            countLabel.setText("(" + count + " recensioni)");
+        double avg = list.stream().mapToInt(Review::getRating).average().orElse(0.0);
+        int count = list.size();
+        avgLabel.setText(String.format("Voto medio: %.1f/5", avg));
+        countLabel.setText("(" + count + " recensioni)");
 
-            DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-            for (Review r : list) {
-                reviewsBox.getChildren().add(buildRow(r, df));
-            }
-
-            if (list.isEmpty()) {
-                Label empty = new Label("Ancora nessuna recensione. Sii il primo a scriverne una!");
-                empty.setStyle("-fx-text-fill:#666;");
-                reviewsBox.getChildren().add(empty);
-            }
-        } catch (SQLException e) {
-            logger.log(Level.WARNING, "Errore caricando recensioni", e);
-            reviewsBox.getChildren().add(new Label("Impossibile caricare le recensioni."));
-        } finally {
-            progress.setVisible(false);
+        for (Review r : list) {
+            reviewsBox.getChildren().add(buildRow(r, df));
         }
+
+        if (list.isEmpty()) {
+            Label empty = new Label("Ancora nessuna recensione. Sii il primo a scriverne una!");
+            empty.setStyle("-fx-text-fill:#666;");
+            reviewsBox.getChildren().add(empty);
+        }
+
+        progress.setVisible(false);
+
     }
 
     private HBox buildRow(Review r, DateTimeFormatter df) {
@@ -120,31 +121,33 @@ public class ListReviewController {
 
     @FXML
     private void onAdd() {
+
+        String username = Session.getUser();
+        if (username == null || username.isBlank()) {
+            new Alert(Alert.AlertType.WARNING, "Effettua l'accesso per lasciare una recensione.").showAndWait();
+            return;
+        }
+
+        // usa prima l'id già in sessione (funziona anche in demo: -1), poi il lookup DB come fallback
+        Integer userId = appController.findCurrentUserId();
+        if (userId == null && Session.isDemo()) {
+            userId = -1; // id fittizio per l’ospite demo
+        }
+        if (userId == null) {
+            new Alert(Alert.AlertType.ERROR, "Utente corrente non trovato.").showAndWait();
+            return;
+        }
+
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReviewDialog.fxml"));
         try {
-            String username = Session.getUser();
-            if (username == null || username.isBlank()) {
-                new Alert(Alert.AlertType.WARNING, "Effettua l'accesso per lasciare una recensione.").showAndWait();
-                return;
-            }
-
-            // usa prima l'id già in sessione (funziona anche in demo: -1), poi il lookup DB come fallback
-            Integer userId = Session.getUserId();
-            if (userId == null) {
-                userId = UserDAO.findUserIdByUsername(username);
-            }
-            if (userId == null && Session.isDemo()) {
-                userId = -1; // id fittizio per l’ospite demo
-            }
-            if (userId == null) {
-                new Alert(Alert.AlertType.ERROR, "Utente corrente non trovato.").showAndWait();
-                return;
-            }
-
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReviewDialog.fxml"));
             Parent root = loader.load();
 
-            ReviewDialogController dialogCtrl = loader.getController();
-            dialogCtrl.init(product);
+            ReviewDialogController dialogUI = loader.getController();
+            ReviewDialogAppController dialogCtrl = new ReviewDialogAppController();
+
+            dialogUI.setController(dialogCtrl);
+            dialogUI.init(product);
+            dialogCtrl.init(product, productTitle);
 
             Stage st = new Stage();
             st.setTitle("Scrivi una recensione");
@@ -157,7 +160,7 @@ public class ListReviewController {
             if (res.isEmpty()) return;
 
             var data = res.get();
-            ReviewDAO.upsertReview(
+            appController.upsertReview(
                     product.getProductId(),
                     product.getIdShop(),
                     userId,
@@ -168,10 +171,8 @@ public class ListReviewController {
 
             new Alert(Alert.AlertType.INFORMATION, "Grazie! La tua recensione è stata salvata.").showAndWait();
             loadReviews();
-
-        } catch (Exception ex) {
-            logger.log(Level.WARNING, "Errore durante inserimento recensione", ex);
-            new Alert(Alert.AlertType.ERROR, "Impossibile salvare la recensione:\n" + ex.getMessage()).showAndWait();
+        } catch (IOException e){
+            logger.log(Level.WARNING, "Errore caricamente dialog Review", e);
         }
     }
 }

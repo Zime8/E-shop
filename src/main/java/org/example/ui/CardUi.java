@@ -7,7 +7,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import org.example.models.Card;
+import org.example.models.CardViewModel;
 
 import java.util.Map;
 
@@ -19,18 +19,18 @@ public final class CardUi {
     public static final String DIGITS_ONLY_REGEX = "\\D";
 
     public record CardTableContext(
-            TableView<Card> table,
-            ObservableList<Card> items,
+            TableView<CardViewModel> table,
+            ObservableList<CardViewModel> items,
             Map<Integer, String> transientCvvs
     ) {}
 
     public record CardColumns(
-            TableColumn<Card, Number> colId,
-            TableColumn<Card, String> colHolder,
-            TableColumn<Card, String> colNumber,
-            TableColumn<Card, String> colExpiry,
-            TableColumn<Card, String> colType,
-            TableColumn<Card, String> colCvv
+            TableColumn<CardViewModel, Number> colId,
+            TableColumn<CardViewModel, String> colHolder,
+            TableColumn<CardViewModel, String> colNumber,
+            TableColumn<CardViewModel, String> colExpiry,
+            TableColumn<CardViewModel, String> colType,
+            TableColumn<CardViewModel, String> colCvv
     ) {}
 
     public static void setupTypeCombo(ComboBox<String> combo) {
@@ -50,7 +50,7 @@ public final class CardUi {
 
     // CVV valido = 3 cifre
     public static boolean isValidCvv(String cvv) {
-        return cvv == null || !cvv.matches("\\d{3}");
+        return cvv != null && cvv.matches("\\d{3}");
     }
 
     public static void bindWidth(TableView<?> table, TableColumn<?, ?> col, double ratio) {

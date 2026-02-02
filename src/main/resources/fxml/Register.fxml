@@ -5,7 +5,7 @@
 <?import javafx.scene.text.Text?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml"
-           fx:controller="org.example.controllers.RegisterController"
+           fx:controller="org.example.controllers.ui.RegisterController"
            style="-fx-background-color: linear-gradient(to bottom, #f7f9fb, #f0f4f8);
                   -fx-padding: 28;">
     <!-- Card centrale -->

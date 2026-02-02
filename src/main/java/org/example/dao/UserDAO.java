@@ -16,8 +16,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public final class UserDAO {
+    private static UserDAO instance;
 
     private UserDAO() {}
+
+    public static synchronized UserDAO getInstance() {
+        if (instance == null) {
+            instance = new UserDAO();
+        }
+        return instance;
+    }
 
     private static final Logger logger = Logger.getLogger(UserDAO.class.getName());
 
@@ -25,7 +33,7 @@ public final class UserDAO {
     public record LoginResult(LoginStatus status, Integer userId, String role) {}
 
     // AUTH / PROFILO
-    public static LoginResult checkLogin(String username, String password) {
+    public LoginResult checkLogin(String username, String password) {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
@@ -79,7 +87,7 @@ public final class UserDAO {
         }
     }
 
-    public static boolean registerUser(String username, String password, String role, String email, String phone) {
+    public boolean registerUser(String username, String password, String role, String email, String phone) {
         if (Session.isDemo()) {
             try {
                 DemoData.ensureLoaded();
@@ -115,7 +123,7 @@ public final class UserDAO {
         }
     }
 
-    public static boolean isUsernameTaken(String username) {
+    public boolean isUsernameTaken(String username) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             return DemoData.users().containsKey(username);
@@ -134,7 +142,7 @@ public final class UserDAO {
         }
     }
 
-    public static boolean isEmailTaken(String email) {
+    public boolean isEmailTaken(String email) {
         if (Session.isDemo()) {
             DemoData.ensureLoaded();
             return DemoData.users().values().stream()
@@ -154,76 +162,90 @@ public final class UserDAO {
         }
     }
 
-    public static Integer findUserIdByUsername(String username) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            DemoData.User u = DemoData.users().get(username);
-            return u != null ? u.id() : null;
-        }
-
-        final String call = "{ call sp_user_find_id(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            try (ResultSet rs = cs.executeQuery()) {
-                return rs.next() ? rs.getInt(1) : null;
+    public Integer findUserIdByUsername(String username) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                DemoData.User u = DemoData.users().get(username);
+                return u != null ? u.id() : null;
             }
+
+            final String call = "{ call sp_user_find_id(?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                try (ResultSet rs = cs.executeQuery()) {
+                    return rs.next() ? rs.getInt(1) : null;
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante la findUserIdByUsername", e);
+            return null;
         }
     }
 
-    public static User findByUsername(String username) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            DemoData.User du = DemoData.users().get(username);
-            if (du == null) return null;
-            User u = new User();
-            u.setUsername(du.username());
-            u.setEmail(du.email());
-            u.setPhone(du.phone());
-            u.setPasswordHash(du.passHash());
-            return u;
-        }
-
-        final String call = "{ call sp_user_find_by_username(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            try (ResultSet rs = cs.executeQuery()) {
-                if (!rs.next()) return null;
+    public User findByUsername(String username) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                DemoData.User du = DemoData.users().get(username);
+                if (du == null) return null;
                 User u = new User();
-                u.setUsername(rs.getString("username"));
-                u.setEmail(rs.getString("email"));
-                u.setPhone(rs.getString("phone"));
-                u.setPasswordHash(rs.getString("pass"));
+                u.setUsername(du.username());
+                u.setEmail(du.email());
+                u.setPhone(du.phone());
+                u.setPasswordHash(du.passHash());
                 return u;
             }
+
+            final String call = "{ call sp_user_find_by_username(?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                try (ResultSet rs = cs.executeQuery()) {
+                    if (!rs.next()) return null;
+                    User u = new User();
+                    u.setUsername(rs.getString("username"));
+                    u.setEmail(rs.getString("email"));
+                    u.setPhone(rs.getString("phone"));
+                    u.setPasswordHash(rs.getString("pass"));
+                    return u;
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante findByUsername:" + username, e);
+            return null;
         }
     }
 
-    public static void updateProfile(String currentUsername, String newUsername, String email, String phone) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            DemoData.User old = DemoData.users().get(currentUsername);
-            if (old == null) return;
-            usernameExists(currentUsername, newUsername);
-            DemoData.users().put(newUsername, new DemoData.User(
-                    old.id(), newUsername, old.passHash(), old.role(), email, phone
-            ));
-            return;
-        }
+    public void updateProfile(String currentUsername, String newUsername, String email, String phone) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                DemoData.User old = DemoData.users().get(currentUsername);
+                if (old == null) return;
+                usernameExists(currentUsername, newUsername);
+                DemoData.users().put(newUsername, new DemoData.User(
+                        old.id(), newUsername, old.passHash(), old.role(), email, phone
+                ));
+                return;
+            }
 
-        final String call = "{ call sp_user_update_profile(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, currentUsername);
-            cs.setString(2, newUsername);
-            cs.setString(3, email);
-            cs.setString(4, phone);
-            cs.executeUpdate();
+            final String call = "{ call sp_user_update_profile(?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, currentUsername);
+                cs.setString(2, newUsername);
+                cs.setString(3, email);
+                cs.setString(4, phone);
+                cs.executeUpdate();
+            }
+        } catch (SQLException e){
+            logger.log(Level.WARNING, "Errore durante la updateProfile", e);
         }
     }
 
-    private static void usernameExists(String currentUsername, String newUsername) throws SQLException {
+    private void usernameExists(String currentUsername, String newUsername) throws SQLException {
         if (!Objects.equals(currentUsername, newUsername)) {
             if (DemoData.users().containsKey(newUsername)) {
                 throw new SQLException("Username già esistente (demo)");
@@ -234,129 +256,150 @@ public final class UserDAO {
         }
     }
 
-    public static void updateProfileWithPassword(String currentUsername, String newUsername,
-                                                 String email, String phone, String plainPassword) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            DemoData.User old = DemoData.users().get(currentUsername);
-            if (old == null) return;
-            String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
-            usernameExists(currentUsername, newUsername);
-            DemoData.users().put(newUsername, new DemoData.User(
-                    old.id(), newUsername, hashedPwd, old.role(), email, phone
-            ));
-            return;
-        }
+    public void updateProfileWithPassword(String currentUsername, String newUsername,
+                                                 String email, String phone, String plainPassword) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                DemoData.User old = DemoData.users().get(currentUsername);
+                if (old == null) return;
+                String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
+                usernameExists(currentUsername, newUsername);
+                DemoData.users().put(newUsername, new DemoData.User(
+                        old.id(), newUsername, hashedPwd, old.role(), email, phone
+                ));
+                return;
+            }
 
-        final String call = "{ call sp_user_update_profile_pwd(?, ?, ?, ?, ?) }";
-        String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, currentUsername);
-            cs.setString(2, newUsername);
-            cs.setString(3, email);
-            cs.setString(4, phone);
-            cs.setString(5, hashedPwd);
-            cs.executeUpdate();
+            final String call = "{ call sp_user_update_profile_pwd(?, ?, ?, ?, ?) }";
+            String hashedPwd = BCrypt.hashpw(plainPassword, BCrypt.gensalt(12));
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, currentUsername);
+                cs.setString(2, newUsername);
+                cs.setString(3, email);
+                cs.setString(4, phone);
+                cs.setString(5, hashedPwd);
+                cs.executeUpdate();
+            }
+        } catch (SQLException e){
+            logger.log(Level.WARNING, "Errore durante la updateProfileWithPassword", e);
         }
     }
 
     // WISHLIST
-    public static void addInWishList(String username, long productId, int idShop, String pSize) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            String key = DemoData.prodKey(productId, idShop, pSize);
-            Product p = DemoData.products().get(key);
-            if (p == null) {
-                p = new Product();
-                p.setProductId((int) productId);
-                p.setIdShop(idShop);
-                p.setSize(pSize);
-                p.setName("Prodotto #" + productId);
-                p.setNameShop("Shop #" + idShop);
-                p.setBrand("Demo");
-                p.setSport("N/D");
-                p.setCategory("N/D");
-                p.setPrice(0.0);
-            }
-            DemoData.wishlists().computeIfAbsent(username, k -> new CopyOnWriteArrayList<>());
-            DemoData.wishlists().get(username).removeIf(ex ->
-                    ex.getProductId() == productId &&
-                            ex.getIdShop() == idShop &&
-                            Objects.equals(ex.getSize(), pSize));
-            DemoData.wishlists().get(username).add(p);
-            return;
-        }
-
-        final String call = "{ call sp_wishlist_add(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            cs.setLong(2, productId);
-            cs.setInt(3, idShop);
-            cs.setString(4, pSize);
-            cs.executeUpdate();
-        }
-    }
-
-    public static void removeInWishlist(String username, long productId, int idShop, String pSize) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            List<Product> list = DemoData.wishlists().getOrDefault(username, Collections.emptyList());
-            list.removeIf(p -> p.getProductId() == productId &&
-                    p.getIdShop() == idShop &&
-                    Objects.equals(p.getSize(), pSize));
-            return;
-        }
-
-        final String call = "{ call sp_wishlist_remove(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            cs.setLong(2, productId);
-            cs.setInt(3, idShop);
-            cs.setString(4, pSize);
-            cs.executeUpdate();
-        }
-    }
-
-    public static void clearWishlist(String username) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            DemoData.wishlists().remove(username);
-            return;
-        }
-
-        final String call = "{ call sp_wishlist_clear(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            cs.executeUpdate();
-        }
-    }
-
-    public static List<Product> getFavorites(String username) throws SQLException {
-        if (Session.isDemo()) {
-            DemoData.ensureLoaded();
-            return new ArrayList<>(DemoData.wishlists().getOrDefault(username, Collections.emptyList()));
-        }
-
-        final String call = "{ call sp_wishlist_get(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            try (ResultSet rs = cs.executeQuery()) {
-                List<Product> favs = new ArrayList<>();
-                while (rs.next()) {
-                    favs.add(mapRowToProduct(rs));
+    public void addInWishList(String username, long productId, int idShop, String pSize) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                String key = DemoData.prodKey(productId, idShop, pSize);
+                Product p = DemoData.products().get(key);
+                if (p == null) {
+                    p = new Product();
+                    p.setProductId((int) productId);
+                    p.setIdShop(idShop);
+                    p.setSize(pSize);
+                    p.setName("Prodotto #" + productId);
+                    p.setNameShop("Shop #" + idShop);
+                    p.setBrand("Demo");
+                    p.setSport("N/D");
+                    p.setCategory("N/D");
+                    p.setPrice(0.0);
                 }
-                return favs;
+                DemoData.wishlists().computeIfAbsent(username, k -> new CopyOnWriteArrayList<>());
+                DemoData.wishlists().get(username).removeIf(ex ->
+                        ex.getProductId() == productId &&
+                                ex.getIdShop() == idShop &&
+                                Objects.equals(ex.getSize(), pSize));
+                DemoData.wishlists().get(username).add(p);
+                return;
             }
+
+            final String call = "{ call sp_wishlist_add(?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                cs.setLong(2, productId);
+                cs.setInt(3, idShop);
+                cs.setString(4, pSize);
+                cs.executeUpdate();
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante addInWishList", e);
+        }
+    }
+
+    public void removeInWishlist(String username, long productId, int idShop, String pSize) {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                List<Product> list = DemoData.wishlists().getOrDefault(username, Collections.emptyList());
+                list.removeIf(p -> p.getProductId() == productId &&
+                        p.getIdShop() == idShop &&
+                        Objects.equals(p.getSize(), pSize));
+                return;
+            }
+
+            final String call = "{ call sp_wishlist_remove(?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                cs.setLong(2, productId);
+                cs.setInt(3, idShop);
+                cs.setString(4, pSize);
+                cs.executeUpdate();
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante removeInWishlist", e);
+        }
+    }
+
+    public void clearWishlist(String username) throws SQLException {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                DemoData.wishlists().remove(username);
+                return;
+            }
+
+            final String call = "{ call sp_wishlist_clear(?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                cs.executeUpdate();
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante clearWishlist", e);
+        }
+    }
+
+    public List<Product> getFavorites(String username) throws SQLException {
+        try {
+            if (Session.isDemo()) {
+                DemoData.ensureLoaded();
+                return new ArrayList<>(DemoData.wishlists().getOrDefault(username, Collections.emptyList()));
+            }
+
+            final String call = "{ call sp_wishlist_get(?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                try (ResultSet rs = cs.executeQuery()) {
+                    List<Product> favs = new ArrayList<>();
+                    while (rs.next()) {
+                        favs.add(mapRowToProduct(rs));
+                    }
+                    return favs;
+                }
+            }
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Errore durante getFavorites", e);
+            return null;
         }
     }
 
     // UTIL
-    private static Product mapRowToProduct(ResultSet rs) throws SQLException {
+    private Product mapRowToProduct(ResultSet rs) throws SQLException {
         Product p = new Product();
         p.setProductId(rs.getInt("product_id"));
         p.setName(rs.getString("name_p"));

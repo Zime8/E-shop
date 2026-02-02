@@ -30,141 +30,181 @@ public class ProductDaoDb implements ProductDao {
     }
 
     @Override
-    public List<Product> searchByName(String name) throws SQLException {
+    public List<Product> searchByName(String name) {
         List<Product> products = new ArrayList<>();
         String call = "{ call sp_search_by_name(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, name);
-            try (ResultSet rs = cs.executeQuery()) {
-                while (rs.next()) products.add(mapRow(rs));
+        try {
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, name);
+                try (ResultSet rs = cs.executeQuery()) {
+                    while (rs.next()) products.add(mapRow(rs));
+                }
             }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante searchByName", e);
+            return Collections.emptyList();
         }
         return products;
     }
 
     @Override
     public List<Product> searchByFilters(String sport, String brand, String shop, String category,
-                                         double minPrice, double maxPrice) throws SQLException {
+                                         double minPrice, double maxPrice) {
+
         List<Product> products = new ArrayList<>();
-        String call = "{ call sp_search_by_filters(?, ?, ?, ?, ?, ?) }";
+        try{
+            String call = "{ call sp_search_by_filters(?, ?, ?, ?, ?, ?) }";
 
-        String sportVal    = blankToNull(sport);
-        String brandVal    = blankToNull(brand);
-        String categoryVal = blankToNull(category);
-        Integer shopId     = resolveShopId(shop);
+            String sportVal    = blankToNull(sport);
+            String brandVal    = blankToNull(brand);
+            String categoryVal = blankToNull(category);
+            Integer shopId     = resolveShopId(shop);
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                if (sportVal == null) cs.setNull(1, Types.VARCHAR); else cs.setString(1, sportVal);
+                if (brandVal == null) cs.setNull(2, Types.VARCHAR); else cs.setString(2, brandVal);
+                if (shopId   == null) cs.setNull(3, Types.INTEGER); else cs.setInt(3, shopId);
+                if (categoryVal == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, categoryVal);
+                cs.setDouble(5, minPrice);
+                cs.setDouble(6, maxPrice);
 
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            if (sportVal == null) cs.setNull(1, Types.VARCHAR); else cs.setString(1, sportVal);
-            if (brandVal == null) cs.setNull(2, Types.VARCHAR); else cs.setString(2, brandVal);
-            if (shopId   == null) cs.setNull(3, Types.INTEGER); else cs.setInt(3, shopId);
-            if (categoryVal == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, categoryVal);
-            cs.setDouble(5, minPrice);
-            cs.setDouble(6, maxPrice);
-
-            try (ResultSet rs = cs.executeQuery()) {
-                while (rs.next()) products.add(mapRow(rs));
+                try (ResultSet rs = cs.executeQuery()) {
+                    while (rs.next()) products.add(mapRow(rs));
+                }
             }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante searchByFilters", e);
+            return Collections.emptyList();
         }
         return products;
     }
 
     @Override
-    public int getShopIdByName(String shopName) throws SQLException {
-        String call = "{ call sp_get_shop_id_by_name(?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, shopName);
-            try (ResultSet rs = cs.executeQuery()) {
-                if (rs.next()) return rs.getInt("id_shop");
-                throw new SQLException("Shop not found: " + shopName);
+    public int getShopIdByName(String shopName){
+        try{
+            String call = "{ call sp_get_shop_id_by_name(?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, shopName);
+                try (ResultSet rs = cs.executeQuery()) {
+                    if (rs.next()) return rs.getInt("id_shop");
+                    throw new SQLException("Shop not found: " + shopName);
+                }
             }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante getShopByName", e);
+            return -1;
         }
     }
 
     @Override
-    public List<String> getAvailableSizes(long productId, int idShop) throws SQLException {
-        String call = "{ call sp_get_available_sizes(?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setLong(1, productId);
-            cs.setInt(2, idShop);
-            try (ResultSet rs = cs.executeQuery()) {
-                List<String> sizes = new ArrayList<>();
-                while (rs.next()) sizes.add(rs.getString("size"));
-                return sizes;
+    public List<String> getAvailableSizes(long productId, int idShop){
+        try{
+            String call = "{ call sp_get_available_sizes(?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setLong(1, productId);
+                cs.setInt(2, idShop);
+                try (ResultSet rs = cs.executeQuery()) {
+                    List<String> sizes = new ArrayList<>();
+                    while (rs.next()) sizes.add(rs.getString("size"));
+                    return sizes;
+                }
             }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante getAvailableSizes", e);
+            return Collections.emptyList();
         }
     }
 
     @Override
-    public double getPriceFor(long productId, int idShop, String size) throws SQLException {
-        String call = "{ call sp_get_price_for(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setLong(1, productId);
-            cs.setInt(2, idShop);
-            cs.setString(3, size);
-            cs.registerOutParameter(4, Types.DOUBLE);
-            cs.execute();
-            double price = cs.getDouble(4);
-            if (cs.wasNull()) throw new SQLException("Prezzo non trovato per size=" + size);
-            return price;
+    public double getPriceFor(long productId, int idShop, String size){
+        try{
+            String call = "{ call sp_get_price_for(?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setLong(1, productId);
+                cs.setInt(2, idShop);
+                cs.setString(3, size);
+                cs.registerOutParameter(4, Types.DOUBLE);
+                cs.execute();
+                double price = cs.getDouble(4);
+                if (cs.wasNull()) throw new SQLException("Prezzo non trovato per size=" + size);
+                return price;
+            }
+        }catch (SQLException e){
+            logger.log(Level.SEVERE, "Errore durante getPriceFor", e);
+            return 0.0;
         }
     }
 
     @Override
-    public Integer getStockFor(long productId, int shopId, String size) throws SQLException {
-        String call = "{ call sp_get_stock_for(?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setLong(1, productId);
-            cs.setInt(2, shopId);
-            cs.setString(3, size);
-            cs.registerOutParameter(4, Types.INTEGER);
-            cs.execute();
-            int qty = cs.getInt(4);
-            return cs.wasNull() ? 0 : qty;
+    public Integer getStockFor(long productId, int shopId, String size){
+        try{
+            String call = "{ call sp_get_stock_for(?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setLong(1, productId);
+                cs.setInt(2, shopId);
+                cs.setString(3, size);
+                cs.registerOutParameter(4, Types.INTEGER);
+                cs.execute();
+                int qty = cs.getInt(4);
+                return cs.wasNull() ? 0 : qty;
+            }
+        }catch (SQLException e){
+            logger.log(Level.SEVERE, "Errore durante getStockFor", e);
+            return 0;
         }
     }
 
     @Override
-    public boolean existsWish(String username, long productId, int shopId, String size) throws SQLException {
-        String call = "{ call sp_exists_wish(?, ?, ?, ?, ?) }";
-        try (Connection conn = DatabaseConnection.getConnection();
-             CallableStatement cs = conn.prepareCall(call)) {
-            cs.setString(1, username);
-            cs.setLong(2, productId);
-            cs.setInt(3, shopId);
-            if (size == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, size);
-            cs.registerOutParameter(5, Types.TINYINT);
-            cs.execute();
-            return cs.getByte(5) == 1;
+    public boolean existsWish(String username, long productId, int shopId, String size){
+        try {
+            String call = "{ call sp_exists_wish(?, ?, ?, ?, ?) }";
+            try (Connection conn = DatabaseConnection.getConnection();
+                 CallableStatement cs = conn.prepareCall(call)) {
+                cs.setString(1, username);
+                cs.setLong(2, productId);
+                cs.setInt(3, shopId);
+                if (size == null) cs.setNull(4, Types.VARCHAR); else cs.setString(4, size);
+                cs.registerOutParameter(5, Types.TINYINT);
+                cs.execute();
+                return cs.getByte(5) == 1;
+            }
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore durante existsWish", e);
+            return false;
         }
     }
 
     // helper
     private static String blankToNull(String s) { return (s == null || s.isBlank()) ? null : s; }
 
-    private Product mapRow(ResultSet rs) throws SQLException {
+    private Product mapRow(ResultSet rs){
         Product p = new Product();
-        p.setProductId(rs.getLong("product_id"));
-        p.setName(rs.getString("name_p"));
-        p.setSport(rs.getString("sport"));
-        p.setBrand(rs.getString("brand"));
-        p.setNameShop(rs.getString("shop_name"));
-        p.setCategory(rs.getString("category"));
-        p.setPrice(rs.getDouble("price"));
-        p.setIdShop(rs.getInt("id_shop"));
-        byte[] imgBytes = rs.getBytes("image_data");
-        p.setImageData(imgBytes);
-        Timestamp ts = rs.getTimestamp("created_at");
-        if (ts != null) p.setCreatedAt(ts.toLocalDateTime());
+        try{
+            p.setProductId(rs.getLong("product_id"));
+            p.setName(rs.getString("name_p"));
+            p.setSport(rs.getString("sport"));
+            p.setBrand(rs.getString("brand"));
+            p.setNameShop(rs.getString("shop_name"));
+            p.setCategory(rs.getString("category"));
+            p.setPrice(rs.getDouble("price"));
+            p.setIdShop(rs.getInt("id_shop"));
+            byte[] imgBytes = rs.getBytes("image_data");
+            p.setImageData(imgBytes);
+            Timestamp ts = rs.getTimestamp("created_at");
+            if (ts != null) p.setCreatedAt(ts.toLocalDateTime());
+        } catch (SQLException e){
+            logger.log(Level.SEVERE, "Errore durante mapRow", e);
+            return null;
+        }
         return p;
     }
 
-    private Integer resolveShopId(String shop) throws SQLException {
+    private Integer resolveShopId(String shop) {
         if (shop == null || shop.isBlank()) return null;
         return getShopIdByName(shop.trim());
     }

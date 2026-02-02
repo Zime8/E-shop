@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.ListReviewController"
+            fx:controller="org.example.controllers.ui.ReviewController"
             prefWidth="560" prefHeight="520"
             style="-fx-background-color: #faf6f6;">
 

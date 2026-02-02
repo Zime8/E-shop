@@ -1,4 +1,4 @@
-package org.example.controllers;
+package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,27 +17,20 @@ import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
-import org.example.dao.ProductDaos;
-import org.example.dao.api.ProductDao;
-import org.example.models.CartItem;
+import org.example.controllers.app.CartAppController;
+import org.example.controllers.app.CartAppController.Key;
+import org.example.controllers.app.CartAppController.Aggregated;
+import org.example.controllers.app.CartAppController.CheckoutData;
 import org.example.models.Product;
-import org.example.util.Session;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class CartController {
 
-    private final ProductDao productDao;
-
-    public CartController(ProductDao productDao) {
-        this.productDao = productDao;
-    }
-
-    public CartController() { this(ProductDaos.create()); }
+    private CartAppController appController;
 
     @FXML private VBox cartItemsContainer;
     @FXML private Label totalLabel;
@@ -50,44 +43,38 @@ public class CartController {
 
     public void setOnCartUpdated(Runnable callback) { this.onCartUpdated = callback; }
 
-    public void initialize() { loadCartItems(); }
-
-    // ==== Helper per raggruppare per prodotto+shop+taglia ====
-    private record Key(long productId, int shopId, String size) { }
-
-    // riga del carrello
-    private static class Aggregated {
-        final Product sample;  // rappresentante per prodotto
-        int qty;
-        Aggregated(Product sample, int qty) { this.sample = sample; this.qty = qty; }
-        double unitPrice() { return sample.getPrice(); }
-        double subtotal() { return unitPrice() * qty; }
+    public void initialize() {
+        appController = new CartAppController();
+        loadCartItems();
     }
 
     // Carica i prodotti nel carrello
     public void loadCartItems() {
-        List<Product> cartItems = Session.getCartItems();
-
         cartItemsContainer.getChildren().clear();
-        boolean hasItems = cartItems != null && !cartItems.isEmpty();
-        toggleCartPlaceholders(hasItems);
+        try {
+            CheckoutData data = appController.buildCheckoutData();  // Tutto in 1 chiamata!
+            List<Product> cartItems = appController.getCartItems();
+            boolean hasItems = !cartItems.isEmpty();
+            toggleCartPlaceholders(hasItems);
 
-        double total = 0.0;
-        if (!hasItems) {
+            if (!hasItems) {
+                updateTotalLabel(0.0);
+                return;
+            }
+
+            double total = data.total().doubleValue();
+            Map<Key, Aggregated> aggregated = appController.getAggregatedCart();
+
+            for (Aggregated agg : aggregated.values()) {
+                GridPane row = buildCartRow(agg);
+                cartItemsContainer.getChildren().add(row);
+            }
             updateTotalLabel(total);
-            return;
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Errore caricamento carrello", e);
+            toggleCartPlaceholders(false);
+            updateTotalLabel(0.0);
         }
-
-        // Riusa l’aggregazione già estratta per onCheckout()
-        Map<Key, Aggregated> aggregated = aggregateCartItems(cartItems);
-
-        for (Aggregated agg : aggregated.values()) {
-            GridPane row = buildCartRow(agg);
-            cartItemsContainer.getChildren().add(row);
-            total += agg.subtotal();
-        }
-
-        updateTotalLabel(total);
     }
 
     private void toggleCartPlaceholders(boolean hasItems) {
@@ -191,46 +178,49 @@ public class CartController {
         Label qtyLbl = new Label(String.valueOf(agg.qty));
         Button plus = new Button("+");
 
-        final int stock;
         try {
-            stock = productDao.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
+            int stock = appController.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
+            setupNormalQtyBox(minus, plus, stock, agg.qty, p);
         } catch (Exception ex) {
             // In caso di errore niente incremento
             logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + p.getName());
-            qtyLbl.setText(String.valueOf(agg.qty));
-            plus.setDisable(true);
-            stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
-            stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
-            stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
-            minus.setOnAction(ignored -> {
-                Session.removeFromCart(p);
-                loadCartItems();
-                if (onCartUpdated != null) onCartUpdated.run();
-            });
-            qtyBox.getChildren().addAll(minus, qtyLbl, plus);
-            return qtyBox;
+            setupErrorQtyBox(minus, plus, qtyLbl, p);
         }
 
-        // Se già al massimo disabilità il +
-        if (agg.qty >= stock) {
+        qtyBox.getChildren().addAll(minus, qtyLbl, plus);
+        return qtyBox;
+    }
+
+    private void setupNormalQtyBox(Button minus, Button plus, int stock, int currentQty, Product p) {
+        if (currentQty >= stock) {
             plus.setDisable(true);
             stockLabelTooltip(plus, "Quantità massima raggiunta: " + stock);
         }
 
-        minus.setOnAction(ignored -> {
-            Session.removeFromCart(p);
-            loadCartItems();
-            if (onCartUpdated != null) onCartUpdated.run();
+        minus.setOnAction(e -> {
+                appController.changeQuantity(p, -1);
+                refreshView();
         });
-
-        plus.setOnAction(ignored -> {
-            Session.addToCart(Product.copyOf(p));
-            loadCartItems();
-            if (onCartUpdated != null) onCartUpdated.run();
+        plus.setOnAction(e -> {
+            appController.changeQuantity(p, +1);
+            refreshView();
         });
+    }
 
-        qtyBox.getChildren().addAll(minus, qtyLbl, plus);
-        return qtyBox;
+    private void setupErrorQtyBox(Button minus, Button plus, Label qtyLbl, Product p) {
+        plus.setDisable(true);
+        stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
+        stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
+        stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
+        minus.setOnAction(e -> {
+            appController.changeQuantity(p, -1);
+            refreshView();
+        });
+    }
+
+    private void refreshView() {
+        loadCartItems();
+        if (onCartUpdated != null) onCartUpdated.run();
     }
 
     private static void stockLabelTooltip(Control c, String msg) {
@@ -251,65 +241,25 @@ public class CartController {
                         16, 16, true, true)));
 
         removeAll.setOnAction(ignored -> {
-            Session.removeLineFromCart(p.getProductId(), p.getIdShop(), p.getSize());
-            loadCartItems();
-            if (onCartUpdated != null) onCartUpdated.run();
+            appController.removeLine(p.getProductId(), p.getIdShop(), p.getSize());
+            refreshView();
         });
 
         return removeAll;
     }
 
-    @FXML
-    private void onCheckout() {
-        List<Product> products = Session.getCartItems();
-        if (products == null || products.isEmpty()) {
-            new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
-            return;
+    @FXML private void onCheckout() {
+        try {
+            CheckoutData data = appController.buildCheckoutData();  // ← DELEGA
+            if (data.items().isEmpty()) {
+                new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
+                return;
+            }
+            openOrderSummary(data);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Errore checkout", e);
+            new Alert(Alert.AlertType.ERROR, "Errore checkout: " + e.getMessage()).showAndWait();
         }
-
-        Map<Key, Aggregated> aggregated = aggregateCartItems(products);
-        CheckoutData data = buildCheckoutData(aggregated);
-        openOrderSummary(data);
-    }
-
-    // Raggruppa gli articoli per (productId, shopId, taglia)
-    private Map<Key, Aggregated> aggregateCartItems(List<Product> products) {
-        Map<Key, Aggregated> map = new LinkedHashMap<>();
-        for (Product p : products) {
-            Key k = new Key(p.getProductId(), p.getIdShop(), p.getSize());
-            map.compute(k, (ignored, agg) -> {
-                if (agg == null) return new Aggregated(p, 1);
-                agg.qty += 1;
-                return agg;
-            });
-        }
-        return map;
-    }
-
-    // Converte gli aggregati in CartItem e calcola il totale
-    private CheckoutData buildCheckoutData(Map<Key, Aggregated> map) {
-        List<CartItem> items = new ArrayList<>();
-        BigDecimal total = BigDecimal.ZERO;
-
-        for (Aggregated agg : map.values()) {
-            Product p = agg.sample;
-            int qty = agg.qty;
-            double priceDouble = p.getPrice();
-
-            items.add(new CartItem(
-                    p.getProductId(),
-                    p.getIdShop(),
-                    qty,
-                    priceDouble,
-                    p.getName(),
-                    p.getImageData(),
-                    p.getSize()
-            ));
-
-            BigDecimal unit = BigDecimal.valueOf(priceDouble);
-            total = total.add(unit.multiply(BigDecimal.valueOf(qty)));
-        }
-        return new CheckoutData(items, total);
     }
 
     // Trova la finestra owner corretta per la dialog
@@ -356,10 +306,10 @@ public class CartController {
 
             dialog.setScene(new Scene(root));
             ctrl.setStage(dialog);
-            ctrl.setData(data.items(), data.total());
+            ctrl.loadData(data.items(), data.total());
 
             dialog.showAndWait();
-            loadCartItems();
+            refreshView();
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, "Impossibile aprire il riepilogo ordine", e);
@@ -368,14 +318,10 @@ public class CartController {
         }
     }
 
-    // Piccolo contenitore per i dati del checkout
-    private record CheckoutData(List<CartItem> items, BigDecimal total) {}
-
     @FXML
     private void onClearCart() {
-        Session.clearCart();
-        loadCartItems();
-        if (onCartUpdated != null) onCartUpdated.run();
+        appController.clearCart();
+        refreshView();
     }
 
 }

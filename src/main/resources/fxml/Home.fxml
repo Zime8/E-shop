@@ -5,8 +5,9 @@
 <?import javafx.geometry.Insets?>
 <?import org.controlsfx.control.RangeSlider?>
 
+<?import javafx.scene.shape.Circle?>
 <StackPane xmlns:fx="http://javafx.com/fxml"
-           fx:controller="org.example.controllers.HomeController">
+           fx:controller="org.example.controllers.ui.HomeController">
     <BorderPane style="-fx-background-color: #ffffff;">
 
         <top>
@@ -41,13 +42,13 @@
                                 </ImageView>
                             </graphic>
                         </Button>
-                        <Label fx:id="cartCountLabel" text="0"
-                               visible="false"
-                               managed="false"
-                               style="-fx-background-color: red; -fx-text-fill: white; -fx-font-size: 10; -fx-font-weight: bold;
-                                  -fx-padding: 1 5 1 5; -fx-background-radius: 10; -fx-border-radius: 10"
-                               StackPane.alignment="TOP_RIGHT"
-                               translateX="7" translateY="-7"/>
+                        <StackPane fx:id="cartBadgeContainer" visible="false" managed="false"
+                                   style="-fx-background-color: transparent;"
+                                   translateY="35">
+                            <Circle radius="8" fill="#ff4444" stroke="#cc0000" strokeWidth="1.5"/>
+                            <Label text="0" style="-fx-font-size: 10px; -fx-font-weight: bold; -fx-text-fill: white;"
+                                   alignment="CENTER"/>
+                        </StackPane>
                     </StackPane>
                     <StackPane>
                         <Button minHeight="36" minWidth="36" maxHeight="36" maxWidth="36" fx:id="profileBtn" onAction="#onProfile" style="-fx-background-color: white;">

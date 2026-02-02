@@ -5,7 +5,7 @@
 <?import javafx.scene.text.Text?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml"
-           fx:controller="org.example.controllers.LoginController"
+           fx:controller="org.example.controllers.ui.LoginController"
            prefWidth="500" prefHeight="400"
            style="-fx-background-color: linear-gradient(to bottom, #f7f9fb, #f0f4f8);">
 

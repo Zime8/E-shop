@@ -53,7 +53,7 @@ public final class DatabaseConnection {
     }
 
     // Apre una nuova Connection. Usa try-with-resources lato chiamante
-    public static Connection getConnection() throws SQLException {
+    public static Connection getConnection() throws SQLException{
         final String url;
         final String user;
         final String pwd;

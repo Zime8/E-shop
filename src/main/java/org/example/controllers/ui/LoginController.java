@@ -1,4 +1,4 @@
-package org.example.controllers;
+package org.example.controllers.ui;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -10,9 +10,8 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import org.example.dao.UserDAO;
-import org.example.demo.DemoData;
-import org.example.util.Session;
+import org.example.controllers.app.LoginAppController;
+import org.example.controllers.app.LoginAppController.*;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -29,40 +28,28 @@ public class LoginController {
     @FXML private TextField usernameField;
     @FXML private PasswordField passwordField;
 
+    private LoginAppController appController;
+
     @FXML public void initialize() {
-        Session.setDemo(false);
+        appController = new LoginAppController();
         Platform.runLater(this::applyLoginWindowSizing);
     }
 
     @FXML
     private void onLogin() {
-
         String user = usernameField.getText() == null ? "" : usernameField.getText().trim();
         String pass = passwordField.getText() == null ? "" : passwordField.getText();
 
-        if (user.isEmpty() || pass.isEmpty()) {
-            showAlert(Alert.AlertType.WARNING, "Inserisci username e password.");
-            return;
-        }
-
-        UserDAO.LoginResult res = UserDAO.checkLogin(user, pass);
+        LoginResult res = appController.performLogin(user, pass);
 
         switch (res.status()) {
             case SUCCESS -> {
-                Session.setUser(user);
-                Session.setUserId(res.userId());
                 passwordField.clear();
-
-                String role = res.role();
-                if ("venditore".equalsIgnoreCase(role)) {
-                    goSellerHome();
-                } else {
-                    goHome();
-                }
+                navigateToHome(appController.getNextView(res));
             }
-            case INVALID_CREDENTIALS -> {
+            case INVALID_INPUT, INVALID_CREDENTIALS -> {
                 passwordField.clear();
-                showAlert(Alert.AlertType.ERROR, "Credenziali non valide.");
+                showAlert(Alert.AlertType.WARNING, "Inserisci username e password valide.");
             }
             case ERROR -> showAlert(Alert.AlertType.ERROR, "Si è verificato un errore. Riprova.");
         }
@@ -70,64 +57,31 @@ public class LoginController {
 
     @FXML
     private void onRegisterLink() {
-        navigate("/fxml/Register.fxml",
-                "Registrazione",
-                false,
+        navigate("/fxml/Register.fxml", "Registrazione", false,
                 "Errore nel caricamento della schermata Register.fxml",
                 "Errore durante il caricamento della schermata per la registrazione.");
-    }
-
-    private void goHome() {
-        navigate("/fxml/Home.fxml",
-                "Home",
-                true,
-                "Errore nel caricamento della schermata Home.fxml",
-                "Errore durante il caricamento della schermata utente.");
-    }
-
-    // Apertura area venditore
-    private void goSellerHome() {
-        navigate("/fxml/SellerHome.fxml",
-                "Area Venditore",
-                true,
-                "Errore nel caricamento della schermata del venditore",
-                "Errore durante il caricamento della schermata venditore. ");
     }
 
     @FXML
     private void onDemoMode() {
         try {
-            // Nuova identità guest univoca
-            String guest = "ospite-" + java.util.UUID.randomUUID().toString().substring(0, 8);
-
-            int demoId = DemoData.NEXT_DEMO_USER_ID.getAndDecrement();
-
-            // Pulisci sessione precedente
-            Session.clear();
-
-            // Attiva demo e setta credenziali guest
-            Session.setDemo(true);
-            Session.setUser(guest);
-            Session.setUserId(demoId);
-
-            DemoData.ensureLoaded();
-            DemoData.users().putIfAbsent(
-                    guest, new DemoData.User(demoId, guest, null, "utente", null, null)
-            );
-
-            goHome();
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore nell'attivazione della modalità demo", e);
+            appController.performDemoLogin();
+            navigateToHome("/fxml/Home.fxml");
+        } catch (RuntimeException e) {
+            logger.log(Level.SEVERE, "Errore demo", e);
             showAlert(Alert.AlertType.ERROR, "Impossibile avviare la modalità demo.");
         }
     }
 
-    // Metodo che carica FXML, imposta scena/titolo e gestisce errori
-    private void navigate(String fxmlPath,
-                          String title,
-                          boolean maximized,
-                          String logContext,
-                          String userFacingErrorMsg) {
+    private void navigateToHome(String fxmlPath) {
+        String title = fxmlPath.contains("SellerHome") ? "Area Venditore" : "Home";
+        navigate(fxmlPath, title, true,
+                "Errore caricamento home",
+                "Errore durante il caricamento della schermata utente.");
+    }
+
+    // Metodo navigate invariato
+    private void navigate(String fxmlPath, String title, boolean maximized, String logContext, String userFacingErrorMsg) {
         try {
             Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource(fxmlPath)));
             Stage stage = (Stage) loginButton.getScene().getWindow();
@@ -141,6 +95,7 @@ public class LoginController {
         }
     }
 
+    // applyLoginWindowSizing e showAlert invariati
     private void applyLoginWindowSizing() {
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setMaximized(false);

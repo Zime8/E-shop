@@ -9,7 +9,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Spinner?>
 
-<VBox fx:controller="org.example.controllers.ProductDetailController"
+<VBox fx:controller="org.example.controllers.ui.ProductDetailController"
       xmlns:fx="http://javafx.com/fxml"
       spacing="18"
       alignment="TOP_CENTER"

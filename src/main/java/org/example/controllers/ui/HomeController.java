@@ -1,4 +1,4 @@
-package org.example.controllers;
+package org.example.controllers.ui;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -9,21 +9,20 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.controlsfx.control.RangeSlider;
-import org.example.dao.ProductDaos;
-import org.example.dao.api.ProductDao;
-import org.example.demo.DemoData;
+import org.example.controllers.app.HomeAppController;
+import org.example.models.FilterCriteria;
 import org.example.models.Product;
-import org.example.util.Session;
 
 import java.io.IOException;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -32,14 +31,9 @@ import java.util.logging.Logger;
 
 public class HomeController implements Initializable {
 
-    private final ProductDao productDao;
-    public HomeController(ProductDao productDao) {      // costruttore
-        this.productDao = productDao;
-    }
+    private HomeAppController appController;
 
-    public HomeController() {                           // costruttore usato da FXMLLoader
-        this(ProductDaos.create());
-    }
+    public HomeController() {}                          // costruttore usato da FXMLLoader
 
     private static final Logger logger = Logger.getLogger(HomeController.class.getName());
     private static final String ALL = "Tutti";
@@ -47,7 +41,7 @@ public class HomeController implements Initializable {
     private Popup profilePopup;
     private Popup wishesPopup;
 
-    @FXML private Label cartCountLabel;
+    @FXML private StackPane cartBadgeContainer;
     @FXML private Button cartBtn;
     @FXML private Button profileBtn;
     @FXML private Button wishesBtn;
@@ -65,7 +59,9 @@ public class HomeController implements Initializable {
     @FXML
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        welcomeLabel.setText("Benvenuto, " + Session.getUser() + "!");
+        appController = new HomeAppController();
+
+        welcomeLabel.setText("Benvenuto, " + appController.getCurrentUserName() + "!");
         sectionTitle.setText("Ultimi Arrivi");
 
         loadLatestArrivals();
@@ -110,7 +106,7 @@ public class HomeController implements Initializable {
         productPane.getChildren().clear();
 
         try {
-            List<Product> results = productDao.searchByName(query);
+            List<Product> results = appController.searchByName(query);
 
             if (results.isEmpty()) {
                 Label noResults = new Label("Nessun prodotto trovato per \"" + query + "\"");
@@ -120,7 +116,7 @@ public class HomeController implements Initializable {
 
             displayProducts(results);
 
-        } catch (SQLException | IOException e) {
+        } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore nella ricerca dei prodotti", e);
             showAlert("Errore durante la ricerca: " + e.getMessage());
         }
@@ -128,22 +124,21 @@ public class HomeController implements Initializable {
 
     @FXML
     private void onLogout() {
-        logger.info("Logout effettuato");
-        try {
-            if (Session.isDemo()) {
-                DemoData.clearUserDemoReviews(Session.getUser());
+        appController.logout();
+        switchToLoginScene();
+    }
+
+    private void switchToLoginScene() {
+        Platform.runLater(() -> {
+            try {
+                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
+                Stage stage = getCurrentStage();  // Spostato da AppController
+                if (stage != null) stage.setScene(new Scene(root));
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, "Errore navigazione login", e);
+                showAlert("Errore logout: " + e.getMessage());
             }
-            Session.clear();
-
-            Parent root = FXMLLoader.load(
-                    Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
-            Stage stage = (Stage) welcomeLabel.getScene().getWindow();
-            stage.setScene(new Scene(root));
-
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Errore caricamento schermata login", e);
-            showAlert("Errore caricamento schermata login: " + e.getMessage());
-        }
+        });
     }
 
     @FXML
@@ -186,15 +181,18 @@ public class HomeController implements Initializable {
     }
 
     public void updateCart() {
-        List<Product> cartItems = Session.getCartItems();
-        if (cartItems != null && !cartItems.isEmpty()) {
-            cartCountLabel.setText(String.valueOf(cartItems.size()));
-            cartCountLabel.setVisible(true);
-            cartCountLabel.setManaged(true);
-        } else {
-            cartCountLabel.setVisible(false);
-            cartCountLabel.setManaged(false);
-        }
+        Platform.runLater(() -> {
+            int count = appController.getCartCount();
+            logger.info("🛒 updateCart count=" + count);
+
+            if (count > 0) {
+                ((Label)cartBadgeContainer.getChildren().get(1)).setText(String.valueOf(count));
+                cartBadgeContainer.setVisible(true);
+                logger.info("🛒 Badge CIRCLE visibile!");
+            } else {
+                cartBadgeContainer.setVisible(false);
+            }
+        });
     }
 
     @FXML
@@ -236,7 +234,7 @@ public class HomeController implements Initializable {
     private void openPurchaseHistory() { openSidePanel("fxml/PurchaseHistory.fxml"); }
     private void openSavedCards() { openSidePanel("fxml/SavedCards.fxml"); }
 
-    public void onWishes() {
+    @FXML public void onWishes() {
         try {
             if (wishesPopup != null && wishesPopup.isShowing()) {
                 wishesPopup.hide();
@@ -251,8 +249,6 @@ public class HomeController implements Initializable {
             p.getContent().add(popupContent);
             p.setAutoHide(true);
             wishesPopup = p;
-
-            controller.loadItems();
 
             Bounds b = wishesBtn.localToScreen(wishesBtn.getBoundsInLocal());
             popupContent.applyCss();
@@ -275,72 +271,80 @@ public class HomeController implements Initializable {
     }
 
     private void loadLatestArrivals() {
-        productPane.getChildren().clear();
         try {
-            List<Product> latest = productDao.findLatest(40);
+            List<Product> latest = appController.findLatest(40);
             displayProducts(latest);
-        } catch (SQLException | IOException e) {
+        } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore durante il caricamento dei prodotti", e);
             showAlert("Errore nel caricamento dei prodotti: " + e.getMessage());
         }
     }
 
-    public void onFilter() {
-        String selectedSport = sportFilter.getValue();
-        String selectedBrand = brandFilter.getValue();
-        String selectedShop = shopFilter.getValue();
-        String selectedCategory = categoryFilter.getValue();
-        double minPrice = priceRangeSlider.getLowValue();
-        double maxPrice = priceRangeSlider.getHighValue();
-
-        sectionTitle.setText("Filtrati per: " + selectedSport + ", " + selectedBrand +
-                ", " + selectedShop + ", " + selectedCategory + ", " + (int) minPrice + "€ - " + (int) maxPrice + "€");
-
-        productPane.getChildren().clear();
+    @FXML public void onFilter() {
+        FilterCriteria criteria = appController.createFilterCriteria(
+                sportFilter.getValue(),
+                brandFilter.getValue(),
+                shopFilter.getValue(),
+                categoryFilter.getValue(),
+                priceRangeSlider.getLowValue(),
+                priceRangeSlider.getHighValue()
+        );
 
         try {
-            List<Product> filteredProducts = productDao.searchByFilters(
-                    selectedSport.equals(ALL) ? null : selectedSport,
-                    selectedBrand.equals(ALL) ? null : selectedBrand,
-                    selectedShop.equals(ALL) ? null : selectedShop,
-                    selectedCategory.equals(ALL) ? null : selectedCategory,
-                    minPrice,
-                    maxPrice
-            );
+            List<Product> filteredProducts = appController.searchByFilters(criteria);
+            int min = (int) criteria.minPrice;
+            int max = (int) criteria.maxPrice;
+            sectionTitle.setText("Filtrati per: " + criteria.sport + ", " + criteria.brand +
+                    ", " + criteria.shop + ", " + criteria.category + ", Prezzo: " +
+                    min + " - " + max);
+            displayProducts(filteredProducts.isEmpty() ? List.of() : filteredProducts);
 
-            if (filteredProducts.isEmpty()) {
-                productPane.getChildren().add(new Label("Nessun prodotto trovato con questi filtri."));
-                return;
-            }
-
-            displayProducts(filteredProducts);
-
-        } catch (SQLException | IOException e) {
+        } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore durante il filtraggio dei prodotti", e);
             showAlert("Errore nel filtraggio: " + e.getMessage());
         }
     }
 
+    @FXML
     public void onResetFilter() {
-        sportFilter.setValue(ALL);
-        brandFilter.setValue(ALL);
-        shopFilter.setValue(ALL);
-        categoryFilter.setValue(ALL);
-        priceRangeSlider.setLowValue(priceRangeSlider.getMin());
-        priceRangeSlider.setHighValue(priceRangeSlider.getMax());
+        FilterCriteria defaults = appController.resetFilters();
+
+        // UI applica valori da Control
+        sportFilter.setValue(defaults.sport);
+        brandFilter.setValue(defaults.brand);
+        shopFilter.setValue(defaults.shop);
+        categoryFilter.setValue(defaults.category);
+        priceRangeSlider.setLowValue(defaults.minPrice);
+        priceRangeSlider.setHighValue(defaults.maxPrice);
         updatePriceLabel();
+
+        sectionTitle.setText("Ultimi Arrivi");
+        loadLatestArrivals();
     }
 
     private void displayProducts(List<Product> products) throws IOException  {
         productPane.getChildren().clear();
+        logger.info("🛒 Home.displayProducts() - creo " + products.size() + " cards");
         for (Product p : products) {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
             Node card = loader.load();
             ProductCardController ctrl = loader.getController();
-            ctrl.setProduct(p);
-            ctrl.setOnAddToCartCallback(this::updateCart);
+            appController.createProductCard(ctrl, p);
+            ctrl.setOnCartUpdate(() -> {
+                        logger.info("🎯 Home.updateCart() callback ricevuto!");
+                        updateCart();
+                    });
             productPane.getChildren().add(card);
         }
+    }
+
+    private Stage getCurrentStage() {
+        for (Window window : Window.getWindows()) {
+            if (window instanceof Stage && window.isShowing()) {
+                return (Stage) window;
+            }
+        }
+        return null;  // Fallback
     }
 
     private void openSidePanel(String fxmlResource) {
@@ -371,7 +375,7 @@ public class HomeController implements Initializable {
         Scene scene = new Scene(content);
         Stage stage = new Stage();
         stage.setScene(scene);
-        if (fxmlResource.toLowerCase().contains("card"))      stage.setTitle("Carte Salvate");
+        if (fxmlResource.toLowerCase().contains("card"))  stage.setTitle("Carte Salvate");
         else if (fxmlResource.toLowerCase().contains("profile"))  stage.setTitle("Dettagli Profilo");
         else if (fxmlResource.toLowerCase().contains("purchase")) stage.setTitle("Storico Acquisti");
         else stage.setTitle("E-Shop");

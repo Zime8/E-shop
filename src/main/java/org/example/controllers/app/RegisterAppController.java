@@ -1,0 +1,64 @@
+package org.example.controllers.app;
+
+import org.example.dao.UserDAO;
+
+public class RegisterAppController {
+    private final UserDAO userDAO = UserDAO.getInstance();
+
+    public RegisterValidationResult validateAndRegister(String username, String password,
+                                                        String confirmPassword, String email,
+                                                        String phone, String role) {
+
+        username = username.trim();
+        email = email.trim();
+        phone = phone.trim();
+
+        // Tutte validazioni business
+        if (isAnyFieldEmpty(username, password, confirmPassword, email, phone)) {
+            return RegisterValidationResult.EMPTY_FIELDS;
+        }
+
+        if (!password.equals(confirmPassword)) {
+            return RegisterValidationResult.PASSWORD_MISMATCH;
+        }
+
+        if (!isValidEmail(email)) {
+            return RegisterValidationResult.INVALID_EMAIL;
+        }
+
+        if (!isValidPhone(phone)) {
+            return RegisterValidationResult.INVALID_PHONE;
+        }
+
+        if (userDAO.isUsernameTaken(username)) {
+            return RegisterValidationResult.USERNAME_TAKEN;
+        }
+
+        if (userDAO.isEmailTaken(email)) {
+            return RegisterValidationResult.EMAIL_TAKEN;
+        }
+
+        boolean success = userDAO.registerUser(username, password, role, email, phone);
+        return success ? RegisterValidationResult.SUCCESS : RegisterValidationResult.DATABASE_ERROR;
+    }
+
+    private boolean isAnyFieldEmpty(String... fields) {
+        for (String field : fields) {
+            if (field == null || field.trim().isEmpty()) return true;
+        }
+        return false;
+    }
+
+    private boolean isValidEmail(String email) {
+        return email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$");
+    }
+
+    private boolean isValidPhone(String phone) {
+        return phone.matches("^\\d{7,12}$");
+    }
+
+    public enum RegisterValidationResult {
+        SUCCESS, EMPTY_FIELDS, PASSWORD_MISMATCH, INVALID_EMAIL,
+        INVALID_PHONE, USERNAME_TAKEN, EMAIL_TAKEN, DATABASE_ERROR
+    }
+}

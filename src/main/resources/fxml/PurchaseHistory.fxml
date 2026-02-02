@@ -4,7 +4,7 @@
 <?import java.net.URL?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.PurchaseHistoryController"
+            fx:controller="org.example.controllers.ui.PurchaseHistoryController"
             prefWidth="900" prefHeight="650"
             style="-fx-background-color: #faf6f6;">
 

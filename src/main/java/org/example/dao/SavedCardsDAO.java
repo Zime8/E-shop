@@ -19,13 +19,7 @@ public final class SavedCardsDAO {
             String cardNumber,
             String expiry,
             String cardType
-    ) {
-        public int getId() { return id; }
-        public String getHolder() { return holder; }
-        public String getCardNumber() { return cardNumber; }
-        public String getExpiry() { return expiry; }
-        public String getCardType() { return cardType; }
-    }
+    ){}
 
     private static String onlyDigits(String s) {
         return s == null ? "" : s.replaceAll("\\D", "");
@@ -37,8 +31,8 @@ public final class SavedCardsDAO {
             DemoData.ensureLoaded();
             var list = DemoData.savedCards().getOrDefault(userId, Collections.emptyList());
             return list.stream()
-                    .sorted(Comparator.comparingInt(Card::getId).reversed())
-                    .map(c -> new Row(c.getId(), c.getHolder(), c.getNumber(), c.getExpiry(), c.getType()))
+                    .sorted(Comparator.comparingInt(Card::id).reversed())
+                    .map(c -> new Row(c.id(), c.holder(), c.number(), c.expiry(), c.type()))
                     .toList();
         }
 
@@ -74,7 +68,7 @@ public final class SavedCardsDAO {
             DemoData.ensureLoaded();
             final String normalized = onlyDigits(rawCardNumber);
             var list = DemoData.savedCards().computeIfAbsent(userId, k -> new CopyOnWriteArrayList<>());
-            boolean exists = list.stream().anyMatch(c -> onlyDigits(c.getNumber()).equals(normalized));
+            boolean exists = list.stream().anyMatch(c -> onlyDigits(c.number()).equals(normalized));
             if (exists) return Optional.empty();
 
             int newId = DemoData.DEMO_CARD_ID.getAndIncrement();
@@ -110,7 +104,7 @@ public final class SavedCardsDAO {
             boolean removed = false;
             for (var it = list.iterator(); it.hasNext(); ) {
                 Card c = it.next();
-                if (c.getId() == cardId) {
+                if (c.id() == cardId) {
                     it.remove();
                     removed = true;
                     break;
@@ -142,19 +136,13 @@ public final class SavedCardsDAO {
             if (list == null) return false;
 
             boolean dup = list.stream().anyMatch(c ->
-                    c.getId() != cardId && onlyDigits(c.getNumber()).equals(normalized));
+                    c.id() != cardId && onlyDigits(c.number()).equals(normalized));
             if (dup) return false;
 
-            for (Card c : list) {
-                if (c.getId() == cardId) {
-                    c.setHolder(holder);
-                    c.setNumber(rawCardNumber);
-                    c.setExpiry(expiry);
-                    c.setType(cardType);
-                    return true;
-                }
-            }
-            return false;
+            list.removeIf(c -> c.id() == cardId);
+            Card newCard = new Card(cardId, holder, rawCardNumber, expiry, cardType);
+            list.add(newCard);
+            return true;
         }
 
         String call = "{ call sp_cards_update(?, ?, ?, ?, ?, ?, ?) }";
