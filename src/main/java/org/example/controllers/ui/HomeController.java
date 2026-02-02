@@ -33,10 +33,12 @@ public class HomeController implements Initializable {
 
     private HomeAppController appController;
 
-    public HomeController() {}                          // costruttore usato da FXMLLoader
+    // costruttore usato da FXMLLoader
+    public HomeController() {}
 
     private static final Logger logger = Logger.getLogger(HomeController.class.getName());
     private static final String ALL = "Tutti";
+    private static final String LAST = "Ultimi arrivi";
     private Popup cartPopup;
     private Popup profilePopup;
     private Popup wishesPopup;
@@ -62,7 +64,7 @@ public class HomeController implements Initializable {
         appController = new HomeAppController();
 
         welcomeLabel.setText("Benvenuto, " + appController.getCurrentUserName() + "!");
-        sectionTitle.setText("Ultimi Arrivi");
+        sectionTitle.setText(LAST);
 
         loadLatestArrivals();
 
@@ -91,7 +93,7 @@ public class HomeController implements Initializable {
             if (newValue.length() >= 3) {
                 searchProducts(newValue);
             } else {
-                sectionTitle.setText("Ultimi Arrivi");
+                sectionTitle.setText(LAST);
                 loadLatestArrivals();
             }
         });
@@ -318,7 +320,7 @@ public class HomeController implements Initializable {
         priceRangeSlider.setHighValue(defaults.maxPrice);
         updatePriceLabel();
 
-        sectionTitle.setText("Ultimi Arrivi");
+        sectionTitle.setText(LAST);
         loadLatestArrivals();
     }
 
