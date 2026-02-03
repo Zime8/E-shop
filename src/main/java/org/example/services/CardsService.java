@@ -32,7 +32,7 @@ public final class CardsService {
                 .toList();
     }
 
-    public static AddCardResult addInlineCard(int userId, InlineCardData data) {  // ← Solo dati
+    public static AddCardResult addInlineCard(int userId, InlineCardData data) {
         // Validazione
         String validationError = validateInlineData(data);
         if (validationError != null) {

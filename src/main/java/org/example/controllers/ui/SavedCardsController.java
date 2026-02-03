@@ -20,7 +20,7 @@ public class SavedCardsController {
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
     private final SavedCardsControl appController = new SavedCardsAppController();
 
-    // Costanti UI invariate
+    // Costanti UI
     private static final String CARD_TYPE_CREDITO = "Credito";
     private static final String CARD_TYPE_DEBITO  = "Debito";
     private static final String STYLE_TEXT_DARK = "-fx-text-fill: #444;";
@@ -84,11 +84,10 @@ public class SavedCardsController {
         Optional<Card> result = showCardDialog("Aggiungi Carta", "Inserisci i dati della nuova carta", "Aggiungi", null);
         result.ifPresent(card -> {
             try {
-                // ✅ Usa RETURN value
                 Card newCard = appController.addCard(card.holder(), card.number(), card.expiry(), card.type());
 
-                reloadCards();  // ← Già OK
-                cardsListView.scrollTo(newCard);  // ← Scroll a nuova
+                reloadCards();
+                cardsListView.scrollTo(newCard);
                 showInfo("Carta aggiunta!");
 
             } catch (IllegalStateException e) {
@@ -110,7 +109,7 @@ public class SavedCardsController {
         }
     }
 
-    // === METODI UI NOTIFICHE (chiamati dai callback del Control) ===
+    // === METODI UI NOTIFICHE ===
 
     private void showError(String msg) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -128,7 +127,7 @@ public class SavedCardsController {
         alert.showAndWait();
     }
 
-    // === DIALOG CARDS (invariato) ===
+    // === DIALOG CARDS ===
 
     private Optional<Card> showCardDialog(String title, String headerText, String okText, Card prefill) {
         Dialog<Card> dialog = new Dialog<>();
@@ -202,7 +201,7 @@ public class SavedCardsController {
         return new FormControls(holderField, numberField, expiryField, typeChoice, grid);
     }
 
-    // === CardCell INTERNA - accede a appController tramite parent ===
+    // === CardCell INTERNA ===
 
     private class CardCell extends ListCell<Card> {
         private final Label holderLabel = new Label();

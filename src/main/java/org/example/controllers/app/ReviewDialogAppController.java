@@ -65,7 +65,6 @@ public class ReviewDialogAppController {
         return Optional.of(new ReviewData(rating, emptyToNull(title), emptyToNull(comment)));
     }
 
-    // Metodi privati (logica business)
     private void setRating(int r, ToggleButton s1, ToggleButton s2, ToggleButton s3,
                            ToggleButton s4, ToggleButton s5, Label ratingLabel) {
         this.rating = clamp(r);

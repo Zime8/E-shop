@@ -25,7 +25,7 @@ public class PurchaseHistoryAppController {
         Integer uid = Session.getUserId();
         if (uid == null) {
             logger.warning("Nessun utente loggato");
-            onOrdersLoaded.accept(List.of());  // Lista vuota
+            onOrdersLoaded.accept(List.of());
             return;
         }
 
@@ -38,7 +38,7 @@ public class PurchaseHistoryAppController {
                 orderCache = result.cache;
 
                 onOrdersLoaded.accept(result.summaries);
-                onItemsUpdated.accept(List.of());  // Iniziale vuoto
+                onItemsUpdated.accept(List.of());
             } catch (SQLException e) {
                 logger.log(Level.SEVERE, "Errore caricamento ordini", e);
                 onOrdersLoaded.accept(List.of());

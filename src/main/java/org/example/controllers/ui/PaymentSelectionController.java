@@ -174,9 +174,9 @@ public class PaymentSelectionController {
 
         if (result.ok()) {
             CardViewModel newCardVM = new CardViewModel(result.card());
-            cards.add(newCardVM);  // ← ViewModel
-            cardsTable.getSelectionModel().select(newCardVM);  // UI selection
-            clearFields();  // Pulisci form (spostato qui)
+            cards.add(newCardVM);
+            cardsTable.getSelectionModel().select(newCardVM);
+            clearFields();
         } else {
             showInfo(result.message());
         }

@@ -1,13 +1,11 @@
 package org.example.controllers.app;
 
-import org.example.controllers.control.PaymentSelectionControl;
 import org.example.dao.OrderDAO;
 import org.example.gateway.PaymentGateway;
 import org.example.gateway.PaymentResult;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
 import org.example.models.CartItem;
-import org.example.models.InlineCardData;
 import org.example.services.CardsService;
 import org.example.ui.CardUi;
 import org.example.util.Session;
@@ -19,7 +17,7 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PaymentSelectionAppController implements PaymentSelectionControl {
+public class PaymentSelectionAppController {
     private final PaymentGateway gateway;
     private final Logger logger = Logger.getLogger(PaymentSelectionAppController.class.getName());
     private String lastOrderIds;
@@ -37,7 +35,6 @@ public class PaymentSelectionAppController implements PaymentSelectionControl {
         }
     }
 
-    @Override
     public PaymentResult confirmPayment(Card card, String cvv, String address,
                                         List<CartItem> items, BigDecimal total) {
         if (items == null || total == null) {
@@ -80,29 +77,6 @@ public class PaymentSelectionAppController implements PaymentSelectionControl {
         }
     }
 
-    @Override
-    public CardViewModel addInlineCard(InlineCardData data) {
-        CardsService.AddCardResult result = CardsService.addInlineCard(Session.getUserId(), data);
-        if (result.ok()) {
-            return new CardViewModel(result.card());
-        }
-        logger.log(Level.WARNING, "Add card failed: {0}", result.message());  // Log nel Control
-        return null;
-    }
-
-    @Override
-    public List<CardViewModel> loadSavedCards() {
-        try {
-            Integer userId = Session.getUserId();
-            if(userId == null) return List.of();
-            return CardsService.loadSavedCards(userId);
-        } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore caricamento carte", e);
-            return List.of();
-        }
-    }
-
-    @Override
     public String getLastOrderIds() {
         return lastOrderIds;
     }

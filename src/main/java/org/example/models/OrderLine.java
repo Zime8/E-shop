@@ -46,8 +46,4 @@ public class OrderLine {
     public void setSize(String size) { this.size = size; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
     public void setUnitPrice(BigDecimal unitPrice) { this.unitPrice = unitPrice; }
-
-    public BigDecimal getSubtotal() {
-        return unitPrice == null ? BigDecimal.ZERO : unitPrice.multiply(BigDecimal.valueOf(quantity));
-    }
 }

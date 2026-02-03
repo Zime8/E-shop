@@ -310,7 +310,7 @@ public class ProductDetailController {
         updateStockAndQtyRange();
     }
 
-    // Helper UI methods invariati
+    // Helper UI
     private void applySelectedSizeIfPresent() {
         if (sizeCombo != null && sizeCombo.getValue() != null) {
             product.setSize(sizeCombo.getValue());

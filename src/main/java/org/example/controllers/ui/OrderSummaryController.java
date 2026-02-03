@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 public class OrderSummaryController {
     @FXML private VBox itemsBox;
-    @FXML private Label totalLabel;  // Assumi sia @FXML, aggiunto se mancante
+    @FXML private Label totalLabel;
 
     private Stage stage;
     private OrderSummaryAppController appController;
@@ -82,7 +82,7 @@ public class OrderSummaryController {
 
             PaymentSelectionAppController paymentAppCtrl = new PaymentSelectionAppController(
                     new FakePaymentGateway(1000L, 0.10));
-            ctrl.setController(paymentAppCtrl);  // Passa appController
+            ctrl.setController(paymentAppCtrl);
             ctrl.setData(cartItems, currentViewData.total());
 
             Stage payStage = new Stage();

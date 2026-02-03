@@ -53,7 +53,6 @@ public class WishlistController {
         appController.clearWishlist();
     }
 
-    // CALLBACK METHODS (public per method reference)
     public void showItems(List<Product> products) {
         itemsBox.getChildren().clear();
         if (products.isEmpty()) {

@@ -15,18 +15,17 @@ public class EditCatalogDialogCreator extends CatalogDialogCreator {
         super("Modifica Prodotto", initial, ownerButton, appController);
     }
 
-    // EditCatalogDialogCreator.java
     @Override
     protected void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial) {
         Button okBtn = (Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
         okBtn.addEventFilter(ActionEvent.ACTION, ev -> {
             try {
-                // Reset styles (no combo in edit)
+                // Reset styles
                 ui.size().setStyle(styles.base());
                 ui.price().setStyle(styles.base());
                 ui.qty().setStyle(styles.base());
 
-                // Edit validation (size può essere disabled)
+                // Validazioni
                 if (ui.size().getText().isBlank()) {
                     ui.size().setStyle(styles.error());
                     throw new IllegalArgumentException("Taglia obbligatoria");

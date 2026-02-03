@@ -77,7 +77,7 @@ public abstract class CatalogDialogCreator {
             appController.loadAllProducts(ui.combo,
                     errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
         } else {
-            prefillEditMode(initial, ui); // idem
+            prefillEditMode(initial, ui);
         }
 
         pane.setContent(buildFormGrid(ui, initial != null));

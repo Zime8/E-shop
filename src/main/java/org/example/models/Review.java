@@ -10,8 +10,6 @@ public class Review {
     private String comment;
     private LocalDateTime createdAt;
 
-    public Review() {}
-
     public Review(int userId, String username, int rating, String title, String comment, LocalDateTime createdAt) {
         this.userId = userId;
         this.username = username;

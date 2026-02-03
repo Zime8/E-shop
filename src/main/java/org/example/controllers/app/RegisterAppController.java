@@ -13,7 +13,7 @@ public class RegisterAppController {
         email = email.trim();
         phone = phone.trim();
 
-        // Tutte validazioni business
+        // Validazioni
         if (isAnyFieldEmpty(username, password, confirmPassword, email, phone)) {
             return RegisterValidationResult.EMPTY_FIELDS;
         }

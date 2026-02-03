@@ -27,7 +27,7 @@ public class ProfileDetailsAppController {
                 return;
             }
 
-            // ← Prepara dati "sicuri" per UI (maschera password)
+            // Prepara dati "sicuri" per UI
             String[] data = {
                     u.getUsername(),
                     PSW,

@@ -558,7 +558,6 @@
 
         private void openWithdrawDialog() {
             try {
-                // UI: FXMLLoader (puro grafico)
                 FXMLLoader l = new FXMLLoader(getClass().getResource("/fxml/WithdrawSelection.fxml"));
                 Parent root = l.load();
                 WithdrawSelectionController ctrl = l.getController();
@@ -569,13 +568,13 @@
                 dialog.setTitle("Prelievo");
 
                 ctrl.setStage(dialog);
-                ctrl.setUserId(appController.getCurrentUserId());  // Passa dati
-                ctrl.setOnWithdrawDone(this::refreshBalance);  // UI callback
+                ctrl.setUserId(appController.getCurrentUserId());
+                ctrl.setOnWithdrawDone(this::refreshBalance);
 
                 dialog.setScene(new Scene(root));
                 dialog.showAndWait();
 
-                refreshBalance();  // UI refresh
+                refreshBalance();
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Errore dialog prelievo", e);
                 showAlert(Alert.AlertType.ERROR, "Impossibile aprire finestra prelievo.");

@@ -52,7 +52,7 @@ public class CartController {
     public void loadCartItems() {
         cartItemsContainer.getChildren().clear();
         try {
-            CheckoutData data = appController.buildCheckoutData();  // Tutto in 1 chiamata!
+            CheckoutData data = appController.buildCheckoutData();
             List<Product> cartItems = appController.getCartItems();
             boolean hasItems = !cartItems.isEmpty();
             toggleCartPlaceholders(hasItems);

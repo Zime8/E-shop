@@ -40,7 +40,7 @@ public class SavedCardsAppController implements SavedCardsControl {
     }
 
     @Override
-    public Card editCard(int cardId, String holder, String number, String expiry, String type) {
+    public void editCard(int cardId, String holder, String number, String expiry, String type) {
         validateHolder(holder);
         String normPan = normalizePan(number);
         validatePan(normPan);
@@ -55,10 +55,9 @@ public class SavedCardsAppController implements SavedCardsControl {
             if (!ok) {
                 throw new IllegalStateException("Carta duplicata o non trovata");
             }
-            return new Card(cardId, holder, number, expiry, type);
+            new Card(cardId, holder, number, expiry, type);
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore aggiornamento carta: ", e);
-            return null;
         }
     }
 
@@ -69,7 +68,7 @@ public class SavedCardsAppController implements SavedCardsControl {
             if (userId == null) return List.of();
             return SavedCardsDAO.findByUser(userId).stream()
                     .map(r -> new Card(r.id(), r.holder(), r.cardNumber(), r.expiry(), r.cardType()))
-                    .toList();  // ✅ Immutabili
+                    .toList();
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore caricamento carte", e);
             return List.of();
@@ -88,7 +87,7 @@ public class SavedCardsAppController implements SavedCardsControl {
         }
     }
 
-    // VALIDAZIONI E UTILITY (invariati + safe callback)
+    // VALIDAZIONI E UTILITY
 
     public static void validateHolder(String holder) {
         if (holder == null || holder.trim().isEmpty())

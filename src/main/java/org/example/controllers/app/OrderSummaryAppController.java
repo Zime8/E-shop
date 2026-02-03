@@ -17,7 +17,7 @@ public class OrderSummaryAppController {
     public record DisplayData(List<ItemView> rows, BigDecimal total) {}
 
     public DisplayData processItemsForDisplay(List<CartItem> items, BigDecimal total) {
-        var rows = Collections.synchronizedList(new java.util.ArrayList<ItemView>());  // Thread-safe per sicurezza
+        var rows = Collections.synchronizedList(new java.util.ArrayList<ItemView>());
         BigDecimal safeTotal = total != null ? total : BigDecimal.ZERO;
         if (items != null) {
             for (CartItem it : items) {

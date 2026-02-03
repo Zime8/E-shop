@@ -52,7 +52,7 @@ public class HomeAppController {
     }
 
     public FilterCriteria resetFilters() {
-        return FilterCriteria.defaults();  // Business logic reset
+        return FilterCriteria.defaults();
     }
 
     public void createProductCard(ProductCardController uiController, Product product) {

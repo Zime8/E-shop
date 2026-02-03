@@ -56,7 +56,6 @@ public class PurchaseHistoryController {
         setupItemsTable();
         setupSelectionListener();
 
-        // Delega caricamento dati
         appController.loadOrders(this::displayOrders, this::displayItems);
     }
 
@@ -120,14 +119,14 @@ public class PurchaseHistoryController {
     }
 
     private void applyStyle(TableView<?> table) {
-        // ORDINI (ordersTable)
+        // ORDINI
         if (table == ordersTable) {
             colOrderId.setStyle(ALIGN_CENTER);
             colOrderDate.setStyle(ALIGN_CENTER);
             colOrderStatus.setStyle(ALIGN_CENTER);
             colOrderTotal.setStyle(ALIGN_CENTER);
         }
-        // DETTAGLIO (itemsTable)
+        // DETTAGLIO
         if (table == itemsTable) {
             colItemName.setStyle(ALIGN_CENTER);
             colItemSize.setStyle(ALIGN_CENTER);

@@ -12,7 +12,6 @@ public class ProductCardAppController {
         this.onAddToCartCallback = onAddToCartCallback;
     }
 
-    // ✅ BCE: AppController SETUPPA solo dati, NO FXML/Stage
     public void setupProductDetail(ProductDetailController controller) {
         controller.setProduct(currentProduct);
         controller.setOnCartUpdate(onAddToCartCallback);

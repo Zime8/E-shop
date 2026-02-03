@@ -52,8 +52,8 @@ public class SellerHomeAppController {
                 onError.accept("Nessun negozio associato.");
                 return;
             }
-            currentShopId = shop.shopId();  // Salva ID
-            Platform.runLater(() -> onShopName.accept(shop.shopName()));  // Solo String!
+            currentShopId = shop.shopId();
+            Platform.runLater(() -> onShopName.accept(shop.shopName()));
         } catch (SQLException e) {
             onError.accept("Errore DB: " + e.getMessage());
         }

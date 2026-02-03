@@ -35,9 +35,9 @@ public class CartAppController {
         public final Product sample;
         private int qty;
         Aggregated(Product sample, int qty) { this.sample = sample; this.qty = qty; }
-        public int getQty() { return qty; }  // Getter (buona pratica)
+        public int getQty() { return qty; }
 
-        public void incrementQty() {  // ← Aggiungi questo
+        public void incrementQty() {
             qty++;
         }
 

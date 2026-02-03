@@ -76,7 +76,7 @@ public class WithdrawSelectionController {
     private void loadData() {
         availableLabel.setText(currency.format(control.loadBalance()));
         cards.clear();
-        cards.addAll(control.loadSavedCards());  // ← Solo Control!
+        cards.addAll(control.loadSavedCards());
     }
 
     @FXML
@@ -93,7 +93,7 @@ public class WithdrawSelectionController {
 
         control.addInlineCard(holder, number, expiry, type);
         clearInlineFields();
-        loadData();  // Refresh lista
+        loadData();
     }
 
     @FXML

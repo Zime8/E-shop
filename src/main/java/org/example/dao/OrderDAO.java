@@ -33,7 +33,7 @@ public final class OrderDAO {
 
     private static void ensureDemoSeed() {
         DemoData.ensureLoaded();
-        // Inizializza stock demo se mancante (es. 5 per variante)
+        // Inizializza stock demo se mancante
         for (Product p : DemoData.products().values()) {
             DemoData.stock().putIfAbsent(stockKey(p.getProductId(), p.getIdShop(), p.getSize()), 5);
         }

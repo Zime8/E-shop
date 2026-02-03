@@ -128,7 +128,7 @@ public class ReviewController {
             return;
         }
 
-        // usa prima l'id già in sessione (funziona anche in demo: -1), poi il lookup DB come fallback
+        // usa prima l'id già in sessione
         Integer userId = appController.findCurrentUserId();
         if (userId == null && Session.isDemo()) {
             userId = -1; // id fittizio per l’ospite demo

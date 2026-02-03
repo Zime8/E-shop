@@ -52,7 +52,7 @@ public class AddCatalogDialogCreator extends CatalogDialogCreator {
             Integer.parseInt(ui.qty().getText().trim());
             return true;
         } catch (Exception ex) {
-            throw new IllegalArgumentException(ex.getMessage());  // Ri-lancia per semplicità
+            throw new IllegalArgumentException(ex.getMessage());
         }
     }
 

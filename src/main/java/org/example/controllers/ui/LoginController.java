@@ -80,7 +80,6 @@ public class LoginController {
                 "Errore durante il caricamento della schermata utente.");
     }
 
-    // Metodo navigate invariato
     private void navigate(String fxmlPath, String title, boolean maximized, String logContext, String userFacingErrorMsg) {
         try {
             Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource(fxmlPath)));
@@ -95,7 +94,6 @@ public class LoginController {
         }
     }
 
-    // applyLoginWindowSizing e showAlert invariati
     private void applyLoginWindowSizing() {
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setMaximized(false);
