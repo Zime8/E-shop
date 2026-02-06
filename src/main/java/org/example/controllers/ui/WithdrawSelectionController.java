@@ -7,7 +7,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.example.controllers.app.WithdrawSelectionAppController;
-import org.example.controllers.control.WithdrawSelectionControl;
+import org.example.control.interfaces.WithdrawSelectionControl;
 import org.example.models.CardViewModel;
 import org.example.ui.CardUi;
 import org.example.util.Session;

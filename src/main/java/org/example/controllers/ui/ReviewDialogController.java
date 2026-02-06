@@ -6,12 +6,10 @@ import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import org.example.controllers.app.ReviewDialogAppController;
-import org.example.models.Product;
 
 public class ReviewDialogController {
 
     @FXML private StackPane root;
-    @FXML private Label productTitle;
     @FXML private ToggleButton star1;
     @FXML private ToggleButton star2;
     @FXML private ToggleButton star3;
@@ -25,11 +23,16 @@ public class ReviewDialogController {
 
     public void setController(ReviewDialogAppController appController){
         this.appController = appController;
-        appController.setupStars(star1, star2, star3, star4, star5, ratingLabel);
+        if (appController != null) {
+            appController.setupStars(star1, star2, star3, star4, star5, ratingLabel);
+        }
     }
 
-    public void init(Product product) {
-        appController.init(product, productTitle);
+    @FXML
+    public void initialize() {
+        titleField.clear();
+        commentArea.clear();
+        titleField.requestFocus();
     }
 
     @FXML

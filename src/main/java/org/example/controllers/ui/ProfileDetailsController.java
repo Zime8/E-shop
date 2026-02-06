@@ -16,23 +16,26 @@ public class ProfileDetailsController {
     @FXML private TextField phoneField;
     @FXML private Button editBtn;
 
-    private final ProfileDetailsAppController appController;
+    private ProfileDetailsAppController appController;
 
     private boolean editMode = false;
 
     public ProfileDetailsController(){
-        this.appController = new ProfileDetailsAppController();
+    }
+
+    public void setAppController(ProfileDetailsAppController app) {
+        this.appController = app;
+        if (app != null) {
+            app.loadUserData(this::displayUserData);
+        }
     }
 
     @FXML
     public void initialize() {
-
         usernameField.setEditable(false);
         passwordField.setEditable(false);
         emailField.setEditable(false);
         phoneField.setEditable(false);
-
-        appController.loadUserData(this::displayUserData);
     }
 
     private void displayUserData(String[] data) {

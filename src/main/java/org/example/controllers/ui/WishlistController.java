@@ -27,6 +27,12 @@ public class WishlistController {
         this.onCartUpdated = r;
     }
 
+    public void setAppController(WishlistAppController app) {
+        this.appController = app;
+        app.init(this::showItems, this::showAlert, this::notifyCartUpdated);
+        app.loadItems();
+    }
+
     @FXML
     public void initialize() {
         itemsBox.setFillWidth(true);
@@ -38,14 +44,6 @@ public class WishlistController {
         wishlistScroll.setFitToWidth(true);
         wishlistScroll.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
         wishlistScroll.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
-
-        appController = new WishlistAppController();
-        appController.init(
-                this::showItems,
-                this::showAlert,
-                this::notifyCartUpdated
-        );
-        appController.loadItems();
     }
 
     @FXML

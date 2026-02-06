@@ -8,7 +8,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import org.example.controllers.app.SavedCardsAppController;
-import org.example.controllers.control.SavedCardsControl;
 import org.example.models.Card;
 
 import java.util.Optional;
@@ -18,7 +17,7 @@ public class SavedCardsController {
     @FXML private ListView<Card> cardsListView;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
-    private final SavedCardsControl appController = new SavedCardsAppController();
+    private SavedCardsAppController appController;
 
     // Costanti UI
     private static final String CARD_TYPE_CREDITO = "Credito";
@@ -62,15 +61,17 @@ public class SavedCardsController {
                     "-fx-border-radius: 14;" +
                     "-fx-effect: dropshadow(gaussian, rgba(211,47,47,0.20), 16, 0.25, 0, 6);";
 
+    public void setAppController(SavedCardsAppController app){
+        this.appController = app;
+        reloadCards();
+    }
+
     @FXML
     public void initialize() {
-
         cardsListView.setItems(cards);
         cardsListView.setPlaceholder(new Label("Nessuna carta salvata"));
         cardsListView.setStyle("-fx-background-color: transparent; -fx-control-inner-background: transparent; -fx-background-insets: 0;");
         cardsListView.setCellFactory(listView -> new CardCell());
-
-        reloadCards();  // Carica dati iniziali
     }
 
     @FXML
@@ -91,7 +92,7 @@ public class SavedCardsController {
                 showInfo("Carta aggiunta!");
 
             } catch (IllegalStateException e) {
-                showError("Carta già salvata: " + SavedCardsAppController.maskPan(card.number()));
+                showError("Carta già salvata: " + appController.maskPan(card.number()));
             } catch (Exception e) {
                 showError("Errore salvataggio: " + e.getMessage());
             }
@@ -271,7 +272,8 @@ public class SavedCardsController {
             }
 
             holderLabel.setText("Intestatario: " + card.holder());
-            numberLabel.setText("Numero: " + SavedCardsAppController.maskPan(card.number()));  // Statico!
+            numberLabel.setText("Numero: " +
+                    (appController != null ? appController.maskPan(card.number()) : "**** **** **** ****"));
             expiryLabel.setText("Scadenza: " + card.expiry());
             typeLabel.setText("Tipo: " + card.type());
 
@@ -298,7 +300,7 @@ public class SavedCardsController {
             } catch (IllegalStateException e) {
                 showError(e.getMessage());
             } catch (IllegalArgumentException ex){
-                showError("Controller luhn non superato.");
+                showError("Controllo luhn non superato.");
             }
         });
     }
@@ -307,7 +309,7 @@ public class SavedCardsController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Conferma eliminazione");
         confirm.setHeaderText("Eliminare questa carta?");
-        confirm.setContentText("Intestatario: " + card.holder() + "\nNumero: " + SavedCardsAppController.maskPan(card.number()));
+        confirm.setContentText("Intestatario: " + card.holder() + "\nNumero: " + appController.maskPan(card.number()));
 
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.OK) {

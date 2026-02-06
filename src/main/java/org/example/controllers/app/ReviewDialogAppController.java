@@ -12,6 +12,11 @@ public class ReviewDialogAppController {
     private boolean confirmed = false;
     private String title;
     private String comment;
+    private final Product product;
+
+    public ReviewDialogAppController(Product product) {
+        this.product = product;
+    }
 
     public void setupStars(ToggleButton star1, ToggleButton star2, ToggleButton star3,
                            ToggleButton star4, ToggleButton star5, Label ratingLabel) {
@@ -30,9 +35,9 @@ public class ReviewDialogAppController {
         setRating(5, star1, star2, star3, star4, star5, ratingLabel);
     }
 
-    public void init(Product product, Label productTitle) {
-        String productName = product.getName();
-        String shopName = product.getNameShop() != null ? product.getNameShop() : "";
+    public void init(Label productTitle) {
+        String productName = this.product.getName();
+        String shopName = this.product.getNameShop() != null ? this.product.getNameShop() : "";
         String displayText = productName + (shopName.isBlank() ? "" : " • " + shopName);
         productTitle.setText(displayText);
     }

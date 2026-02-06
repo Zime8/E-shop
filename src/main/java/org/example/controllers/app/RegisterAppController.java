@@ -1,6 +1,7 @@
 package org.example.controllers.app;
 
 import org.example.dao.UserDAO;
+import org.example.models.RegisterValidationResult;
 
 public class RegisterAppController {
     private final UserDAO userDao = new UserDAO();
@@ -55,10 +56,5 @@ public class RegisterAppController {
 
     private boolean isValidPhone(String phone) {
         return phone.matches("^\\d{7,12}$");
-    }
-
-    public enum RegisterValidationResult {
-        SUCCESS, EMPTY_FIELDS, PASSWORD_MISMATCH, INVALID_EMAIL,
-        INVALID_PHONE, USERNAME_TAKEN, EMAIL_TAKEN, DATABASE_ERROR
     }
 }

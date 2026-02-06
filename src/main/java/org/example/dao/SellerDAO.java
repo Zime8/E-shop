@@ -1,6 +1,7 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
+import org.example.models.*;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -17,35 +18,6 @@ public final class SellerDAO {
     private static final String COL_SPORT      = "sport";
     private static final String COL_BRAND      = "brand";
     private static final String COL_CATEGORY   = "category";
-
-    // DTO/Record
-
-    public record CatalogRow(
-            int productId, String name, String sport, String brand,
-            String category, String size, BigDecimal price, int quantity) {}
-
-    public record ShopOrderSummary(
-            int orderId, Timestamp orderDate, String state,
-            BigDecimal total, String customer, String address) {}
-
-    public record ShopOrderLine(
-            long productId, String productName, String size,
-            int quantity, BigDecimal unitPrice) {
-        public BigDecimal subtotal() {
-            return unitPrice == null ? BigDecimal.ZERO :
-                    unitPrice.multiply(BigDecimal.valueOf(quantity));
-        }
-    }
-
-    public record SellerShop(int shopId, String shopName) {}
-
-    public record ProductOption(
-            int productId, String name, String brand,
-            String sport, String category) {
-        @Override public String toString() {
-            return name + " · " + brand + " · " + sport + " (" + category + ")";
-        }
-    }
 
     // Utility
 

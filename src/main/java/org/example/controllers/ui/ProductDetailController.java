@@ -16,6 +16,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.controllers.app.ProductDetailAppController;
+import org.example.controllers.app.ReviewAppController;
 import org.example.models.Product;
 import org.example.models.Shop;
 import org.example.util.Session;
@@ -57,9 +58,12 @@ public class ProductDetailController {
         this.onCartUpdate = callback;
     }
 
+    public void setAppController(ProductDetailAppController app) {
+        this.appController = app;
+    }
+
     public void setProduct(Product p) {
         this.product = p;
-        appController = new ProductDetailAppController();
 
         updateImage(p.getImageData());
         nameLbl.setText(p.getName());
@@ -107,7 +111,6 @@ public class ProductDetailController {
         if (product == null) return;
 
         applySelectedSizeIfPresent();
-        logger.log(Level.INFO, "Aggiungendo al carrello: {0}", product.getName());
 
         int qty = getSelectedQtyOrDefault();
         int max = getMaxAvailableQtySafe();
@@ -145,6 +148,7 @@ public class ProductDetailController {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ListReview.fxml"));
             Parent root = loader.load();
             ReviewController ctrl = loader.getController();
+            ctrl.setAppController(new ReviewAppController());
             ctrl.init(product);
 
             Stage stage = new Stage();

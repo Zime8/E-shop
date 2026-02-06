@@ -306,13 +306,6 @@ public final class OrderDAO {
         }
     }
 
-    // Riga tabella DETTAGLIO
-    public record OrderLine(int orderId, long productId, int shopId, String productName, String shopName, String size, int quantity, BigDecimal unitPrice) {
-        public BigDecimal getSubtotal() {
-            return (unitPrice == null) ? BigDecimal.ZERO : unitPrice.multiply(BigDecimal.valueOf(quantity));
-        }
-    }
-
     // Ordini completi come model `Order`
     public static List<Order> listOrdersModel(int userId) throws SQLException {
         if (Session.isDemo()) {

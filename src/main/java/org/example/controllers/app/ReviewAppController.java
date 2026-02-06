@@ -15,6 +15,10 @@ public class ReviewAppController {
     private final UserDAO userDao = new UserDAO();
     private static final Logger logger = Logger.getLogger(ReviewAppController.class.getName());
 
+    public ReviewDialogAppController createReviewDialogController(Product product) {
+        return new ReviewDialogAppController(product);
+    }
+
     public List<Review> loadReviews(Product product) {
         try {
             return reviewDao.listByProductShop(product.getProductId(), product.getIdShop());

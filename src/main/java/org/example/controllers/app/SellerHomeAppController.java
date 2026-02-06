@@ -4,11 +4,10 @@ import javafx.application.Platform;
 import javafx.scene.control.*;
 import org.example.dao.SellerDAO;
 import org.example.dao.ShopDAO;
-import org.example.models.CatalogForm;
+import org.example.models.*;
 import org.example.util.Session;
 import java.math.BigDecimal;
 import java.sql.SQLException;
-import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.Callable;
@@ -23,7 +22,6 @@ public class SellerHomeAppController {
     private Integer currentShopId;
 
     private static final List<String> ORDER_STATES = List.of("in elaborazione", "spedito", "consegnato", "annullato");
-    private static final NumberFormat CURR_IT = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
     // Esecutore async
     private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
@@ -64,30 +62,30 @@ public class SellerHomeAppController {
         orderStateCombo.getItems().setAll(ORDER_STATES);
     }
 
-    public void refreshBalance(Label balanceLabel, Button withdrawButton, Consumer<String> onError)  {
-        try{
-            Integer userId = Session.getUserId();
-            if(userId == null){
-                updateBalanceUI(balanceLabel, withdrawButton, null);
-                return;
-            }
-            BigDecimal bal = ShopDAO.getBalance(userId);
-            updateBalanceUI(balanceLabel, withdrawButton, bal);
-        }catch (SQLException e) {
-            logger.info( "Aggiornamento saldo fallito");
-            updateBalanceUI(balanceLabel, withdrawButton, null);
-            onError.accept("Errore nel refresh balance");
-        }
+    public void refreshBalance(Consumer<BigDecimal> onBalance, Consumer<String> onError) {
+        runAsync(() -> {
+                    Integer userId = Session.getUserId();
+                    if (userId == null) {
+                        return null;  // Boundary gestisce null
+                    }
+                    return ShopDAO.getBalance(userId);
+                },
+                onBalance,  // ← Callback Boundary
+                e -> onError.accept("Errore nel refresh balance: " + e.getMessage())
+        );
     }
 
-    private void updateBalanceUI(Label label, Button button, BigDecimal balance){
-        if(balance == null || balance.compareTo(BigDecimal.ZERO) <= 0){
-            label.setText("-");
-            button.setDisable(true);
-        } else {
-            label.setText(CURR_IT.format(balance));
-            button.setDisable(false);
-        }
+    public void withdrawRequest(Runnable onHasBalance, Runnable onNoBalance, Runnable onNotLogged) {
+        ensureUserLoggedIn(
+                () -> {
+                    if (hasAvailableBalance()) {
+                        onHasBalance.run();
+                    } else {
+                        onNoBalance.run();
+                    }
+                },
+                onNotLogged
+        );
     }
 
     public boolean hasAvailableBalance(){
@@ -102,7 +100,32 @@ public class SellerHomeAppController {
         }
     }
 
-    public void reloadCatalog(Consumer<List<SellerDAO.CatalogRow>> onSuccess, Consumer<String> onError){
+    public void prefillProductName(int productId, Consumer<String> onName, Runnable onNotFound) {
+        runAsync(
+                () -> SellerDAO.listAllProductOptions().stream()
+                        .filter(o -> o.productId() == productId)
+                        .findFirst()
+                        .map(ProductOption::name),
+                optName -> optName.ifPresentOrElse(onName, onNotFound),
+                e -> { onNotFound.run(); logger.warning("Product name load failed: " + e); }
+        );
+    }
+
+    public void searchProductOptions(String firstToken, int limit, String[] allTokens,
+                                     Consumer<List<ProductOption>> onResults, Consumer<String> onError) {
+        runAsync(
+                () -> {
+                    List<ProductOption> all = SellerDAO.listProductOptionsByNameLike(firstToken, limit);
+                    return all.stream()
+                            .filter(o -> matchesAllTokens(o, allTokens))  // Riutilizza tuo metodo
+                            .toList();
+                },
+                onResults,
+                e -> onError.accept("Errore ricerca: " + e.getMessage())
+        );
+    }
+
+    public void reloadCatalog(Consumer<List<CatalogRow>> onSuccess, Consumer<String> onError){
         runAsync(
                 () -> SellerDAO.listCatalog(currentShopId, null),
                 onSuccess,
@@ -143,7 +166,7 @@ public class SellerHomeAppController {
         );
     }
 
-    public void listOrderAsync(String stateFilter, Consumer<List<SellerDAO.ShopOrderSummary>> onSuccess,
+    public void listOrderAsync(String stateFilter, Consumer<List<ShopOrderSummary>> onSuccess,
                                Consumer<String> onError) {
         runAsync(
                 () -> SellerDAO.listShopOrders(currentShopId, stateFilter),
@@ -169,7 +192,7 @@ public class SellerHomeAppController {
         return true;
     }
 
-    public void loadOrderLines(int orderId, Consumer<List<SellerDAO.ShopOrderLine>> onSuccess, Consumer<String> onError) {
+    public void loadOrderLines(int orderId, Consumer<List<ShopOrderLine>> onSuccess, Consumer<String> onError) {
         runAsync(
                 () -> SellerDAO.listShopOrderLines(currentShopId, orderId),
                 onSuccess,
@@ -192,7 +215,7 @@ public class SellerHomeAppController {
     }
 
     public void loadProductOptionAsync(String query, int limit,
-                                       Consumer<List<SellerDAO.ProductOption>> onSuccess,
+                                       Consumer<List<ProductOption>> onSuccess,
                                        Consumer<String> onError) {
         runAsync(
                 () -> SellerDAO.listProductOptionsByNameLike(query, limit),
@@ -201,7 +224,7 @@ public class SellerHomeAppController {
         );
     }
 
-    public void loadAllProducts(ComboBox<SellerDAO.ProductOption> combo, Consumer<String> onError) {
+    public void loadAllProducts(ComboBox<ProductOption> combo, Consumer<String> onError) {
         loadProductOptionAsync("", 100,
                 opts -> {
                     combo.getItems().setAll(opts);
@@ -228,7 +251,7 @@ public class SellerHomeAppController {
                 .trim();
     }
 
-    public boolean matchesAllTokens(SellerDAO.ProductOption opt, String[] tokens) {
+    public boolean matchesAllTokens(ProductOption opt, String[] tokens) {
         String name = normalizeQuery(opt.name());
         for (String t : tokens) {
             if (!t.isBlank() && !name.contains(t)) return false;

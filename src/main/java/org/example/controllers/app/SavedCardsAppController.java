@@ -1,6 +1,6 @@
 package org.example.controllers.app;
 
-import org.example.controllers.control.SavedCardsControl;
+import org.example.control.interfaces.SavedCardsControl;
 import org.example.dao.SavedCardsDAO;
 import org.example.models.Card;
 import org.example.util.Session;
@@ -136,13 +136,5 @@ public class SavedCardsAppController implements SavedCardsControl {
     public static void validateType(String type) {
         if ("Credito".equals(type) || "Debito".equals(type)) return;
         throw new IllegalArgumentException("Tipo carta non valido. Usa 'Credito' o 'Debito'.");
-    }
-
-    public static String maskPan(String raw) {
-        if (raw == null) return "";
-        String d = raw.replaceAll("\\D", "");
-        if (d.length() <= 4) return d;
-        String last4 = d.substring(d.length() - 4);
-        return "**** **** **** " + last4;
     }
 }

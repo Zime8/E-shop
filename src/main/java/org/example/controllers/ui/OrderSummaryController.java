@@ -47,8 +47,11 @@ public class OrderSummaryController {
         this.stage = stage;
     }
 
+    public void setAppController(OrderSummaryAppController app) {
+        this.appController = app;
+    }
+
     @FXML public void initialize(){
-        appController = new OrderSummaryAppController();
     }
 
     public void loadData(List<CartItem> items, BigDecimal total) {

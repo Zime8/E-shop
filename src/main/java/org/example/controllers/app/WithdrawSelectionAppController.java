@@ -1,12 +1,12 @@
 package org.example.controllers.app;
 
-import org.example.controllers.control.WithdrawSelectionControl;
+import org.example.control.interfaces.WithdrawSelectionControl;
 import org.example.dao.ShopDAO;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
 import org.example.models.InlineCardData;
-import org.example.services.CardsService;
-import org.example.services.CardsService.AddCardResult;
+import org.example.control.services.CardsService;
+import org.example.control.services.CardsService.AddCardResult;
 import org.example.ui.CardUi;
 import org.example.util.Session;
 

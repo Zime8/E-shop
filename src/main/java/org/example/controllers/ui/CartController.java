@@ -18,9 +18,10 @@ import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.example.controllers.app.CartAppController;
-import org.example.controllers.app.CartAppController.Key;
-import org.example.controllers.app.CartAppController.Aggregated;
-import org.example.controllers.app.CartAppController.CheckoutData;
+import org.example.controllers.app.OrderSummaryAppController;
+import org.example.models.Key;
+import org.example.models.Aggregated;
+import org.example.models.CheckoutData;
 import org.example.models.Product;
 
 import java.io.IOException;
@@ -43,9 +44,12 @@ public class CartController {
 
     public void setOnCartUpdated(Runnable callback) { this.onCartUpdated = callback; }
 
-    public void initialize() {
-        appController = new CartAppController();
+    public void setAppController(CartAppController app) {
+        this.appController = app;
         loadCartItems();
+    }
+
+    public void initialize() {
     }
 
     // Carica i prodotti nel carrello
@@ -250,7 +254,7 @@ public class CartController {
 
     @FXML private void onCheckout() {
         try {
-            CheckoutData data = appController.buildCheckoutData();  // ← DELEGA
+            CheckoutData data = appController.buildCheckoutData();
             if (data.items().isEmpty()) {
                 new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
                 return;
@@ -293,6 +297,7 @@ public class CartController {
             OrderSummaryController ctrl = loader.getController();
 
             ctrl.setOnCartUpdated(this.onCartUpdated);
+            ctrl.setAppController(new OrderSummaryAppController());
 
             Stage dialog = new Stage();
             Window owner = resolveOwnerWindow();

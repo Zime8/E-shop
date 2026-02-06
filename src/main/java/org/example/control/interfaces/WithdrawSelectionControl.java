@@ -1,4 +1,4 @@
-package org.example.controllers.control;
+package org.example.control.interfaces;
 
 import org.example.models.Card;
 import org.example.models.CardViewModel;

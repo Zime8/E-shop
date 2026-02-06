@@ -17,14 +17,13 @@ import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.controlsfx.control.RangeSlider;
-import org.example.controllers.app.HomeAppController;
+import org.example.controllers.app.*;
 import org.example.models.FilterCriteria;
 import org.example.models.Product;
 
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
-import java.util.Objects;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,15 +58,20 @@ public class HomeController implements Initializable {
     @FXML private TilePane productPane;
     @FXML private Label sectionTitle;
 
+    public void setAppController(HomeAppController appController) {
+        this.appController = appController;
+        welcomeLabel.setText("Benvenuto, " + appController.getCurrentUserName() + "!");
+        updateCart();
+
+        loadLatestArrivals();
+    }
+
     @FXML
     @Override
     public void initialize(URL url, ResourceBundle rb) {
-        appController = new HomeAppController();
-
-        welcomeLabel.setText("Benvenuto, " + appController.getCurrentUserName() + "!");
         sectionTitle.setText(LAST);
 
-        loadLatestArrivals();
+        if (appController != null) loadLatestArrivals();
 
         Platform.runLater(() -> {
             searchField.requestFocus();
@@ -98,8 +102,6 @@ public class HomeController implements Initializable {
                 loadLatestArrivals();
             }
         });
-
-        updateCart();
     }
 
     // Ricerca prodotto dopo il 3 carattere digitato
@@ -134,8 +136,15 @@ public class HomeController implements Initializable {
     private void switchToLoginScene() {
         Platform.runLater(() -> {
             try {
-                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/login.fxml")));
-                Stage stage = getCurrentStage();  // Spostato da AppController
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+                Parent root = loader.load();
+
+                LoginController loginUI = loader.getController();
+                if (loginUI != null) {
+                    loginUI.setAppController(new LoginAppController());
+                }
+
+                Stage stage = getCurrentStage();
                 if (stage != null) stage.setScene(new Scene(root));
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Errore navigazione login", e);
@@ -155,6 +164,7 @@ public class HomeController implements Initializable {
             VBox popupContent = loader.load();
             CartController controller = loader.getController();
             controller.setOnCartUpdated(this::updateCart);
+            controller.setAppController(new CartAppController());
 
             cartPopup = new Popup();
             cartPopup.getContent().add(popupContent);
@@ -186,12 +196,10 @@ public class HomeController implements Initializable {
     public void updateCart() {
         Platform.runLater(() -> {
             int count = appController.getCartCount();
-            logger.info("🛒 updateCart count=" + count);
 
             if (count > 0) {
                 ((Label)cartBadgeContainer.getChildren().get(1)).setText(String.valueOf(count));
                 cartBadgeContainer.setVisible(true);
-                logger.info("🛒 Badge CIRCLE visibile!");
             } else {
                 cartBadgeContainer.setVisible(false);
             }
@@ -247,6 +255,7 @@ public class HomeController implements Initializable {
             VBox popupContent = loader.load();
             WishlistController controller = loader.getController();
             controller.setOnCartUpdated(this::updateCart);
+            controller.setAppController(new WishlistAppController());
 
             Popup p = new Popup();
             p.getContent().add(popupContent);
@@ -333,10 +342,7 @@ public class HomeController implements Initializable {
                 Node card = loader.load();
                 ProductCardController ctrl = loader.getController();
                 appController.createProductCard(ctrl, p);
-                ctrl.setOnCartUpdate(() -> {
-                    logger.info("🎯 Home.updateCart() callback ricevuto!");
-                    updateCart();
-                });
+                ctrl.setOnCartUpdate(this::updateCart);
                 productPane.getChildren().add(card);
             } catch (IOException e){
                 logger.log(Level.WARNING, "Errore nel caricamento dei prodotti", e);
@@ -381,10 +387,23 @@ public class HomeController implements Initializable {
         Scene scene = new Scene(content);
         Stage stage = new Stage();
         stage.setScene(scene);
-        if (fxmlResource.toLowerCase().contains("card"))  stage.setTitle("Carte Salvate");
-        else if (fxmlResource.toLowerCase().contains("profile"))  stage.setTitle("Dettagli Profilo");
-        else if (fxmlResource.toLowerCase().contains("purchase")) stage.setTitle("Storico Acquisti");
-        else stage.setTitle("E-Shop");
+
+        Object ctrl = loader.getController();
+        if (fxmlResource.contains("ProfileDetails")){
+            ((ProfileDetailsController)ctrl).setAppController(new ProfileDetailsAppController());
+            stage.setTitle("Dettagli Profile");
+        }
+        else if (fxmlResource.contains("SavedCards")){
+            ((SavedCardsController)ctrl).setAppController(new SavedCardsAppController());
+            stage.setTitle("Carte Salvate");
+        }
+        else if (fxmlResource.contains("PurchaseHistory")){
+            ((PurchaseHistoryController)ctrl).setAppController(new PurchaseHistoryAppController());
+            stage.setTitle("Storico Acquisti");
+        }
+        else {
+            stage.setTitle("E-Shop");
+        }
         stage.setResizable(false);
         stage.centerOnScreen();
         return stage;

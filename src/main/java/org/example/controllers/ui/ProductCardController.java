@@ -12,6 +12,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.example.controllers.app.ProductCardAppController;
+import org.example.controllers.app.ProductDetailAppController;
 import org.example.models.Product;
 import org.example.util.ImageUtils;
 
@@ -28,16 +29,10 @@ public class ProductCardController {
     @FXML private Label priceLbl;
     @FXML private Label nameShopLbl;
 
-    private Runnable onCartUpdate;
-
     private ProductCardAppController appController;
 
     public void setController(ProductCardAppController appController) {
         this.appController = appController;
-    }
-
-    public void setOnCartUpdate(Runnable callback) {
-        this.onCartUpdate = callback;
     }
 
     public void setProduct(Product p) {
@@ -48,7 +43,14 @@ public class ProductCardController {
         nameShopLbl.setText(p.getNameShop());
         priceLbl.setText(String.format("€ %.2f", p.getPrice()));
 
-        appController.setProduct(p, this::onCardClicked);
+        appController.setProduct(p, appController.getOnAddToCartCallback());
+    }
+
+    // Aggiungi questo metodo
+    public void setOnCartUpdate(Runnable callback) {
+        if (appController != null) {
+            appController.setOnAddToCartCallback(callback);
+        }
     }
 
     @FXML private void onCardClicked() {
@@ -57,8 +59,9 @@ public class ProductCardController {
             Parent detailRoot = loader.load();
 
             ProductDetailController detailCtrl = loader.getController();
-            appController.setupProductDetail(detailCtrl);
-            detailCtrl.setOnCartUpdate(onCartUpdate);
+            detailCtrl.setAppController(new ProductDetailAppController());
+            detailCtrl.setProduct(appController.getCurrentProduct());
+            detailCtrl.setOnCartUpdate(appController.getOnAddToCartCallback());
 
             Pane transparentRoot = new Pane();
             transparentRoot.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");

@@ -10,11 +10,13 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import org.example.controllers.app.HomeAppController;
 import org.example.controllers.app.LoginAppController;
 import org.example.controllers.app.LoginAppController.*;
+import org.example.controllers.app.RegisterAppController;
+import org.example.controllers.app.SellerHomeAppController;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,9 +32,13 @@ public class LoginController {
 
     private LoginAppController appController;
 
+    public void setAppController(LoginAppController app) {
+        this.appController = app;
+    }
+
     @FXML public void initialize() {
-        appController = new LoginAppController();
         Platform.runLater(this::applyLoginWindowSizing);
+        usernameField.requestFocus();
     }
 
     @FXML
@@ -57,9 +63,7 @@ public class LoginController {
 
     @FXML
     private void onRegisterLink() {
-        navigate("/fxml/Register.fxml", "Registrazione", false,
-                "Errore nel caricamento della schermata Register.fxml",
-                "Errore durante il caricamento della schermata per la registrazione.");
+        navigate();
     }
 
     @FXML
@@ -74,23 +78,45 @@ public class LoginController {
     }
 
     private void navigateToHome(String fxmlPath) {
-        String title = fxmlPath.contains("SellerHome") ? "Area Venditore" : "Home";
-        navigate(fxmlPath, title, true,
-                "Errore caricamento home",
-                "Errore durante il caricamento della schermata utente.");
-    }
-
-    private void navigate(String fxmlPath, String title, boolean maximized, String logContext, String userFacingErrorMsg) {
         try {
-            Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource(fxmlPath)));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent root = loader.load();
+
+            if (fxmlPath.contains("SellerHome")) {
+                SellerHomeController sellerCtrl = loader.getController();
+                SellerHomeAppController sellerApp = new SellerHomeAppController();
+                sellerCtrl.setAppController(sellerApp);
+            } else {
+                HomeController homeCtrl = loader.getController();
+                HomeAppController homeApp = new HomeAppController();
+                homeCtrl.setAppController(homeApp);
+            }
+
             Stage stage = (Stage) loginButton.getScene().getWindow();
             stage.setScene(new Scene(root));
-            if (title != null) stage.setTitle(title);
-            stage.setMaximized(maximized);
+            stage.setTitle(fxmlPath.contains("SellerHome") ? "Area Venditore" : "Home");
+            stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
-            logger.log(Level.SEVERE, logContext, e);
-            showAlert(Alert.AlertType.ERROR, userFacingErrorMsg);
+            logger.log(Level.SEVERE, "Errore Home nav", e);
+        }
+    }
+
+    private void navigate() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Register.fxml"));
+            Parent root = loader.load();
+
+            RegisterController regCtrl = loader.getController();
+            regCtrl.setAppController(new RegisterAppController());
+            Stage stage = (Stage) loginButton.getScene().getWindow();
+            stage.setScene(new Scene(root));
+            stage.setTitle("Registrazione");
+            stage.setMaximized(false);
+            stage.show();
+        } catch (IOException e) {
+            logger.log(Level.SEVERE, "Errore nel caricamento della schermata Register.fxml", e);
+            showAlert(Alert.AlertType.ERROR, "Errore durante il caricamento della schermata per la registrazione.");
         }
     }
 

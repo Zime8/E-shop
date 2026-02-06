@@ -1,6 +1,5 @@
 package org.example.controllers.app;
 
-import org.example.controllers.ui.ProductDetailController;
 import org.example.models.Product;
 
 public class ProductCardAppController {
@@ -12,8 +11,11 @@ public class ProductCardAppController {
         this.onAddToCartCallback = onAddToCartCallback;
     }
 
-    public void setupProductDetail(ProductDetailController controller) {
-        controller.setProduct(currentProduct);
-        controller.setOnCartUpdate(onAddToCartCallback);
+    public void setOnAddToCartCallback(Runnable callback) {
+        this.onAddToCartCallback = callback;
     }
+
+    public Product getCurrentProduct() { return currentProduct; }
+    public Runnable getOnAddToCartCallback() { return onAddToCartCallback; }
 }
+

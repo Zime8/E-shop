@@ -10,7 +10,8 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.stage.Stage;
 import org.example.controllers.app.PurchaseHistoryAppController;
-import org.example.controllers.app.PurchaseHistoryAppController.*;
+import org.example.models.OrderLineView;
+import org.example.models.OrderSummaryView;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -49,14 +50,18 @@ public class PurchaseHistoryController {
 
     private PurchaseHistoryAppController appController;
 
+    public void setAppController(PurchaseHistoryAppController app){
+        this.appController = app;
+        if(app != null) {
+            app.loadOrders(this::displayOrders, this::displayItems);
+        }
+    }
+
     @FXML
     private void initialize() {
-        appController = new PurchaseHistoryAppController();
         setupOrdersTable();
         setupItemsTable();
         setupSelectionListener();
-
-        appController.loadOrders(this::displayOrders, this::displayItems);
     }
 
     private void setupOrdersTable() {

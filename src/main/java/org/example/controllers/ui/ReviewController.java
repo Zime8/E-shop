@@ -42,8 +42,12 @@ public class ReviewController {
     private Product product;
     private static final Logger logger = Logger.getLogger(ReviewController.class.getName());
 
+    public void setAppController(ReviewAppController app) {
+        this.appController = app;
+    }
+
+    @FXML
     public void initialize() {
-        appController = new ReviewAppController();
     }
 
     public void init(Product product) {
@@ -143,11 +147,10 @@ public class ReviewController {
             Parent root = loader.load();
 
             ReviewDialogController dialogUI = loader.getController();
-            ReviewDialogAppController dialogCtrl = new ReviewDialogAppController();
+            ReviewDialogAppController dialogCtrl = appController.createReviewDialogController(product);
 
             dialogUI.setController(dialogCtrl);
-            dialogUI.init(product);
-            dialogCtrl.init(product, productTitle);
+            dialogCtrl.init(productTitle);
 
             Stage st = new Stage();
             st.setTitle("Scrivi una recensione");

@@ -5,14 +5,18 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import java.util.Objects;
+import org.example.controllers.app.LoginAppController;
+import org.example.controllers.ui.LoginController;
+
 
 public class Main extends Application {
     @Override
     public void start(Stage stage) throws Exception {
-        Parent root = FXMLLoader.load(Objects.requireNonNull(
-                getClass().getResource("/fxml/Login.fxml")
-        ));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+        Parent root = loader.load();
+
+        LoginController loginUI = loader.getController();
+        loginUI.setAppController(new LoginAppController());
         stage.setScene(new Scene(root));
         stage.setTitle("Login");
         stage.show();

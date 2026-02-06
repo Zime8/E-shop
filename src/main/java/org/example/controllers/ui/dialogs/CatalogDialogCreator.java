@@ -12,8 +12,8 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
 import org.example.models.CatalogForm;
-import org.example.dao.SellerDAO;
 import org.example.controllers.app.SellerHomeAppController;
+import org.example.models.ProductOption;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -127,37 +127,29 @@ public abstract class CatalogDialogCreator {
     }
 
     private ProductUI createProductUI(CatalogForm initial) {
-        ComboBox<SellerDAO.ProductOption> cb = new ComboBox<>();
+        ComboBox<ProductOption> cb = new ComboBox<>();
         cb.setEditable(true);
         cb.setPromptText("Cerca o seleziona prodotto");
         cb.setConverter(new StringConverter<>() {
-            @Override public String toString(SellerDAO.ProductOption item) {
+            @Override public String toString(ProductOption item) {
                 return item == null ? "" : item.toString();
             }
-            @Override public SellerDAO.ProductOption fromString(String s) {
+            @Override public ProductOption fromString(String s) {
                 return cb.getValue();
             }
         });
         cb.setButtonCell(new ListCell<>() {
-            @Override protected void updateItem(SellerDAO.ProductOption item, boolean empty) {
+            @Override protected void updateItem(ProductOption item, boolean empty) {
                 super.updateItem(item, empty);
                 setText((empty || item == null) ? cb.getPromptText() : item.toString());
             }
         });
-        cb.setCellFactory(lv -> {
-            ListCell<SellerDAO.ProductOption> cell = new ListCell<>() {
-                @Override protected void updateItem(SellerDAO.ProductOption item, boolean empty) {
-                    super.updateItem(item, empty);
-                    setText((empty || item == null) ? null : item.toString());
-                }
-            };
-            cell.setOnMouseClicked(me -> {
-                if (!cell.isEmpty()) {
-                    cb.setValue(cell.getItem());
-                    cb.hide();
-                }
-            });
-            return cell;
+        cb.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(ProductOption item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty ? null : item == null ? null : item.toString());
+            }
         });
 
         TextField tfProductName = new TextField();
@@ -279,7 +271,7 @@ public abstract class CatalogDialogCreator {
         }
     }
 
-    protected void setupAddModeHandlers(ComboBox<SellerDAO.ProductOption> cb) {
+    protected void setupAddModeHandlers(ComboBox<ProductOption> cb) {
         bindEditorToValue(cb);
         installShowAllOnOpen(cb);
         blockEnterCommit(cb);
@@ -294,23 +286,13 @@ public abstract class CatalogDialogCreator {
         ui.size.setDisable(true);
         ui.price.setText(initial.price().toPlainString());
         ui.qty.setText(String.valueOf(initial.quantity()));
-        appController.runAsync(
-                SellerDAO::listAllProductOptions,
-                opts -> opts.stream()
-                        .filter(o -> o.productId() == initial.productId())
-                        .findFirst()
-                        .ifPresentOrElse(
-                                o -> ui.name.setText(o.name()),
-                                () -> ui.name.setText("Prodotto #" + initial.productId())
-                        ),
-                ex -> {
-                    ui.name.setText("Prodotto #" + initial.productId());
-                    showAlert(Alert.AlertType.ERROR, "Errore nel caricamento prodotto: " + ex.getMessage());
-                }
+        appController.prefillProductName(initial.productId(),
+                ui.name::setText,
+                () -> ui.name.setText("Prodotto #" + initial.productId())
         );
     }
 
-    private void installShowAllOnOpen(ComboBox<SellerDAO.ProductOption> cb) {
+    private void installShowAllOnOpen(ComboBox<ProductOption> cb) {
         cb.showingProperty().addListener((obs, was, showing) -> {
             if (!Boolean.TRUE.equals(showing)) return;
             if (appController.normalizeQuery(cb.getEditor().getText()).isEmpty()) {
@@ -346,7 +328,7 @@ public abstract class CatalogDialogCreator {
         return ACCENT;
     }
 
-    private void blockEnterCommit(ComboBox<SellerDAO.ProductOption> cb) {
+    private void blockEnterCommit(ComboBox<ProductOption> cb) {
         cb.addEventFilter(KeyEvent.KEY_PRESSED, e -> {
             if (e.getCode() == KeyCode.ENTER) e.consume();
         });
@@ -355,7 +337,7 @@ public abstract class CatalogDialogCreator {
         });
     }
 
-    private void fixPopupSpaceIssue(ComboBox<SellerDAO.ProductOption> cb) {
+    private void fixPopupSpaceIssue(ComboBox<ProductOption> cb) {
         final AtomicBoolean suppressNext = new AtomicBoolean(false);
 
         cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
@@ -385,7 +367,7 @@ public abstract class CatalogDialogCreator {
         });
     }
 
-    private void attachTypeahead(ComboBox<SellerDAO.ProductOption> cb) {
+    private void attachTypeahead(ComboBox<ProductOption> cb) {
         final PauseTransition debounce = new PauseTransition(Duration.millis(250));
         final String[] lastQ = { "" };
 
@@ -411,7 +393,7 @@ public abstract class CatalogDialogCreator {
         return false;
     }
 
-    private boolean handleEmptyOrUnchangedQuery(ComboBox<SellerDAO.ProductOption> cb,
+    private boolean handleEmptyOrUnchangedQuery(ComboBox<ProductOption> cb,
                                                 PauseTransition debounce,
                                                 String[] lastQ,
                                                 String q) {
@@ -425,7 +407,7 @@ public abstract class CatalogDialogCreator {
         return q.equalsIgnoreCase(lastQ[0]);
     }
 
-    private void scheduleTypeaheadSearch(ComboBox<SellerDAO.ProductOption> cb,
+    private void scheduleTypeaheadSearch(ComboBox<ProductOption> cb,
                                          PauseTransition debounce,
                                          String[] tokens,
                                          String first,
@@ -433,25 +415,23 @@ public abstract class CatalogDialogCreator {
                                          String[] lastQ,
                                          boolean wasShowing) {
         debounce.stop();
-        debounce.setOnFinished(evt -> appController.runAsync(
-                () -> SellerDAO.listProductOptionsByNameLike(first, 100),
-                opts -> {
-                    var filtered = opts.stream().filter(o2 -> appController.matchesAllTokens(o2, tokens)).toList();
-                    if (!filtered.isEmpty()) {
-                        cb.getItems().setAll(filtered);
-                        if (wasShowing) cb.show();
-                    } else {
-                        cb.getItems().clear();
-                        cb.hide();
-                    }
-                    lastQ[0] = q;
-                },
-                ex -> showAlert(Alert.AlertType.ERROR, "Errore ricerca prodotti: " + ex.getMessage())
+        debounce.setOnFinished(evt -> appController.searchProductOptions(first, 100, tokens,
+            filtered -> {
+                if (!filtered.isEmpty()) {
+                    cb.getItems().setAll(filtered);
+                    if (wasShowing) cb.show();
+                } else {
+                    cb.getItems().clear();
+                    cb.hide();
+                }
+                lastQ[0] = q;
+            },
+            errMsg -> showAlert(Alert.AlertType.ERROR, "Errore ricerca prodotti: " + errMsg)
         ));
         debounce.playFromStart();
     }
 
-    private void bindEditorToValue(ComboBox<SellerDAO.ProductOption> cb) {
+    private void bindEditorToValue(ComboBox<ProductOption> cb) {
         cb.valueProperty().addListener((obs, oldV, newV) -> {
             if (newV == null) return;
             cb.getProperties().put(PROP_SUPPRESS_TA_ONCE, Boolean.TRUE);
@@ -459,7 +439,7 @@ public abstract class CatalogDialogCreator {
         });
     }
 
-    private void syncEditorOnBlur(ComboBox<SellerDAO.ProductOption> cb) {
+    private void syncEditorOnBlur(ComboBox<ProductOption> cb) {
         cb.focusedProperty().addListener((obs, was, now) -> {
             if (Boolean.TRUE.equals(now)) return;
             var val = cb.getValue();
@@ -468,7 +448,7 @@ public abstract class CatalogDialogCreator {
         });
     }
 
-    private void dropValueOnTyping(ComboBox<SellerDAO.ProductOption> cb) {
+    private void dropValueOnTyping(ComboBox<ProductOption> cb) {
         cb.getEditor().addEventFilter(KeyEvent.KEY_TYPED, e -> {
             if (Boolean.TRUE.equals(cb.getProperties().get(PROP_SUPPRESS_TA_ONCE))) return;
             if (cb.getValue() != null) cb.setValue(null);
@@ -514,7 +494,7 @@ public abstract class CatalogDialogCreator {
     }
 
 
-    protected record ProductUI(ComboBox<SellerDAO.ProductOption> combo,
+    protected record ProductUI(ComboBox<ProductOption> combo,
                                TextField name,
                                TextField size,
                                TextField price,

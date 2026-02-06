@@ -14,11 +14,12 @@
     import javafx.scene.control.TextField;
     import javafx.stage.Modality;
     import javafx.stage.Stage;
+    import org.example.controllers.app.LoginAppController;
     import org.example.controllers.ui.dialogs.AddCatalogDialogCreator;
     import org.example.controllers.ui.dialogs.EditCatalogDialogCreator;
-    import org.example.dao.SellerDAO;
     import org.example.controllers.app.SellerHomeAppController;
-    import org.example.models.CatalogForm;
+    import org.example.models.*;
+
 
     import java.awt.*;
     import java.io.IOException;
@@ -58,32 +59,32 @@
         @FXML private TextField productSearchField;
         @FXML private ComboBox<String> brandFilter;
         @FXML private ComboBox<String> categoryFilter;
-        @FXML private TableView<SellerDAO.CatalogRow> productsTable;
-        @FXML private TableColumn<SellerDAO.CatalogRow, Number> colProdId;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colProdName;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colSport;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colBrand;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colCategory;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colSize;
-        @FXML private TableColumn<SellerDAO.CatalogRow, String> colPrice;
-        @FXML private TableColumn<SellerDAO.CatalogRow, Number> colQuantity;
+        @FXML private TableView<CatalogRow> productsTable;
+        @FXML private TableColumn<CatalogRow, Number> colProdId;
+        @FXML private TableColumn<CatalogRow, String> colProdName;
+        @FXML private TableColumn<CatalogRow, String> colSport;
+        @FXML private TableColumn<CatalogRow, String> colBrand;
+        @FXML private TableColumn<CatalogRow, String> colCategory;
+        @FXML private TableColumn<CatalogRow, String> colSize;
+        @FXML private TableColumn<CatalogRow, String> colPrice;
+        @FXML private TableColumn<CatalogRow, Number> colQuantity;
     
         // Ordini
         @FXML private ComboBox<String> orderStateFilter;
-        @FXML private TableView<SellerDAO.ShopOrderSummary> sellerOrdersTable;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, Number> colOrderIdS;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colOrderDateS;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colOrderStateS;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colOrderTotalS;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colCustomerS;
-        @FXML private TableColumn<SellerDAO.ShopOrderSummary, String> colAddress;
+        @FXML private TableView<ShopOrderSummary> sellerOrdersTable;
+        @FXML private TableColumn<ShopOrderSummary, Number> colOrderIdS;
+        @FXML private TableColumn<ShopOrderSummary, String> colOrderDateS;
+        @FXML private TableColumn<ShopOrderSummary, String> colOrderStateS;
+        @FXML private TableColumn<ShopOrderSummary, String> colOrderTotalS;
+        @FXML private TableColumn<ShopOrderSummary, String> colCustomerS;
+        @FXML private TableColumn<ShopOrderSummary, String> colAddress;
     
-        @FXML private TableView<SellerDAO.ShopOrderLine> orderItemsTable;
-        @FXML private TableColumn<SellerDAO.ShopOrderLine, String> colItemNameS;
-        @FXML private TableColumn<SellerDAO.ShopOrderLine, String> colItemSizeS;
-        @FXML private TableColumn<SellerDAO.ShopOrderLine, String> colItemPriceS;
-        @FXML private TableColumn<SellerDAO.ShopOrderLine, String> colItemSubtotalS;
-        @FXML private TableColumn<SellerDAO.ShopOrderLine, Number> colItemQtyS;
+        @FXML private TableView<ShopOrderLine> orderItemsTable;
+        @FXML private TableColumn<ShopOrderLine, String> colItemNameS;
+        @FXML private TableColumn<ShopOrderLine, String> colItemSizeS;
+        @FXML private TableColumn<ShopOrderLine, String> colItemPriceS;
+        @FXML private TableColumn<ShopOrderLine, String> colItemSubtotalS;
+        @FXML private TableColumn<ShopOrderLine, Number> colItemQtyS;
     
         @FXML private ComboBox<String> orderStateCombo;
     
@@ -91,33 +92,39 @@
                 DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").withZone(ZoneId.systemDefault());
         private static final NumberFormat CURR_IT = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
-        private final SellerHomeAppController appController = new SellerHomeAppController();
-    
+        private SellerHomeAppController appController;
+
+        public void setAppController(SellerHomeAppController app) {
+            this.appController = app;
+            Platform.runLater(() -> {
+                loadSellerShop();
+                appController.populateOrderStates(orderStateFilter, orderStateCombo);
+                bootstrapData();
+                appController.refreshBalance(this::onBalanceUpdated,
+                        errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
+            });
+        }
+
         @FXML
         private void initialize() {
-            appController.ensureUserLoggedIn(
-                    () -> {
-                        loadSellerShop();
+            setupPlaceholders();
+            wireCatalogColumns();
+            wireOrdersColumns();
+            setupPromptCombo(brandFilter, "Marca");
+            setupPromptCombo(categoryFilter, "Categoria");
+            wireFilterListeners();
+            wireOrderSelection();
+            installTableFixes();
+        }
 
-                        wireCatalogColumns();
-                        wireOrdersColumns();
-                        appController.populateOrderStates(orderStateFilter, orderStateCombo);
-                        appController.refreshBalance(balanceLabel, withdrawButton,
-                                errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg)
-                        );
-
-                        setupPromptCombo(brandFilter, "Marca");
-                        setupPromptCombo(categoryFilter, "Categoria");
-
-                        setupPlaceholders();
-                        wireFilterListeners();
-                        wireOrderSelection();
-
-                        bootstrapData();
-                        installTableFixes();
-                    },
-                    this::disableAll
-            );
+        public void onBalanceUpdated(BigDecimal balance) {
+            if (balance == null || balance.compareTo(BigDecimal.ZERO) <= 0) {
+                balanceLabel.setText("-");
+                withdrawButton.setDisable(true);
+            } else {
+                balanceLabel.setText(CURR_IT.format(balance));
+                withdrawButton.setDisable(false);
+            }
         }
 
         private void loadSellerShop() {
@@ -304,7 +311,7 @@
         }
 
         // Cella per la colonna Address
-        private final class AddressCell extends TableCell<SellerDAO.ShopOrderSummary, String> {
+        private final class AddressCell extends TableCell<ShopOrderSummary, String> {
             private final Hyperlink link = new Hyperlink();
 
             AddressCell() {
@@ -362,7 +369,14 @@
 
         private void switchToLoginScene() {
             try {
-                Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/Login.fxml")));
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+                Parent root = loader.load();
+
+                LoginController loginUI = loader.getController();
+                if (loginUI != null) {
+                    loginUI.setAppController(new LoginAppController());
+                }
+
                 Stage stage = (Stage) logoutButton.getScene().getWindow();
                 stage.setScene(new Scene(root));
                 stage.setTitle("Login");
@@ -420,9 +434,9 @@
             );
         }
 
-        private void updateCatalogFromData(List<SellerDAO.CatalogRow> rows){
+        private void updateCatalogFromData(List<CatalogRow> rows){
             String nameQ = appController.nullIfBlank(productSearchField.getText());
-            List<SellerDAO.CatalogRow> byName = (nameQ == null)
+            List<CatalogRow> byName = (nameQ == null)
                     ? rows
                     : rows.stream().
                     filter(r -> {
@@ -452,14 +466,14 @@
             forceLayout(productsTable);
         }
 
-        private void updateCatalogFiltersOptions(List<SellerDAO.CatalogRow> rows) {
-            updateFilter(brandFilter, rows, SellerDAO.CatalogRow::brand);
-            updateFilter(categoryFilter, rows, SellerDAO.CatalogRow::category);
+        private void updateCatalogFiltersOptions(List<CatalogRow> rows) {
+            updateFilter(brandFilter, rows, CatalogRow::brand);
+            updateFilter(categoryFilter, rows, CatalogRow::category);
         }
 
         private static void updateFilter(ComboBox<String> combo,
-                                         List<SellerDAO.CatalogRow> rows,
-                                         Function<SellerDAO.CatalogRow, String> keyExtractor) {
+                                         List<CatalogRow> rows,
+                                         Function<CatalogRow, String> keyExtractor) {
             if (combo == null) return;
 
             String current = combo.getValue();
@@ -540,20 +554,19 @@
         }
 
         private void refreshBalance(){
-            appController.refreshBalance(balanceLabel, withdrawButton,
-                    errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
+            appController.refreshBalance(
+                    this::onBalanceUpdated,  // Nuovo callback
+                    errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg)
+            );
         }
 
         @FXML
         private void onWithdraw() {
-            appController.ensureUserLoggedIn(
-                    () -> {
-                        if(appController.hasAvailableBalance()) openWithdrawDialog();
-                        else showAlert(Alert.AlertType.INFORMATION, "Saldo insufficiente.");
-                    },
+            appController.withdrawRequest(
+                    this::openWithdrawDialog,
+                    () -> showAlert(Alert.AlertType.INFORMATION, "Saldo insufficiente."),
                     () -> showAlert(Alert.AlertType.INFORMATION, "Login richiesto.")
             );
-            openWithdrawDialog();
         }
 
         private void openWithdrawDialog() {
@@ -573,8 +586,6 @@
 
                 dialog.setScene(new Scene(root));
                 dialog.showAndWait();
-
-                refreshBalance();
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Errore dialog prelievo", e);
                 showAlert(Alert.AlertType.ERROR, "Impossibile aprire finestra prelievo.");

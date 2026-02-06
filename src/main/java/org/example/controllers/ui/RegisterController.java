@@ -8,11 +8,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import org.example.controllers.app.LoginAppController;
 import org.example.controllers.app.RegisterAppController;
-import org.example.controllers.app.RegisterAppController.RegisterValidationResult;
+import org.example.models.RegisterValidationResult;
 
 import java.io.IOException;
-import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,8 +28,14 @@ public class RegisterController {
 
     private RegisterAppController appController;
 
+    public void setAppController(RegisterAppController app) {
+        this.appController = app;
+    }
+
     @FXML public void initialize() {
-        appController = new RegisterAppController();
+        usernameField.requestFocus();
+        phoneField.setPromptText("es. 3331234567");
+        emailField.setPromptText("es. user@example.com");
     }
 
     @FXML private void onRegister() {
@@ -61,7 +67,14 @@ public class RegisterController {
 
     @FXML private void onBack() {
         try {
-            Parent root = FXMLLoader.load(Objects.requireNonNull(getClass().getResource("/fxml/Login.fxml")));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Login.fxml"));
+            Parent root = loader.load();
+
+            Object loginCtrl = loader.getController();
+            if (loginCtrl instanceof LoginController loginUI) {
+                loginUI.setAppController(new LoginAppController());
+            }
+
             Stage stage = (Stage) usernameField.getScene().getWindow();
             stage.setScene(new Scene(root));
         } catch (IOException e) {
