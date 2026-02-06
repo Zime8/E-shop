@@ -49,9 +49,6 @@ public class CartController {
         loadCartItems();
     }
 
-    public void initialize() {
-    }
-
     // Carica i prodotti nel carrello
     public void loadCartItems() {
         cartItemsContainer.getChildren().clear();

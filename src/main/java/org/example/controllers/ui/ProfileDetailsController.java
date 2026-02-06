@@ -20,9 +20,6 @@ public class ProfileDetailsController {
 
     private boolean editMode = false;
 
-    public ProfileDetailsController(){
-    }
-
     public void setAppController(ProfileDetailsAppController app) {
         this.appController = app;
         if (app != null) {

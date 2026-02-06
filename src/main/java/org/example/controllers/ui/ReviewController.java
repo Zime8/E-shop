@@ -46,10 +46,6 @@ public class ReviewController {
         this.appController = app;
     }
 
-    @FXML
-    public void initialize() {
-    }
-
     public void init(Product product) {
         this.product = product;
         String shop = (product.getNameShop() != null && !product.getNameShop().isBlank())

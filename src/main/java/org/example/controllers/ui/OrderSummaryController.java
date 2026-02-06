@@ -51,9 +51,6 @@ public class OrderSummaryController {
         this.appController = app;
     }
 
-    @FXML public void initialize(){
-    }
-
     public void loadData(List<CartItem> items, BigDecimal total) {
         this.cartItems = (items != null) ? List.copyOf(items) : List.of();
         if (appController != null) {

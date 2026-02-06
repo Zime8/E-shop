@@ -148,7 +148,11 @@ public abstract class CatalogDialogCreator {
             @Override
             protected void updateItem(ProductOption item, boolean empty) {
                 super.updateItem(item, empty);
-                setText(empty ? null : item == null ? null : item.toString());
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(item.toString());
+                }
             }
         });
 
