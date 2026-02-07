@@ -25,7 +25,6 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
     public BigDecimal loadBalance() {
         try {
             userId = Session.getUserId();
-            logger.info("🔍 DEBUG loadBalance: userId=" + userId);
             if (userId == null) {
                 logger.warning("User ID null");
                 return BigDecimal.ZERO;
