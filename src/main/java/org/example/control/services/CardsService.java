@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-// Service per le carte salvate
 public final class CardsService {
     private CardsService(){}
 

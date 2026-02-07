@@ -103,7 +103,7 @@ public class ProductDetailController {
             boolean alreadyWished = appController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop());
             updateWishButton(alreadyWished);
         } catch (Exception ex) {
-            logger.log(Level.WARNING, "Errore controllando wishlist", ex);
+            logger.log(Level.WARNING, "Errore controllo wishlist", ex);
         }
     }
 

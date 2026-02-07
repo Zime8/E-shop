@@ -8,7 +8,7 @@ import org.example.models.CardViewModel;
 
 import java.util.Map;
 
-// Cella riutilizzabile con TextField CVV (solo cifre, max 3)
+// Cella con TextField CVV (solo cifre, max 3)
 public class CvvTableCell extends TableCell<CardViewModel, String> {
     private final TextField tf = new TextField();
     private final TableView<CardViewModel> table;

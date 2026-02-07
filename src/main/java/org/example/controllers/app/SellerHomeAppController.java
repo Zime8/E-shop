@@ -66,11 +66,11 @@ public class SellerHomeAppController {
         runAsync(() -> {
                     Integer userId = Session.getUserId();
                     if (userId == null) {
-                        return null;  // Boundary gestisce null
+                        return null;
                     }
                     return ShopDAO.getBalance(userId);
                 },
-                onBalance,  // ← Callback Boundary
+                onBalance,
                 e -> onError.accept("Errore nel refresh balance: " + e.getMessage())
         );
     }

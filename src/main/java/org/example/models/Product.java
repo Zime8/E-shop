@@ -48,92 +48,67 @@ public class Product {
         return new Product(src);
     }
 
-    public long getProductId() {
-        return productId;
+    public long getProductId() { return productId;}
+    public String getName() {
+        return name;
+    }
+    public String getSport() {
+        return sport;
+    }
+    public String getBrand() {
+        return brand;
+    }
+    public String getCategory() {
+        return category;
+    }
+    public String getNameShop() {
+        return nameShop;
+    }
+    public double getPrice() {
+        return price;
+    }
+    public String getSize() {return size;}
+    public Image getImage() {
+        return image;
+    }
+    public int getQuantity() {return quantity;}
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public byte[] getImageData() {return imageData;}
+    public int getIdShop() {
+        return idShop;
     }
 
     public void setProductId(long productId) {
         this.productId = productId;
     }
-
-    public String getName() {
-        return name;
-    }
-
     public void setName(String name) {
         this.name = name;
     }
-
-    public String getSport() {
-        return sport;
-    }
-
     public void setSport(String sport) {
         this.sport = sport;
     }
-
-    public String getBrand() {
-        return brand;
-    }
-
     public void setBrand(String brand) {
         this.brand = brand;
     }
-
-    public String getCategory() {
-        return category;
-    }
-
     public void setCategory(String category) {
         this.category = category;
     }
-
-    public String getNameShop() {
-        return nameShop;
-    }
-
     public void setNameShop(String nameShop) {
         this.nameShop = nameShop;
     }
-
-    public double getPrice() {
-        return price;
-    }
-
     public void setPrice(double price) {
         this.price = price;
     }
-
-    public String getSize() {return size;}
-
     public void setSize(String size) {this.size = size;}
-
-    public Image getImage() {
-        return image;
-    }
-
     public void setImage(Image image) {
         this.image = image;
     }
-
-    public int getQuantity() {return quantity;}
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
-
-    public byte[] getImageData() {return imageData;}
-
     public void setImageData(byte[] imageData) {this.imageData = imageData;}
-
-    public int getIdShop() {
-        return idShop;
-    }
-
     public void setIdShop(int idShop) {
         this.idShop = idShop;
     }

@@ -46,7 +46,6 @@ public class ProductCardController {
         appController.setProduct(p, appController.getOnAddToCartCallback());
     }
 
-    // Aggiungi questo metodo
     public void setOnCartUpdate(Runnable callback) {
         if (appController != null) {
             appController.setOnAddToCartCallback(callback);

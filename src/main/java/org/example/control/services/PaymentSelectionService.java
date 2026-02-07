@@ -42,7 +42,7 @@ public class PaymentSelectionService {
         if (card == null) {
             return new PaymentResult(false, "Carta non selezionata", null, false);
         }
-        if (!CardValidator.isValidCvv(cvv)) {  // OK utility statica
+        if (!CardValidator.isValidCvv(cvv)) {
             return new PaymentResult( false, "CVV non valido", null, false);
         }
         if (address == null || address.isBlank()) {

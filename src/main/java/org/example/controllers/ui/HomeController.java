@@ -321,7 +321,7 @@ public class HomeController implements Initializable {
     public void onResetFilter() {
         FilterCriteria defaults = appController.resetFilters();
 
-        // UI applica valori da Control
+        // Settaggio valori
         sportFilter.setValue(defaults.sport());
         brandFilter.setValue(defaults.brand());
         shopFilter.setValue(defaults.shop());

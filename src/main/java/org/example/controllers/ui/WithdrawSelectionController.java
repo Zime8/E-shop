@@ -10,6 +10,7 @@ import org.example.controllers.app.WithdrawSelectionAppController;
 import org.example.control.interfaces.WithdrawSelectionControl;
 import org.example.models.CardViewModel;
 import org.example.ui.CardUi;
+import org.example.util.CardValidator;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -112,7 +113,7 @@ public class WithdrawSelectionController {
         }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (!CardUi.isValidCvv(cvv)) {
+        if (!CardValidator.isValidCvv(cvv)) {
             showInfo("Inserisci il CVV (3 cifre).");
             return;
         }

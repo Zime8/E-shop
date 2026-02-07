@@ -7,7 +7,7 @@ import org.example.models.CardViewModel;
 import org.example.models.InlineCardData;
 import org.example.control.services.CardsService;
 import org.example.control.services.CardsService.AddCardResult;
-import org.example.ui.CardUi;
+import org.example.util.CardValidator;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -71,7 +71,7 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
             throw new IllegalArgumentException("Dati prelievo invalidi");
         }
 
-        if (!CardUi.isValidCvv(cvv)) {
+        if (!CardValidator.isValidCvv(cvv)) {
             throw new IllegalArgumentException("CVV non valido");
         }
 
@@ -80,7 +80,7 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
         }
 
         try {
-            // Esegui prelievo (Entity)
+            // Esegui prelievo
             ShopDAO.requestWithdraw(userId, amount);
             logger.log(Level.INFO, "Prelievo effettuato: {0}€ per user {1}",
                     new Object[]{amount, userId});

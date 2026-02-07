@@ -475,7 +475,7 @@ public abstract class CatalogDialogCreator {
         a.setHeaderText(null);
         a.setContentText(msg);
         if (ownerButton != null && ownerButton.getScene() != null) {
-            a.initOwner(ownerButton.getScene().getWindow());  // Parent dalla finestra chiamante
+            a.initOwner(ownerButton.getScene().getWindow());
         }
         a.showAndWait();
     }

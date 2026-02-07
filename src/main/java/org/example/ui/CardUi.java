@@ -48,11 +48,6 @@ public final class CardUi {
         return "**** **** **** " + last4;
     }
 
-    // CVV valido = 3 cifre
-    public static boolean isValidCvv(String cvv) {
-        return cvv != null && cvv.matches("\\d{3}");
-    }
-
     public static void bindWidth(TableView<?> table, TableColumn<?, ?> col, double ratio) {
         if (table == null || col == null) return;
         col.prefWidthProperty().bind(table.widthProperty().multiply(ratio));

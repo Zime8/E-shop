@@ -10,7 +10,7 @@ public class CardViewModel {
     private final SimpleStringProperty expiry = new SimpleStringProperty();
     private final SimpleStringProperty type = new SimpleStringProperty();
 
-    // Costruttore da Entity pura
+    // Costruttore
     public CardViewModel(Card entity) {
         if (entity != null) {
             id.set(entity.id());

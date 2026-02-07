@@ -51,7 +51,7 @@ public final class OrderDAO {
     private static CreationResult placeOrderDemo(int userId, List<CartItem> items) throws SQLException {
         ensureDemoSeed();
 
-        // 1) aggrega fabbisogno e 2) valida stock
+        // 1) aggrega fabbisogno e valida stock
         Map<String, Integer> need = aggregateNeed(items);
         validateDemoStock(need);
 

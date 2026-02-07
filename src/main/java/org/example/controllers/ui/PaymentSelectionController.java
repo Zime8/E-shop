@@ -13,6 +13,7 @@ import org.example.models.CartItem;
 import org.example.models.InlineCardData;
 import org.example.control.services.CardsService;
 import org.example.ui.CardUi;
+import org.example.util.CardValidator;
 import org.example.util.Session;
 import org.example.controllers.app.PaymentSelectionAppController;
 
@@ -115,7 +116,7 @@ public class PaymentSelectionController {
 
         Card selected = selectedVM.toEntity();
         String cvv = transientCvvs.get(selected.id());
-        if (!CardUi.isValidCvv(cvv)) {
+        if (!CardValidator.isValidCvv(cvv)) {
             showInfo("Inserisci il CVV (3 cifre) per la carta selezionata.");
             return;
         }
