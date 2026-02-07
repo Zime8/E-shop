@@ -1,6 +1,7 @@
 package org.example.dao;
 
 import org.example.database.DatabaseConnection;
+import org.example.models.CatalogRow;
 import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
@@ -53,7 +54,7 @@ class SellerDAOInsertProductTest {
         int firstQty = 5;
         SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, firstPrice, firstQty);
 
-        SellerDAO.CatalogRow row1 = findCatalogRow(shopId, size);
+        CatalogRow row1 = findCatalogRow(shopId, size);
         assertNotNull(row1, "La variante inserita non è stata trovata nel catalogo");
         assertEquals(firstPrice, row1.price(), "Prezzo iniziale non corrisponde");
         assertEquals(firstQty, row1.quantity(), "Quantità iniziale non corrisponde");
@@ -63,7 +64,7 @@ class SellerDAOInsertProductTest {
         int addQty = 2;
         SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, newPrice, addQty);
 
-        SellerDAO.CatalogRow row2 = findCatalogRow(shopId, size);
+        CatalogRow row2 = findCatalogRow(shopId, size);
         assertNotNull(row2, "Variante non trovata dopo secondo upsert");
         assertEquals(firstPrice, row2.price(), "Il prezzo NON dovrebbe cambiare con l’upsert");
         assertEquals(firstQty + addQty, row2.quantity(), "La quantità non è stata sommata correttamente");
@@ -97,7 +98,7 @@ class SellerDAOInsertProductTest {
         return used.contains(fallback) ? null : fallback;
     }
 
-    private SellerDAO.CatalogRow findCatalogRow(int shopId, String size) throws Exception {
+    private CatalogRow findCatalogRow(int shopId, String size) throws Exception {
         var catalog = SellerDAO.listCatalog(shopId, null);
         return catalog.stream()
                 .filter(r -> r.productId() == SellerDAOInsertProductTest.PRODUCT_ID && size.equals(r.size()))

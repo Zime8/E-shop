@@ -15,7 +15,6 @@ import org.example.controllers.app.LoginAppController;
 import org.example.controllers.app.LoginAppController.*;
 import org.example.controllers.app.RegisterAppController;
 import org.example.controllers.app.SellerHomeAppController;
-import org.example.models.User;
 
 import java.io.IOException;
 import java.util.logging.Level;

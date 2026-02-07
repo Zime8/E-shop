@@ -177,7 +177,6 @@ public class ProductDetailController {
         stage.close();
     }
 
-    // Metodi UI privati invariati
     private void updateImage(byte[] data) {
         if (data != null && data.length > 0) {
             bigPhoto.setImage(new Image(new ByteArrayInputStream(data)));

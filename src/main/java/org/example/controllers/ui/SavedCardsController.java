@@ -314,7 +314,7 @@ public class SavedCardsController {
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.OK) {
             try {
-                if (appController.deleteCard(card.id())) {  // Solo int ID
+                if (appController.deleteCard(card.id())) {
                     reloadCards();
                     showInfo("Carta eliminata!");
                 } else {
