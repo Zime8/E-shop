@@ -292,6 +292,7 @@ public class HomeController implements Initializable {
         }
     }
 
+    // Carica i prodotti in base ai filtri selezionati
     @FXML public void onFilter() {
         FilterCriteria criteria = appController.createFilterCriteria(
                 sportFilter.getValue(),
@@ -334,6 +335,7 @@ public class HomeController implements Initializable {
         loadLatestArrivals();
     }
 
+    // Carica le card dei prodotti nella home
     private void displayProducts(List<Product> products) {
         productPane.getChildren().clear();
         for (Product p : products) {

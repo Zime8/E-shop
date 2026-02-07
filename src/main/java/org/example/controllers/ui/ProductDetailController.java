@@ -62,6 +62,7 @@ public class ProductDetailController {
         this.appController = app;
     }
 
+    // Carica le informazioni della schermata relative al prodotto selezionato
     public void setProduct(Product p) {
         this.product = p;
 
@@ -107,6 +108,7 @@ public class ProductDetailController {
         }
     }
 
+    // Aggiunta del prodotto al carrello
     @FXML private void onAddToCart() {
         if (product == null) return;
 

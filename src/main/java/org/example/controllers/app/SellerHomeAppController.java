@@ -63,17 +63,19 @@ public class SellerHomeAppController {
     }
 
     public void refreshBalance(Consumer<BigDecimal> onBalance, Consumer<String> onError) {
-        runAsync(() -> {
-                    Integer userId = Session.getUserId();
-                    if (userId == null) {
-                        return null;
-                    }
-                    return ShopDAO.getBalance(userId);
-                },
+        Integer userId = Session.getUserId();
+
+        if (userId == null) {
+            onError.accept("Non loggato - userId null");
+            return;
+        }
+
+        runAsync(() -> ShopDAO.getBalance(userId),
                 onBalance,
-                e -> onError.accept("Errore nel refresh balance: " + e.getMessage())
+                e -> onError.accept("Errore saldo: " + e.getMessage())
         );
     }
+
 
     public void withdrawRequest(Runnable onHasBalance, Runnable onNoBalance, Runnable onNotLogged) {
         ensureUserLoggedIn(
@@ -188,7 +190,7 @@ public class SellerHomeAppController {
     }
 
     public boolean logout(){
-        Session.clear();
+        Session.logout();
         return true;
     }
 

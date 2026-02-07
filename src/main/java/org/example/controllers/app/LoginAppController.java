@@ -21,8 +21,7 @@ public class LoginAppController {
 
         UserDAO.LoginResult daoResult = userDao.checkLogin(username.trim(), password);
         if (daoResult.status() == UserDAO.LoginStatus.SUCCESS) {
-            Session.setUser(username.trim());
-            Session.setUserId(daoResult.userId());
+            Session.login(daoResult.userId(), username.trim());
         }
 
         return switch (daoResult.status()) {
@@ -37,10 +36,8 @@ public class LoginAppController {
             String guest = "ospite-" + UUID.randomUUID().toString().substring(0, 8);
             int demoId = DemoData.NEXT_DEMO_USER_ID.getAndDecrement();
 
-            Session.clear();
+            Session.login(demoId, guest);
             Session.setDemo(true);
-            Session.setUser(guest);
-            Session.setUserId(demoId);
 
             DemoData.ensureLoaded();
             DemoData.users().putIfAbsent(guest, new DemoData.User(demoId, guest, null, "utente", null, null));

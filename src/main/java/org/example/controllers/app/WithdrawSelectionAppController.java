@@ -19,11 +19,13 @@ import java.util.logging.Logger;
 public class WithdrawSelectionAppController implements WithdrawSelectionControl {
     private final Logger logger = Logger.getLogger(WithdrawSelectionAppController.class.getName());
     private BigDecimal available = BigDecimal.ZERO;
+    private Integer userId;
 
     @Override
     public BigDecimal loadBalance() {
         try {
-            Integer userId = Session.getUserId();
+            userId = Session.getUserId();
+            logger.info("🔍 DEBUG loadBalance: userId=" + userId);
             if (userId == null) {
                 logger.warning("User ID null");
                 return BigDecimal.ZERO;
@@ -39,7 +41,6 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
     @Override
     public List<CardViewModel> loadSavedCards() {
         try {
-            Integer userId = Session.getUserId();
             if (userId == null) return List.of();
             return CardsService.loadSavedCards(userId);
         } catch (SQLException e) {
@@ -50,7 +51,6 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
 
     @Override
     public void addInlineCard(String holder, String number, String expiry, String type) {
-        Integer userId = Session.getUserId();
         if (userId == null) {
             logger.warning("User ID null per add card");
             return;
@@ -66,7 +66,7 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
 
     @Override
     public void confirmWithdraw(BigDecimal amount, Card card, String cvv) {
-        Integer userId = Session.getUserId();
+
         if (userId == null || amount == null || card == null || cvv == null) {
             throw new IllegalArgumentException("Dati prelievo invalidi");
         }

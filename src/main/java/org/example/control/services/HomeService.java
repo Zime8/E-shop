@@ -40,7 +40,7 @@ public class HomeService {
 
     public void logout() {
         if(Session.isDemo()) DemoData.clearUserDemoReviews(Session.getUser());
-        Session.clear();
+        Session.logout();
     }
 }
 

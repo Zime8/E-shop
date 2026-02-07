@@ -35,6 +35,7 @@ public class ProductCardController {
         this.appController = appController;
     }
 
+    // Setta i prodotti nella schermata home
     public void setProduct(Product p) {
         if(p == null) return;
 
@@ -52,6 +53,7 @@ public class ProductCardController {
         }
     }
 
+    // Apri il dettaglio del prodotto se cliccato
     @FXML private void onCardClicked() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductDetail.fxml"));
