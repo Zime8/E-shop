@@ -2,10 +2,8 @@ package org.example.control.services;
 
 import org.example.dao.ProductDaos;
 import org.example.dao.api.ProductDao;
-import org.example.demo.DemoData;
 import org.example.models.FilterCriteria;
 import org.example.models.Product;
-import org.example.util.Session;
 
 import java.util.List;
 
@@ -30,17 +28,6 @@ public class HomeService {
                 criteria.category().equals(ALL) ? null : criteria.category(),
                 criteria.minPrice(), criteria.maxPrice()
         );
-    }
-
-    public String getCurrentUserName() { return Session.getUser(); }
-
-    public List<Product> getCartItems() {
-        return Session.getCartItems();
-    }
-
-    public void logout() {
-        if(Session.isDemo()) DemoData.clearUserDemoReviews(Session.getUser());
-        Session.logout();
     }
 }
 

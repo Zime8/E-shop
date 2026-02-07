@@ -6,7 +6,6 @@ import org.example.gateway.PaymentResult;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
 import org.example.models.CartItem;
-import org.example.util.Session;
 import org.example.util.CardValidator;
 
 import java.math.BigDecimal;
@@ -35,7 +34,7 @@ public class PaymentSelectionService {
     }
 
     public PaymentResult confirmPayment(Card card, String cvv, String address,
-                                        List<CartItem> items, BigDecimal total) {
+                                        List<CartItem> items, BigDecimal total, Integer userId) {
         if (items == null || total == null) {
             return new PaymentResult(false, "Dati carrello non inizializzati", null, false);
         }
@@ -58,13 +57,13 @@ public class PaymentSelectionService {
 
             logger.log(Level.FINE, "CVV presente: {0}", !cvv.isBlank() ? "***" : "no");
 
-            PaymentResult payRes = gateway.charge(Session.getUserId(), total, paymentData);
+            PaymentResult payRes = gateway.charge(userId, total, paymentData);
             if (!payRes.success()) {
                 return new PaymentResult(false, "Pagamento rifiutato: " + payRes.message(), payRes.transactionId(), false);
             }
 
             OrderDAO.CreationResult orderRes = OrderDAO.placeOrderWithStockDecrement(
-                    Session.getUserId(), items, address);
+                    userId, items, address);
 
             this.lastOrderIds = orderRes.orderIds().toString();
             logger.log(Level.INFO, "Payment txId: {0}", payRes.transactionId());

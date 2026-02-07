@@ -4,6 +4,7 @@ import org.example.controllers.ui.ProductCardController;
 import org.example.models.FilterCriteria;
 import org.example.models.Product;
 import org.example.control.services.HomeService;
+import org.example.util.Session;
 
 import java.util.List;
 
@@ -13,10 +14,9 @@ public class HomeAppController {
     public List<Product> searchByName(String query) { return service.searchByName(query); }
     public List<Product> findLatest(int limit) { return service.findLatest(limit); }
     public List<Product> searchByFilters(FilterCriteria criteria) { return service.searchByFilters(criteria); }
-    public String getCurrentUserName() { return service.getCurrentUserName(); }
+    public String getCurrentUserName() { return Session.getUser(); }
     public int getCartCount() {
-        List<Product> items = service.getCartItems();
-        return items != null ? items.size() : 0;
+        return Session.getCartItems().size();
     }
     public FilterCriteria createFilterCriteria(String sport, String brand, String shop, String category, double minPrice, double maxPrice) {
         return new FilterCriteria(sport, brand, shop, category, minPrice, maxPrice);
@@ -29,6 +29,6 @@ public class HomeAppController {
         uiController.setController(appController);
         uiController.setProduct(product);
     }
-    public void logout() { service.logout(); }
+    public void logout() { Session.logout(); }
 }
 

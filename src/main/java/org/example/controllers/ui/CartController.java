@@ -19,10 +19,7 @@ import javafx.stage.Stage;
 import javafx.stage.Window;
 import org.example.controllers.app.CartAppController;
 import org.example.controllers.app.OrderSummaryAppController;
-import org.example.models.Key;
-import org.example.models.Aggregated;
-import org.example.models.CheckoutData;
-import org.example.models.Product;
+import org.example.models.*;
 
 import java.io.IOException;
 import java.util.*;
@@ -54,7 +51,7 @@ public class CartController {
         cartItemsContainer.getChildren().clear();
         try {
             CheckoutData data = appController.buildCheckoutData();
-            List<Product> cartItems = appController.getCartItems();
+            List<CartItem> cartItems = appController.getCartItems();
             boolean hasItems = !cartItems.isEmpty();
             toggleCartPlaceholders(hasItems);
 
@@ -75,6 +72,20 @@ public class CartController {
             logger.log(Level.SEVERE, "Errore caricamento carrello", e);
             toggleCartPlaceholders(false);
             updateTotalLabel(0.0);
+        }
+    }
+
+    @FXML private void onCheckout() {
+        try {
+            CheckoutData data = appController.buildCheckoutData();
+            if (data.items().isEmpty()) {
+                new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
+                return;
+            }
+            openOrderSummary(data);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Errore checkout", e);
+            new Alert(Alert.AlertType.ERROR, "Errore checkout: " + e.getMessage()).showAndWait();
         }
     }
 
@@ -112,7 +123,7 @@ public class CartController {
         ImageView imageView = createProductImage(p);
         Label name = createNameLabel(p);
         Label unitPrice = createUnitPriceLabel(agg);
-        HBox qtyBox = createQtyBox(p, agg);
+        HBox qtyBox = createQtyBox(agg);
         Label sub = createSubtotalLabel(agg);
         Button removeAll = createRemoveAllButton(p);
 
@@ -171,7 +182,7 @@ public class CartController {
         return unitPrice;
     }
 
-    private HBox createQtyBox(Product p, Aggregated agg) {
+    private HBox createQtyBox(Aggregated agg) {
         HBox qtyBox = new HBox(8);
         qtyBox.setAlignment(Pos.CENTER);
 
@@ -179,42 +190,52 @@ public class CartController {
         Label qtyLbl = new Label(String.valueOf(agg.getQty()));
         Button plus = new Button("+");
 
+        CartItem item = new CartItem(
+                agg.sample.getProductId(), agg.sample.getIdShop(), agg.getQty(),
+                agg.unitPrice(), agg.sample.getName(), agg.sample.getImageData(), agg.sample.getSize()
+        );
+
         try {
-            int stock = appController.getStockFor(p.getProductId(), p.getIdShop(), p.getSize());
-            setupNormalQtyBox(minus, plus, stock, agg.getQty(), p);
+            int stock = appController.getStockFor(item.getProductId(), item.getShopId(), item.getSize());
+            setupNormalQtyBox(minus, plus, stock, agg.getQty(), item);
         } catch (Exception ex) {
             // In caso di errore niente incremento
-            logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + p.getName());
-            setupErrorQtyBox(minus, plus, qtyLbl, p);
+            logger.log(Level.WARNING, ex, () -> "Impossibile leggere lo stock per " + agg.sample.getName());
+            setupErrorQtyBox(minus, plus, qtyLbl, item, agg);
         }
 
         qtyBox.getChildren().addAll(minus, qtyLbl, plus);
         return qtyBox;
     }
 
-    private void setupNormalQtyBox(Button minus, Button plus, int stock, int currentQty, Product p) {
+    private void setupNormalQtyBox(Button minus, Button plus, int stock, int currentQty,
+                                   CartItem item) {
         if (currentQty >= stock) {
             plus.setDisable(true);
             stockLabelTooltip(plus, "Quantità massima raggiunta: " + stock);
         }
 
         minus.setOnAction(e -> {
-                appController.changeQuantity(p, -1);
+                appController.changeQuantity(item, -1);
                 refreshView();
         });
         plus.setOnAction(e -> {
-            appController.changeQuantity(p, +1);
+            appController.changeQuantity(item, +1);
             refreshView();
         });
     }
 
-    private void setupErrorQtyBox(Button minus, Button plus, Label qtyLbl, Product p) {
+    private void setupErrorQtyBox(Button minus, Button plus, Label qtyLbl, CartItem item, Aggregated agg) {
         plus.setDisable(true);
         stockLabelTooltip(plus, MSG_STOCK_UNKNOWN);
         stockLabelTooltip(qtyLbl, MSG_STOCK_UNKNOWN);
         stockLabelTooltip(minus, MSG_STOCK_UNKNOWN);
         minus.setOnAction(e -> {
-            appController.changeQuantity(p, -1);
+            if (item != null) {
+                appController.changeQuantity(item, -1);
+            } else {
+                appController.removeLine(agg.sample.getProductId(), agg.sample.getIdShop(), agg.sample.getSize());
+            }
             refreshView();
         });
     }
@@ -247,20 +268,6 @@ public class CartController {
         });
 
         return removeAll;
-    }
-
-    @FXML private void onCheckout() {
-        try {
-            CheckoutData data = appController.buildCheckoutData();
-            if (data.items().isEmpty()) {
-                new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
-                return;
-            }
-            openOrderSummary(data);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore checkout", e);
-            new Alert(Alert.AlertType.ERROR, "Errore checkout: " + e.getMessage()).showAndWait();
-        }
     }
 
     // Trova la finestra owner corretta per la dialog

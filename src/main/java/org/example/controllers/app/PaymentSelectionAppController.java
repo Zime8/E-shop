@@ -11,18 +11,27 @@ import java.util.List;
 
 public class PaymentSelectionAppController {
     private final PaymentSelectionService service;
+    private Integer userId;
+
+    public Integer getUserId() {
+        return userId;
+    }
 
     public PaymentSelectionAppController(PaymentGateway gateway) {
         this.service = new PaymentSelectionService(gateway);
     }
 
-    public List<CardViewModel> loadSavedCards(int userId) {
+    public void loadUserData(int userId) {
+        this.userId = userId;
+    }
+
+    public List<CardViewModel> loadSavedCards() {
         return service.loadSavedCards(userId);
     }
 
     public PaymentResult confirmPayment(Card card, String cvv, String address,
                                         List<CartItem> items, BigDecimal total) {
-        return service.confirmPayment(card, cvv, address, items, total);
+        return service.confirmPayment(card, cvv, address, items, total, userId);
     }
 
     public String getLastOrderIds() {

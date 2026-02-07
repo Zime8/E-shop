@@ -5,7 +5,6 @@ import org.example.models.OrderLine;
 import org.example.models.Order;
 import org.example.models.OrderLineView;
 import org.example.models.OrderSummaryView;
-import org.example.util.Session;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -20,39 +19,31 @@ public class PurchaseHistoryService {
 
     private static final Logger logger = Logger.getLogger(PurchaseHistoryService.class.getName());
 
-    // Cache per i dettagli degli ordini
-    private Map<Integer, List<OrderLineView>> orderCache = new java.util.HashMap<>();
-
-    public void loadOrders(Consumer<List<OrderSummaryView>> onOrdersLoaded, Consumer<List<OrderLineView>> onItemsUpdated) {
-        Integer uid = Session.getUserId();
-        if (uid == null) {
+    public void loadOrders(Integer userId, Consumer<ProcessResult> onOrdersLoaded, Consumer<List<OrderLineView>> onItemsUpdated) {
+        if (userId == null) {
             logger.warning("Nessun utente loggato");
-            onOrdersLoaded.accept(List.of());
+            onOrdersLoaded.accept(new ProcessResult(List.of(), Map.of()));
             return;
         }
 
         Thread t = new Thread(() -> {
             try {
-                List<Order> fullOrders = OrderDAO.listOrdersModel(uid);
+                List<Order> fullOrders = OrderDAO.listOrdersModel(userId);
                 ProcessResult result = processOrders(fullOrders);
 
-                // Salva la cache per uso successivo
-                orderCache = result.cache;
-
-                onOrdersLoaded.accept(result.summaries);
+                onOrdersLoaded.accept(result);
                 onItemsUpdated.accept(List.of());
             } catch (SQLException e) {
                 logger.log(Level.SEVERE, "Errore caricamento ordini", e);
-                onOrdersLoaded.accept(List.of());
+                onOrdersLoaded.accept(new ProcessResult(List.of(), Map.of()));
             }
         }, "load-orders-thread");
         t.setDaemon(true);
         t.start();
     }
 
-    public void loadItemsForOrder(int orderId, Consumer<List<OrderLineView>> onItemsLoaded) {
-        List<OrderLineView> items = orderCache.getOrDefault(orderId, List.of());
-        onItemsLoaded.accept(items);
+    public List<OrderLineView> loadItemsForOrder(int orderId, Map<Integer, List<OrderLineView>> orderCache) {
+        return orderCache.getOrDefault(orderId, List.of());
     }
 
     private ProcessResult processOrders(List<Order> orders) {
@@ -97,5 +88,5 @@ public class PurchaseHistoryService {
         );
     }
 
-    private record ProcessResult(List<OrderSummaryView> summaries, Map<Integer, List<OrderLineView>> cache) {}
+    public record ProcessResult(List<OrderSummaryView> summaries, Map<Integer, List<OrderLineView>> cache) {}
 }

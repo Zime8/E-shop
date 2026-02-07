@@ -71,7 +71,7 @@ public class SellerHomeAppController {
         }
 
         runAsync(() -> ShopDAO.getBalance(userId),
-                onBalance,
+                balance -> onBalance.accept(nonNull(balance)),
                 e -> onError.accept("Errore saldo: " + e.getMessage())
         );
     }

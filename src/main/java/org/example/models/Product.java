@@ -44,8 +44,15 @@ public class Product {
         this.imageData = src.getImageData();
     }
 
-    public static Product copyOf(Product src) {
-        return new Product(src);
+    public static Product fromCartItem(CartItem item) {
+        Product p = new Product();
+        p.setProductId(item.getProductId());
+        p.setIdShop(item.getShopId());
+        p.setName(item.getProductName());
+        p.setPrice(item.getUnitPrice());
+        p.setImageData(item.getProductImage());
+        p.setSize(item.getSize());
+        return p;
     }
 
     public long getProductId() { return productId;}

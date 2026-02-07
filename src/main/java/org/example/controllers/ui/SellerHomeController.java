@@ -98,10 +98,10 @@
             this.appController = app;
             Platform.runLater(() -> {
                 loadSellerShop();
-                appController.populateOrderStates(orderStateFilter, orderStateCombo);
-                bootstrapData();
                 appController.refreshBalance(this::onBalanceUpdated,
                         errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
+                appController.populateOrderStates(orderStateFilter, orderStateCombo);
+                bootstrapData();
             });
         }
 

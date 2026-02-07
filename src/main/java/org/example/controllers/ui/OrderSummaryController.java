@@ -51,6 +51,7 @@ public class OrderSummaryController {
         this.appController = app;
     }
 
+    // Carica le informazioni dell'ordine
     public void loadData(List<CartItem> items, BigDecimal total) {
         this.cartItems = (items != null) ? List.copyOf(items) : List.of();
         if (appController != null) {

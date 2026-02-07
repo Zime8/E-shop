@@ -4,7 +4,7 @@ import org.example.dao.ProductDaos;
 import org.example.dao.ShopDAO;
 import org.example.dao.UserDAO;
 import org.example.dao.api.ProductDao;
-import org.example.models.Product;
+import org.example.models.CartItem;
 import org.example.models.Shop;
 import org.example.util.Session;
 
@@ -52,10 +52,13 @@ public class ProductDetailAppController {
         userDao.addInWishList(user, productId, shopId, size);
     }
 
-    public void addToCart(Product product, int quantity) {
-        for (int i = 0; i < quantity; i++) {
-            Session.addToCart(Product.copyOf(product));
-        }
+    public void addToCart(CartItem item, int quantity) {
+        CartItem qtyItem = item.withQuantity(quantity);
+        Session.addToCart(qtyItem);
+    }
+
+    public void addToCart(CartItem item) {
+        addToCart(item, item.getQuantity());
     }
 
     public boolean isValidQuantity(int quantity, int maxStock) {

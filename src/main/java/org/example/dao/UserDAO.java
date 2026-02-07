@@ -401,6 +401,8 @@ public final class UserDAO {
         p.setSize(rs.getString("p_size"));
 
         byte[] imgBytes = rs.getBytes("image_data");
+        p.setImageData(imgBytes);
+
         if (imgBytes != null && imgBytes.length > 0) {
             Image img = new Image(new ByteArrayInputStream(imgBytes));
             if (!img.isError()) {

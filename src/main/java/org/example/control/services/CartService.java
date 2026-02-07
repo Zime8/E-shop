@@ -7,7 +7,6 @@ import org.example.models.CartItem;
 import org.example.models.CheckoutData;
 import org.example.models.Key;
 import org.example.models.Product;
-import org.example.util.Session;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -15,41 +14,44 @@ import java.util.*;
 public class CartService {
     private final ProductDao productDao = ProductDaos.create();
 
-    public List<Product> getCartItems() {
-        return Session.getCartItems();
-    }
-
     public int getStockFor(long productId, int shopId, String size){
         return productDao.getStockFor(productId, shopId, size);
     }
 
-    public CheckoutData buildCheckoutData() {
-        List<Product> products = getCartItems();
-        if (products == null || products.isEmpty()) {
+    public CheckoutData buildCheckoutData(List<CartItem> cartItems) {
+        if (cartItems == null || cartItems.isEmpty()) {
             return new CheckoutData(List.of(), BigDecimal.ZERO);
         }
-        Map<Key, Aggregated> aggregated = aggregateCartItems(products);
+        Map<Key, Aggregated> aggregated = aggregateCartItems(cartItems);
         return buildCheckoutDataFromAggregated(aggregated);
     }
 
-    public Map<Key, Aggregated> getAggregatedCart() {
-        List<Product> items = getCartItems();
-        if (items.isEmpty()) return Map.of();
-        return aggregateCartItems(items);
+    public Map<Key, Aggregated> getAggregatedCart(List<CartItem> cartItems) {
+        if (cartItems.isEmpty()) return Map.of();
+        return aggregateCartItems(cartItems);
     }
 
-    public Map<Key, Aggregated> aggregateCartItems(List<Product> products) {
+    public Map<Key, Aggregated> aggregateCartItems(List<CartItem> cartItems) {
+
+        cartItems = new ArrayList<>(cartItems);
+        cartItems.sort(Comparator
+                .comparing(CartItem::getProductId)
+                .thenComparingInt(CartItem::getShopId)
+                .thenComparing(CartItem::getSize)
+        );
+
         Map<Key, Aggregated> map = new LinkedHashMap<>();
-        for (Product p : products) {
-            Key k = new Key(p.getProductId(), p.getIdShop(), p.getSize());
+        for (CartItem item : cartItems) {
+            Key k = new Key(item.getProductId(), item.getShopId(), item.getSize());
             map.compute(k, (ignored, agg) -> {
-                if (agg == null) return new Aggregated(p, 1);
+                if (agg == null) return new Aggregated(item.getSampleProduct(), item.getQuantity());
                 agg.incrementQty();
                 return agg;
             });
         }
         return map;
     }
+
 
     private CheckoutData buildCheckoutDataFromAggregated(Map<Key, Aggregated> map) {
         List<CartItem> items = new ArrayList<>();
@@ -69,22 +71,6 @@ public class CartService {
             total = total.add(unit.multiply(BigDecimal.valueOf(qty)));
         }
         return new CheckoutData(items, total);
-    }
-
-    public void changeQuantity(Product p, int delta) {
-        if (delta < 0) {
-            Session.removeFromCart(p);
-        } else {
-            Session.addToCart(Product.copyOf(p));
-        }
-    }
-
-    public void removeLine(long productId, int idShop, String size) {
-        Session.removeLineFromCart(productId, idShop, size);
-    }
-
-    public void clearCart() {
-        Session.clearCart();
     }
 }
 

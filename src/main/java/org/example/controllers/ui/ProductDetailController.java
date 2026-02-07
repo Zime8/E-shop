@@ -17,6 +17,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.controllers.app.ProductDetailAppController;
 import org.example.controllers.app.ReviewAppController;
+import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.models.Shop;
 import org.example.util.Session;
@@ -121,7 +122,13 @@ public class ProductDetailController {
             return;
         }
 
-        appController.addToCart(product, qty);
+        CartItem item = new CartItem(
+                product.getProductId(), product.getIdShop(), qty,
+                product.getPrice(), product.getName(),
+                product.getImageData(), product.getSize()
+        );
+
+        appController.addToCart(item);
         if (onCartUpdate != null) {
             Platform.runLater(() -> {
                 onCartUpdate.run();

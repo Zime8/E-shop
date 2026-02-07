@@ -1,6 +1,6 @@
     package org.example.util;
 
-    import org.example.models.Product;
+    import org.example.models.CartItem;
 
     import java.util.*;
     import java.util.concurrent.ConcurrentHashMap;
@@ -18,7 +18,7 @@
         private static class UserSession {
             String currentUser;
             boolean demo;
-            final List<Product> cartItems = new ArrayList<>();
+            final List<CartItem> cartItems = new ArrayList<>();
 
             UserSession(String user) {
                 this.currentUser = user;
@@ -67,18 +67,18 @@
         }
 
         // CARRELLO (per user corrente)
-        public static List<Product> getCartItems() {
+        public static List<CartItem> getCartItems() {
             UserSession s = getCurrentSession();
             return s != null ? List.copyOf(s.cartItems) : List.of();
         }
 
-        public static void addToCart(Product item) {
+        public static void addToCart(CartItem item) {
             UserSession s = getCurrentSession();
             if (s == null) return;
             s.cartItems.add(item);
         }
 
-        public static void removeFromCart(Product item) {
+        public static void removeFromCart(CartItem item) {
             UserSession s = getCurrentSession();
             if (s == null) return;
             s.cartItems.remove(item);
@@ -94,7 +94,7 @@
             if (s == null) return;
             s.cartItems.removeIf(p ->
                     p.getProductId() == productId &&
-                            p.getIdShop() == shopId &&
+                            p.getShopId() == shopId &&
                             Objects.equals(p.getSize(), size)
             );
         }

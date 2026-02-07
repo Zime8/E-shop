@@ -35,4 +35,14 @@ public class CartItem {
     public void setSize(String size) {
         this.size = size;
     }
+
+    public CartItem withQuantity(int newQuantity) {
+        return new CartItem(productId, shopId, newQuantity, unitPrice,
+                productName, productImage, size);
+    }
+
+    public Product getSampleProduct() {
+        return Product.fromCartItem(this);
+    }
+
 }

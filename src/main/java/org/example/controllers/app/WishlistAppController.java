@@ -1,6 +1,8 @@
 package org.example.controllers.app;
 
+import javafx.application.Platform;
 import org.example.dao.UserDAO;
+import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.util.Session;
 
@@ -55,9 +57,15 @@ public class WishlistAppController {
     }
 
     public void addToCart(Product p) {
-        Session.addToCart(Product.copyOf(p));
+        CartItem item = new CartItem(
+                p.getProductId(), p.getIdShop(), 1, p.getPrice(),
+                p.getName(), p.getImageData(), p.getSize()
+        );
+        Session.addToCart(item);
         notifyCartCallback.accept(p);
+        Platform.runLater(this::loadItems);
     }
+
 
     public void clearWishlist() {
         try {

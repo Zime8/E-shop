@@ -111,8 +111,8 @@ public class WishlistController {
 
         Button btnRemove = new Button();
         btnRemove.setPrefSize(24, 24);
-        btnRemove.setGraphic(new ImageView(new Image(Objects.requireNonNull(
-                getClass().getResourceAsStream("/icons/basket.png")), 16, 16, true, true)));
+        btnRemove.setGraphic(new ImageView(new Image((
+                Objects.requireNonNull(getClass().getResourceAsStream("/icons/basket.png"))), 16, 16, true, true)));
         btnRemove.setOnAction(e -> appController.removeFromWishlist(p));
 
         Button btnAddCart = new Button();

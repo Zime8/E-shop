@@ -69,12 +69,17 @@ public class PaymentSelectionController {
         this.onCartUpdated = onCartUpdated;
     }
 
+    // Carica i
     public void setData(List<CartItem> items, BigDecimal total) {
         this.items = items;
         this.total = total;
 
+        if (appController != null) {
+            appController.loadUserData(Session.getUserId());
+        }
+
         cards.clear();
-        cards.addAll(appController.loadSavedCards(Session.getUserId()));
+        cards.addAll(appController.loadSavedCards());
 
         NumberFormat fmt = NumberFormat.getCurrencyInstance(java.util.Locale.ITALY);
         if (totalLabel != null && total != null) {
@@ -171,7 +176,7 @@ public class PaymentSelectionController {
                 expiryField.getText().trim(), typeCombo.getValue()
         );
 
-        CardsService.AddCardResult result = CardsService.addInlineCard(Session.getUserId(), data);
+        CardsService.AddCardResult result = CardsService.addInlineCard(appController.getUserId(), data);
 
         if (result.ok()) {
             CardViewModel newCardVM = new CardViewModel(result.card());
