@@ -108,7 +108,8 @@ public class Navigator {
             logger.fine(() -> String.format("No method %s(%s)",
                     methodName, Arrays.toString(paramTypes)));
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Invoke FAILED: {0}", e);
+            logger.log(Level.WARNING, "Invoke FAILED: {0}",
+                    new Object[]{e.getMessage()});
         }
     }
 
