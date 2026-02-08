@@ -18,6 +18,10 @@ public class Navigator {
 
     private static final Logger logger = Logger.getLogger(Navigator.class.getName());
 
+    private Navigator() {
+        throw new UnsupportedOperationException("Utility class - non serve istanziare");
+    }
+
     public static void openModal(String fxmlPath, Object data, Runnable onCloseCallback) {
         try {
             FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
@@ -39,7 +43,7 @@ public class Navigator {
             refreshCaller();
 
         } catch (IOException e) {
-            throw new RuntimeException("Errore apertura " + fxmlPath, e);
+            throw new IllegalArgumentException("Errore apertura " + fxmlPath, e);
         }
     }
 
@@ -65,7 +69,7 @@ public class Navigator {
             if (setter != null) {
                 setter.invoke(uiController, appController);
             } else {
-                System.err.println("No setAppController method!");
+                logger.log(Level.SEVERE, "Inject AppController failed: {0}", uiController.getClass().getName());
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Inject AppController FAILED", e);
@@ -101,7 +105,8 @@ public class Navigator {
             Method method = target.getClass().getMethod(methodName, paramTypes);
             method.invoke(target, args);
         } catch (NoSuchMethodException e) {
-            System.err.println("No method " + methodName + "(" + Arrays.toString(paramTypes) + ")");
+            logger.fine(() -> String.format("No method %s(%s)",
+                    methodName, Arrays.toString(paramTypes)));
         } catch (Exception e) {
             logger.log(Level.WARNING, "Invoke FAILED: {0}", e);
         }
