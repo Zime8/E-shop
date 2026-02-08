@@ -72,12 +72,12 @@ public class PaymentSelectionController {
     public void loadData(Object dataObj) {
         if (dataObj instanceof Object[] arr && arr.length >= 2) {
             @SuppressWarnings("unchecked")
-            List<CartItem> items = (List<CartItem>) arr[0];
-            BigDecimal total = (BigDecimal) arr[1];
-            if (arr.length > 2 && arr[2] instanceof Runnable) {
-                this.onCartUpdated = (Runnable) arr[2];
+            List<CartItem> dataItems = (List<CartItem>) arr[0];
+            BigDecimal dataTotal = (BigDecimal) arr[1];
+            if (arr.length > 2 && arr[2] instanceof Runnable callback) {
+                this.onCartUpdated = callback;
             }
-            setData(items, total);
+            setData(dataItems, dataTotal);
         }
     }
 

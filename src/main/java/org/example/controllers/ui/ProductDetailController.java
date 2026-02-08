@@ -196,8 +196,7 @@ public class ProductDetailController {
     }
 
     @FXML private void onClose() {
-        Stage stage = (Stage) closeBtn.getScene().getWindow();
-        stage.close();
+        if (this.stage != null) this.stage.close();
     }
 
     private void updateImage(byte[] data) {
@@ -267,12 +266,12 @@ public class ProductDetailController {
 
         root.getChildren().addAll(title, grid, footer);
 
-        Stage stage = new Stage();
-        stage.setTitle("Informazioni negozio");
-        stage.initOwner(nameShop.getScene().getWindow());
-        stage.initModality(Modality.WINDOW_MODAL);
-        stage.setScene(new Scene(root));
-        stage.showAndWait();
+        Stage dialogStage = new Stage();
+        dialogStage.setTitle("Informazioni negozio");
+        dialogStage.initOwner(nameShop.getScene().getWindow());
+        dialogStage.initModality(Modality.WINDOW_MODAL);
+        dialogStage.setScene(new Scene(root));
+        dialogStage.showAndWait();
     }
 
     private void openMapsForAddress(String address) {
@@ -374,8 +373,8 @@ public class ProductDetailController {
 
     private void closeWindow(Control control) {
         try {
-            Stage stage = (Stage) control.getScene().getWindow();
-            stage.close();
+            Stage windowStage = (Stage) control.getScene().getWindow();
+            windowStage.close();
         } catch (Exception e) {
             logger.log(Level.WARNING, "Close window error", e);
         }

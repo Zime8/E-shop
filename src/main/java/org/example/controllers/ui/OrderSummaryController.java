@@ -34,6 +34,7 @@ public class OrderSummaryController {
 
     private static final Logger logger = Logger.getLogger(OrderSummaryController.class.getName());
 
+    @SuppressWarnings("unused")
     public void setOnCartUpdated(Runnable onCartUpdated) {
         this.onCartUpdated = onCartUpdated;
     }
@@ -46,9 +47,10 @@ public class OrderSummaryController {
         this.appController = (OrderSummaryAppController) app;
     }
 
+    @SuppressWarnings("unused")  //Navigator
     public void loadData(Object dataObj) {
-        if (dataObj instanceof CheckoutData cd) {
-            loadData(cd.items(), cd.total());  // Chiama tuo metodo esistente
+        if (dataObj instanceof CheckoutData(var items, var total)) {
+            loadData(items, total);
         }
     }
 
@@ -77,10 +79,9 @@ public class OrderSummaryController {
         }
 
         Object[] data = {cartItems, currentViewData.total(), this.onCartUpdated};
-        // Passa onCartUpdated al PaymentSelection
         Navigator.openModal("/fxml/PaymentSelection.fxml",
                 data,
-                this.onCartUpdated);  // Refresh dopo pagamento (badge=0)
+                this.onCartUpdated);
     }
 
 
