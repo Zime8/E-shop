@@ -72,6 +72,14 @@
             return s != null ? List.copyOf(s.cartItems) : List.of();
         }
 
+        public static void setCartItems(List<CartItem> items) {
+            UserSession s = getCurrentSession();
+            if (s != null) {
+                s.cartItems.clear();
+                s.cartItems.addAll(items);
+            }
+        }
+
         public static void addToCart(CartItem item) {
             UserSession s = getCurrentSession();
             if (s == null) return;

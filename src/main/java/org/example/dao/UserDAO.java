@@ -5,6 +5,8 @@ import org.example.database.DatabaseConnection;
 import org.example.demo.DemoData;
 import org.example.models.Product;
 import org.example.models.User;
+import org.example.models.LoginStatus;
+import org.example.models.LoginResult;
 import org.example.util.Session;
 import org.mindrot.jbcrypt.BCrypt;
 
@@ -19,9 +21,6 @@ public final class UserDAO {
 
     private static final Logger logger = Logger.getLogger(UserDAO.class.getName());
 
-    public enum LoginStatus { SUCCESS, INVALID_CREDENTIALS, ERROR }
-    public record LoginResult(LoginStatus status, Integer userId, String role) {}
-
     // AUTH / PROFILO
     public LoginResult checkLogin(String username, String password) {
         if (Session.isDemo()) {
@@ -31,7 +30,7 @@ public final class UserDAO {
                 if (u == null) return new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
                 boolean ok = BCrypt.checkpw(password, u.passHash());
                 return ok
-                        ? new LoginResult(LoginStatus.SUCCESS, u.id(), u.role())
+                        ? new LoginResult(LoginStatus.SUCCESS, u.role(), u.id())
                         : new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Errore login (demo)", e);
@@ -69,7 +68,7 @@ public final class UserDAO {
                         up.executeUpdate();
                     }
                 }
-                return new LoginResult(LoginStatus.SUCCESS, userId, role);
+                return new LoginResult(LoginStatus.SUCCESS, role, userId);
             }
         } catch (SQLException e) {
             logger.log(Level.SEVERE, "Errore durante il check login", e);

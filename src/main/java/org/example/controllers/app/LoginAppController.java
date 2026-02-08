@@ -2,6 +2,8 @@ package org.example.controllers.app;
 
 import org.example.dao.UserDAO;
 import org.example.demo.DemoData;
+import org.example.models.LoginResult;
+import org.example.models.LoginStatus;
 import org.example.util.Session;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -19,8 +21,8 @@ public class LoginAppController {
             return new LoginResult(LoginStatus.INVALID_INPUT, null, null);
         }
 
-        UserDAO.LoginResult daoResult = userDao.checkLogin(username.trim(), password);
-        if (daoResult.status() == UserDAO.LoginStatus.SUCCESS) {
+        LoginResult daoResult = userDao.checkLogin(username.trim(), password);
+        if (daoResult.status() == LoginStatus.SUCCESS) {
             Session.login(daoResult.userId(), username.trim());
         }
 
@@ -28,6 +30,7 @@ public class LoginAppController {
             case SUCCESS -> new LoginResult(LoginStatus.SUCCESS, daoResult.role(), daoResult.userId());
             case INVALID_CREDENTIALS -> new LoginResult(LoginStatus.INVALID_CREDENTIALS, null, null);
             case ERROR -> new LoginResult(LoginStatus.ERROR, null, null);
+            default -> new LoginResult(LoginStatus.INVALID_INPUT, null, null);
         };
     }
 
@@ -55,10 +58,5 @@ public class LoginAppController {
         return null;
     }
 
-    public record LoginResult(LoginStatus status, String role, Integer userId) {}
-
-    public enum LoginStatus {
-        SUCCESS, INVALID_INPUT, INVALID_CREDENTIALS, ERROR
-    }
 }
 

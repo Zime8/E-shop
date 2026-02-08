@@ -152,7 +152,6 @@ public class CartController {
         imageView.setFitWidth(40);
         imageView.setFitHeight(40);
         imageView.setPreserveRatio(true);
- 
         Image img = toImage(p.getImageData());
         imageView.setImage(img);
 
@@ -216,8 +215,8 @@ public class CartController {
         }
 
         minus.setOnAction(e -> {
-                appController.changeQuantity(item, -1);
-                refreshView();
+            appController.changeQuantity(item, -1);
+            refreshView();
         });
         plus.setOnAction(e -> {
             appController.changeQuantity(item, +1);

@@ -1,3 +1,4 @@
+
 package org.example.controllers.ui;
 
 import javafx.application.Platform;

@@ -12,22 +12,52 @@ public class HomeService {
 
     private static final String ALL = "Tutti";
 
-    public List<Product> searchByName(String query){
-        return productDao.searchByName(query);
+    public List<Product> searchByName(String query) {
+        if (query == null || query.trim().isEmpty()) {
+            return List.of();
+        }
+        return productDao.searchByName(query.trim());
     }
 
-    public List<Product> findLatest(int limit){
-        return productDao.findLatest(limit);
+    public List<Product> findLatest(int limit) {
+        if (limit <= 0) {
+            limit = 40;
+        }
+        return productDao.findLatest(Math.min(limit, 100));
     }
 
     public List<Product> searchByFilters(FilterCriteria criteria) {
+        if (criteria == null) {
+            return List.of();
+        }
         return productDao.searchByFilters(
-                criteria.sport().equals(ALL) ? null : criteria.sport(),
-                criteria.brand().equals(ALL) ? null : criteria.brand(),
-                criteria.shop().equals(ALL) ? null : criteria.shop(),
-                criteria.category().equals(ALL) ? null : criteria.category(),
-                criteria.minPrice(), criteria.maxPrice()
+                allToNull(criteria.sport()),
+                allToNull(criteria.brand()),
+                allToNull(criteria.shop()),
+                allToNull(criteria.category()),
+                criteria.minPrice(),
+                criteria.maxPrice()
         );
+    }
+
+    public FilterCriteria createFilterCriteria(String sport, String brand, String shop,
+                                               String category, double minPrice, double maxPrice) {
+        return new FilterCriteria(
+                allToNull(sport),
+                allToNull(brand),
+                allToNull(shop),
+                allToNull(category),
+                Math.max(0, minPrice),
+                Math.max(minPrice, maxPrice)
+        );
+    }
+
+    public FilterCriteria resetFilters() {
+        return FilterCriteria.defaults();
+    }
+
+    private String allToNull(String value) {
+        return ALL.equals(value) ? null : value;
     }
 }
 

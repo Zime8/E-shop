@@ -1,8 +1,8 @@
 package org.example.cli;
 
 import org.example.dao.UserDAO;
-import org.example.dao.UserDAO.LoginResult;
-import org.example.dao.UserDAO.LoginStatus;
+import org.example.models.LoginResult;
+import org.example.models.LoginStatus;
 import org.example.util.Session;
 
 import java.io.Console;

@@ -12,9 +12,9 @@ import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 import org.example.controllers.app.HomeAppController;
 import org.example.controllers.app.LoginAppController;
-import org.example.controllers.app.LoginAppController.*;
 import org.example.controllers.app.RegisterAppController;
 import org.example.controllers.app.SellerHomeAppController;
+import org.example.models.LoginResult;
 
 import java.io.IOException;
 import java.util.logging.Level;

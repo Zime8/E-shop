@@ -10,6 +10,7 @@ import org.example.models.Product;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class CartService {
     private final ProductDao productDao = ProductDaos.create();
@@ -52,6 +53,33 @@ public class CartService {
         return map;
     }
 
+    public List<CartItem> removeLine(List<CartItem> currentCart, long productId, int shopId, String size) {
+        return currentCart.stream()
+                .filter(i -> !(i.getProductId() == productId && i.getShopId() == shopId &&
+                        Objects.equals(i.getSize(), size)))
+                .collect(Collectors.toList());
+    }
+
+    public List<CartItem> changeQuantity(List<CartItem> currentCart, long productId, int shopId, String size, int delta) {
+        List<CartItem> newCart = currentCart.stream()
+                .filter(i -> !(i.getProductId() == productId && i.getShopId() == shopId &&
+                        Objects.equals(i.getSize(), size)))
+                .collect(Collectors.toList());
+
+        Optional<CartItem> existing = currentCart.stream()
+                .filter(i -> i.getProductId() == productId && i.getShopId() == shopId &&
+                        Objects.equals(i.getSize(), size))
+                .findFirst();
+
+        if (existing.isPresent()) {
+            int newQty = existing.get().getQuantity() + delta;
+            if (newQty > 0) {
+                CartItem updated = existing.get().withQuantity(newQty);
+                newCart.add(updated);
+            }
+        }
+        return newCart;
+    }
 
     private CheckoutData buildCheckoutDataFromAggregated(Map<Key, Aggregated> map) {
         List<CartItem> items = new ArrayList<>();

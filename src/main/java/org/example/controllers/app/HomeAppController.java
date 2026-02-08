@@ -31,4 +31,3 @@ public class HomeAppController {
     }
     public void logout() { Session.logout(); }
 }
-
