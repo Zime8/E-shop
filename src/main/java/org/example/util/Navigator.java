@@ -11,10 +11,13 @@ import javafx.stage.Window;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Navigator {
 
-    // Sostituisci openModal in Navigator
+    private static final Logger logger = Logger.getLogger(Navigator.class.getName());
+
     public static void openModal(String fxmlPath, Object data, Runnable onCloseCallback) {
         try {
             FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
@@ -23,9 +26,8 @@ public class Navigator {
 
             injectAppController(uiController);
 
-            // Auto-load data (convenzione: loadData(Object) in UI controller)
             if (data != null) {
-                tryInvoke(uiController, "loadData", data);  // Esatto signature!
+                tryInvoke(uiController, "loadData", data);
             }
 
             Stage dialog = createModalStage(root);
@@ -34,7 +36,6 @@ public class Navigator {
             dialog.showAndWait();
             if(onCloseCallback != null) onCloseCallback.run();
 
-            // Auto-refresh chiamante (convenzione: refreshView() su owner controller)
             refreshCaller();
 
         } catch (IOException e) {
@@ -43,7 +44,6 @@ public class Navigator {
     }
 
     private static void refreshCaller() {
-        // Trova owner UI controller e chiama refreshView()
         Window owner = Window.getWindows().stream()
                 .filter(w -> w instanceof Stage && w.isShowing())
                 .findFirst().orElse(null);
@@ -68,8 +68,7 @@ public class Navigator {
                 System.err.println("No setAppController method!");
             }
         } catch (Exception e) {
-            System.err.println("Inject FAILED: " + e.getMessage());
-            e.printStackTrace();
+            logger.log(Level.SEVERE, "Inject AppController FAILED", e);
         }
     }
 
@@ -104,7 +103,7 @@ public class Navigator {
         } catch (NoSuchMethodException e) {
             System.err.println("No method " + methodName + "(" + Arrays.toString(paramTypes) + ")");
         } catch (Exception e) {
-            System.err.println("Invoke FAILED " + methodName + ": " + e.getMessage());
+            logger.log(Level.WARNING, "Invoke FAILED: {0}", e);
         }
     }
 
