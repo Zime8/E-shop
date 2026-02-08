@@ -1,6 +1,6 @@
 package org.example.controllers.app;
 
-import org.example.control.interfaces.WithdrawSelectionControl;
+import javafx.application.Platform;
 import org.example.dao.ShopDAO;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
@@ -13,15 +13,24 @@ import org.example.util.Session;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WithdrawSelectionAppController implements WithdrawSelectionControl {
+public class WithdrawSelectionAppController {
     private final Logger logger = Logger.getLogger(WithdrawSelectionAppController.class.getName());
     private BigDecimal available = BigDecimal.ZERO;
     private Integer userId;
 
-    @Override
+    private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
+        Thread t = new Thread(r, "seller-ui-worker");
+        t.setDaemon(true);
+        return t;
+    });
+
     public BigDecimal loadBalance() {
         try {
             userId = Session.getUserId();
@@ -37,7 +46,6 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
         }
     }
 
-    @Override
     public List<CardViewModel> loadSavedCards() {
         try {
             if (userId == null) return List.of();
@@ -48,22 +56,48 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
         }
     }
 
-    @Override
-    public void addInlineCard(String holder, String number, String expiry, String type) {
+    public void addInlineCardAsync(String holder, String number, String expiry, String type,
+                                   Runnable onSuccess, Consumer<String> onError) {
         if (userId == null) {
-            logger.warning("User ID null per add card");
+            onError.accept("Utente non loggato");
             return;
         }
+        runAsync(() -> {
+            InlineCardData data = new InlineCardData(holder, number, expiry, type);
+            AddCardResult result = CardsService.addInlineCard(userId, data);
+            if (!result.ok()) throw new IllegalArgumentException(result.message());
+        }, onSuccess, toStringConsumer(onError));
+    }
 
-        InlineCardData data = new InlineCardData(holder, number, expiry, type);
-        AddCardResult result = CardsService.addInlineCard(userId, data);
+    public void confirmWithdrawAsync(Card card, String cvv, BigDecimal amount,
+                                     Runnable onSuccess, Consumer<String> onError) {
+        if (userId == null || amount.compareTo(available) > 0) {
+            onError.accept("Saldo insufficiente o utente non loggato");
+            return;
+        }
+        runAsync(() -> {
+            confirmWithdraw(amount, card, cvv);
+            return null;
+        }, v -> onSuccess.run(), toStringConsumer(onError));
+    }
 
-        if (!result.ok()) {
-            logger.log(Level.WARNING, "Add inline card failed: {0}", result.message());
+    // Aggiungi questo metodo
+    private Consumer<Throwable> toStringConsumer(Consumer<String> errorHandler) {
+        return throwable -> errorHandler.accept(
+                throwable.getMessage() != null ? throwable.getMessage() : "Errore sconosciuto"
+        );
+    }
+
+    public void setUserId(Integer userId) {
+        this.userId = userId;
+        try {
+            this.available = ShopDAO.getBalance(userId);
+        } catch (SQLException e) {
+            logger.log(Level.SEVERE, "Errore preload balance", e);
+            this.available = BigDecimal.ZERO;
         }
     }
 
-    @Override
     public void confirmWithdraw(BigDecimal amount, Card card, String cvv) {
 
         if (userId == null || amount == null || card == null || cvv == null) {
@@ -87,4 +121,29 @@ public class WithdrawSelectionAppController implements WithdrawSelectionControl 
             logger.log(Level.SEVERE, "Errore conferma prelievo", e);
         }
     }
+
+    public <T> void runAsync(Callable<T> task, Consumer<T> onSuccess, Consumer<Throwable> onError) {
+        EXEC.submit(() -> {
+            try {
+                T result = task.call();
+                Platform.runLater(() -> onSuccess.accept(result));
+            } catch (Throwable ex) {  // Throwable per catturare tutto
+                logger.log(Level.SEVERE, "Errore operazione async", ex);
+                Platform.runLater(() -> onError.accept(ex));  // Passa direttamente ex
+            }
+        });
+    }
+
+    public void runAsync(Runnable task, Runnable onSuccess, Consumer<Throwable> onError) {
+        EXEC.submit(() -> {
+            try {
+                task.run();
+                Platform.runLater(onSuccess);
+            } catch (Throwable ex) {
+                logger.log(Level.SEVERE, "Errore async", ex);
+                Platform.runLater(() -> onError.accept(ex));
+            }
+        });
+    }
+
 }

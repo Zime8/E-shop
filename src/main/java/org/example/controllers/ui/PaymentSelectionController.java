@@ -56,8 +56,8 @@ public class PaymentSelectionController {
     private List<CartItem> items;
     private BigDecimal total;
 
-    public void setController(PaymentSelectionAppController controller) {
-        this.appController = controller;
+    public void setAppController(Object app) {
+        this.appController = (PaymentSelectionAppController) app;
     }
 
     public void setStage(Stage stage) { this.stage = stage; }
@@ -67,6 +67,18 @@ public class PaymentSelectionController {
 
     public void setOnCartUpdated(Runnable onCartUpdated) {
         this.onCartUpdated = onCartUpdated;
+    }
+
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof Object[] arr && arr.length >= 2) {
+            @SuppressWarnings("unchecked")
+            List<CartItem> items = (List<CartItem>) arr[0];
+            BigDecimal total = (BigDecimal) arr[1];
+            if (arr.length > 2 && arr[2] instanceof Runnable) {
+                this.onCartUpdated = (Runnable) arr[2];
+            }
+            setData(items, total);
+        }
     }
 
     // Carica i

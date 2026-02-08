@@ -20,10 +20,10 @@ public class ProfileDetailsController {
 
     private boolean editMode = false;
 
-    public void setAppController(ProfileDetailsAppController app) {
-        this.appController = app;
+    public void setAppController(Object app) {
+        this.appController = (ProfileDetailsAppController) app;
         if (app != null) {
-            app.loadUserData(this::displayUserData);
+            ((ProfileDetailsAppController) app).loadUserData(this::displayUserData);
         }
     }
 

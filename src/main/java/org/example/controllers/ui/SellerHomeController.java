@@ -12,13 +12,13 @@
     import javafx.scene.control.Button;
     import javafx.scene.control.Label;
     import javafx.scene.control.TextField;
-    import javafx.stage.Modality;
     import javafx.stage.Stage;
     import org.example.controllers.app.LoginAppController;
     import org.example.controllers.ui.dialogs.AddCatalogDialogCreator;
     import org.example.controllers.ui.dialogs.EditCatalogDialogCreator;
     import org.example.controllers.app.SellerHomeAppController;
     import org.example.models.*;
+    import org.example.util.Navigator;
 
 
     import java.awt.*;
@@ -563,30 +563,18 @@
         @FXML
         private void onWithdraw() {
             appController.withdrawRequest(
-                    this::openWithdrawDialog,
+                    () -> openWithdrawDialog(this::refreshBalance),
                     () -> showAlert(Alert.AlertType.INFORMATION, "Saldo insufficiente."),
                     () -> showAlert(Alert.AlertType.INFORMATION, "Login richiesto.")
             );
         }
 
-        private void openWithdrawDialog() {
+        private void openWithdrawDialog(Runnable onSuccess) {
             try {
-                FXMLLoader l = new FXMLLoader(getClass().getResource("/fxml/WithdrawSelection.fxml"));
-                Parent root = l.load();
-                WithdrawSelectionController ctrl = l.getController();
-
-                Stage dialog = new Stage();
-                dialog.initOwner(balanceLabel.getScene().getWindow());
-                dialog.initModality(Modality.APPLICATION_MODAL);
-                dialog.setTitle("Prelievo");
-
-                ctrl.setStage(dialog);
-                ctrl.setUserId(appController.getCurrentUserId());
-                ctrl.setOnWithdrawDone(this::refreshBalance);
-
-                dialog.setScene(new Scene(root));
-                dialog.showAndWait();
-            } catch (IOException e) {
+                Navigator.openModal("/fxml/WithdrawSelection.fxml",
+                        appController.getCurrentUserId(),
+                        onSuccess);
+            } catch (Exception e) {
                 logger.log(Level.SEVERE, "Errore dialog prelievo", e);
                 showAlert(Alert.AlertType.ERROR, "Impossibile aprire finestra prelievo.");
             }

@@ -12,9 +12,17 @@ public class ReviewDialogAppController {
     private boolean confirmed = false;
     private String title;
     private String comment;
-    private final Product product;
+    private Product product;
+
+    public ReviewDialogAppController() {
+        // Costruttore vuoto
+    }
 
     public ReviewDialogAppController(Product product) {
+        this.product = product;
+    }
+
+    public void setProduct(Product product) {
         this.product = product;
     }
 

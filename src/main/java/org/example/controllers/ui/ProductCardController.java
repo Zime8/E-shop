@@ -15,6 +15,7 @@ import org.example.controllers.app.ProductCardAppController;
 import org.example.controllers.app.ProductDetailAppController;
 import org.example.models.Product;
 import org.example.util.ImageUtils;
+import org.example.util.Navigator;
 
 import java.io.IOException;
 import java.util.logging.Level;
@@ -31,8 +32,15 @@ public class ProductCardController {
 
     private ProductCardAppController appController;
 
-    public void setController(ProductCardAppController appController) {
-        this.appController = appController;
+    public void setController(Object appController) {
+        this.appController = (ProductCardAppController) appController;
+    }
+
+    @SuppressWarnings("unused")
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof Product p) {
+            setProduct(p);
+        }
     }
 
     // Setta i prodotti nella schermata home
@@ -55,54 +63,7 @@ public class ProductCardController {
 
     // Apri il dettaglio del prodotto se cliccato
     @FXML private void onCardClicked() {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductDetail.fxml"));
-            Parent detailRoot = loader.load();
-
-            ProductDetailController detailCtrl = loader.getController();
-            detailCtrl.setAppController(new ProductDetailAppController());
-            detailCtrl.setProduct(appController.getCurrentProduct());
-            detailCtrl.setOnCartUpdate(appController.getOnAddToCartCallback());
-
-            Pane transparentRoot = new Pane();
-            transparentRoot.setStyle("-fx-background-color: rgba(0, 0, 0, 0.5);");
-            transparentRoot.getChildren().add(detailRoot);
-
-            detailRoot.setLayoutX(0);
-            detailRoot.setLayoutY(0);
-            detailRoot.autosize();
-
-            transparentRoot.layoutBoundsProperty().addListener((obs, old, neu) -> {
-                detailRoot.setLayoutX((transparentRoot.getWidth() - detailRoot.getBoundsInLocal().getWidth()) / 2);
-                detailRoot.setLayoutY((transparentRoot.getHeight() - detailRoot.getBoundsInLocal().getHeight()) / 2);
-            });
-
-            transparentRoot.setOnMouseClicked(e -> {
-                if (!detailRoot.getBoundsInParent().contains(e.getX(), e.getY())) {
-                    ((Stage)transparentRoot.getScene().getWindow()).close();
-                }
-            });
-
-            Scene scene = new Scene(transparentRoot);
-            scene.setFill(Color.TRANSPARENT);
-
-            Stage dialog = new Stage(StageStyle.TRANSPARENT);
-            Stage primaryStage = (Stage) photo.getScene().getWindow();
-            dialog.initOwner(photo.getScene().getWindow());
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            dialog.setScene(scene);
-
-            dialog.setX(primaryStage.getX());
-            dialog.setY(primaryStage.getY());
-            dialog.setWidth(primaryStage.getWidth());
-            dialog.setHeight(primaryStage.getHeight());
-
-            dialog.showAndWait();
-
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Impossibile caricare ProductDetail.fxml", e);
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, "Errore durante visualizzazione dettaglio", ex);
-        }
+        Navigator.openModal("/fxml/ProductDetail.fxml", appController.getCurrentProduct(),
+                appController.getOnAddToCartCallback());
     }
 }

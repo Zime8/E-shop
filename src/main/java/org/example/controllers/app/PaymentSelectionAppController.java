@@ -1,6 +1,6 @@
 package org.example.controllers.app;
 import org.example.control.services.PaymentSelectionService;
-import org.example.gateway.PaymentGateway;
+import org.example.gateway.FakePaymentGateway;
 import org.example.gateway.PaymentResult;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
@@ -17,8 +17,8 @@ public class PaymentSelectionAppController {
         return userId;
     }
 
-    public PaymentSelectionAppController(PaymentGateway gateway) {
-        this.service = new PaymentSelectionService(gateway);
+    public PaymentSelectionAppController() {
+        this.service = new PaymentSelectionService(new FakePaymentGateway(1000L, 0.10));
     }
 
     public void loadUserData(int userId) {

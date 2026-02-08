@@ -50,10 +50,10 @@ public class PurchaseHistoryController {
 
     private PurchaseHistoryAppController appController;
 
-    public void setAppController(PurchaseHistoryAppController app){
-        this.appController = app;
+    public void setAppController(Object app){
+        this.appController = (PurchaseHistoryAppController) app;
         if(app != null) {
-            app.loadOrders(this::displayOrders, this::displayItems);
+            ((PurchaseHistoryAppController) app).loadOrders(this::displayOrders, this::displayItems);
         }
     }
 

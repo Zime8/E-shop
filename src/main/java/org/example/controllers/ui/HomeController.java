@@ -13,7 +13,6 @@ import javafx.scene.control.*;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.TilePane;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Popup;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -21,6 +20,7 @@ import org.controlsfx.control.RangeSlider;
 import org.example.controllers.app.*;
 import org.example.models.FilterCriteria;
 import org.example.models.Product;
+import org.example.util.Navigator;
 
 import java.io.IOException;
 import java.net.URL;
@@ -242,9 +242,15 @@ public class HomeController implements Initializable {
         }
     }
 
-    private void openProfileDetails() { openSidePanel("fxml/ProfileDetails.fxml"); }
-    private void openPurchaseHistory() { openSidePanel("fxml/PurchaseHistory.fxml"); }
-    private void openSavedCards() { openSidePanel("fxml/SavedCards.fxml"); }
+    private void openProfileDetails() {
+        Navigator.openModal("/fxml/ProfileDetails.fxml", null, null);
+    }
+    private void openPurchaseHistory() {
+        Navigator.openModal("/fxml/PurchaseHistory.fxml", null, null);
+    }
+    private void openSavedCards() {
+        Navigator.openModal("/fxml/SavedCards.fxml", null, null);
+    }
 
     @FXML public void onWishes() {
         try {
@@ -360,56 +366,6 @@ public class HomeController implements Initializable {
             }
         }
         return null;  // Fallback
-    }
-
-    private void openSidePanel(String fxmlResource) {
-        if (fxmlResource == null || fxmlResource.trim().isEmpty()) {
-            logger.log(Level.WARNING, "Nome FXML non valido: {0}", fxmlResource);
-            showAlert("Errore interno: schermata non valida.");
-            return;
-        }
-        URL resource = getClass().getResource("/" + fxmlResource);
-        if (resource == null) {
-            logger.log(Level.WARNING, "File FXML non valido: {0}", fxmlResource);
-            showAlert("Schermata non trovata: " + fxmlResource);
-            return;
-        }
-        try {
-            Stage stage = getStage(fxmlResource, resource);
-            stage.initModality(Modality.APPLICATION_MODAL);
-            stage.show();
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Errore caricamento finestra", e);
-            showAlert("Errore caricamento finestra: " + e.getMessage());
-        }
-    }
-
-    private static Stage getStage(String fxmlResource, URL resource) throws IOException {
-        FXMLLoader loader = new FXMLLoader(resource);
-        Parent content = loader.load();
-        Scene scene = new Scene(content);
-        Stage stage = new Stage();
-        stage.setScene(scene);
-
-        Object ctrl = loader.getController();
-        if (fxmlResource.contains("ProfileDetails")){
-            ((ProfileDetailsController)ctrl).setAppController(new ProfileDetailsAppController());
-            stage.setTitle("Dettagli Profile");
-        }
-        else if (fxmlResource.contains("SavedCards")){
-            ((SavedCardsController)ctrl).setAppController(new SavedCardsAppController());
-            stage.setTitle("Carte Salvate");
-        }
-        else if (fxmlResource.contains("PurchaseHistory")){
-            ((PurchaseHistoryController)ctrl).setAppController(new PurchaseHistoryAppController());
-            stage.setTitle("Storico Acquisti");
-        }
-        else {
-            stage.setTitle("E-Shop");
-        }
-        stage.setResizable(false);
-        stage.centerOnScreen();
-        return stage;
     }
 
     private void showAlert(String msg) {

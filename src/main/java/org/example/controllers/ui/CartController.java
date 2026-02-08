@@ -1,11 +1,8 @@
 package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -13,15 +10,10 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
-import javafx.stage.Popup;
-import javafx.stage.Stage;
-import javafx.stage.Window;
 import org.example.controllers.app.CartAppController;
-import org.example.controllers.app.OrderSummaryAppController;
 import org.example.models.*;
+import org.example.util.Navigator;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -76,17 +68,10 @@ public class CartController {
     }
 
     @FXML private void onCheckout() {
-        try {
-            CheckoutData data = appController.buildCheckoutData();
-            if (data.items().isEmpty()) {
-                new Alert(Alert.AlertType.INFORMATION, "Il carrello è vuoto.").showAndWait();
-                return;
-            }
-            openOrderSummary(data);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Errore checkout", e);
-            new Alert(Alert.AlertType.ERROR, "Errore checkout: " + e.getMessage()).showAndWait();
-        }
+        CheckoutData data = appController.buildCheckoutData();
+        if (data.items().isEmpty()) return;
+
+        Navigator.openModal("/fxml/OrderSummary.fxml", data, this.onCartUpdated);
     }
 
     private void toggleCartPlaceholders(boolean hasItems) {
@@ -267,63 +252,6 @@ public class CartController {
         });
 
         return removeAll;
-    }
-
-    // Trova la finestra owner corretta per la dialog
-    private Window resolveOwnerWindow() {
-        Window owner = null;
-
-        if (cartItemsContainer != null && cartItemsContainer.getScene() != null) {
-            owner = cartItemsContainer.getScene().getWindow();
-        }
-
-        if (owner instanceof Popup popup) {
-            owner = popup.getOwnerWindow();
-        }
-
-        if (owner == null) {
-            for (Window w : Window.getWindows()) {
-                if (w instanceof Stage && w.isShowing()) {
-                    owner = w;
-                    break;
-                }
-            }
-        }
-        return owner;
-    }
-
-    // Apre il riepilogo ordine e ricarica il carrello al termine
-    private void openOrderSummary(CheckoutData data) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/OrderSummary.fxml"));
-            Parent root = loader.load();
-            OrderSummaryController ctrl = loader.getController();
-
-            ctrl.setOnCartUpdated(this.onCartUpdated);
-            ctrl.setAppController(new OrderSummaryAppController());
-
-            Stage dialog = new Stage();
-            Window owner = resolveOwnerWindow();
-
-            if (owner instanceof Stage stage && stage.isShowing()) {
-                dialog.initOwner(stage);
-                dialog.initModality(Modality.WINDOW_MODAL);
-            } else {
-                dialog.initModality(Modality.APPLICATION_MODAL);
-            }
-
-            dialog.setScene(new Scene(root));
-            ctrl.setStage(dialog);
-            ctrl.loadData(data.items(), data.total());
-
-            dialog.showAndWait();
-            refreshView();
-
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Impossibile aprire il riepilogo ordine", e);
-            new Alert(Alert.AlertType.ERROR,
-                    "Impossibile aprire il riepilogo ordine: " + e.getMessage()).showAndWait();
-        }
     }
 
     @FXML

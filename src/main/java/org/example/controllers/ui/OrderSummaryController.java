@@ -1,27 +1,22 @@
 package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.HPos;
 import javafx.geometry.Pos;
 import javafx.geometry.VPos;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.controllers.app.OrderSummaryAppController;
 import org.example.controllers.app.OrderSummaryAppController.DisplayData;
-import org.example.controllers.app.PaymentSelectionAppController;
-import org.example.gateway.FakePaymentGateway;
 import org.example.models.CartItem;
+import org.example.models.CheckoutData;
+import org.example.util.Navigator;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.logging.Level;
@@ -47,8 +42,14 @@ public class OrderSummaryController {
         this.stage = stage;
     }
 
-    public void setAppController(OrderSummaryAppController app) {
-        this.appController = app;
+    public void setAppController(Object app) {
+        this.appController = (OrderSummaryAppController) app;
+    }
+
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof CheckoutData cd) {
+            loadData(cd.items(), cd.total());  // Chiama tuo metodo esistente
+        }
     }
 
     // Carica le informazioni dell'ordine
@@ -74,32 +75,14 @@ public class OrderSummaryController {
             new Alert(Alert.AlertType.WARNING, "Nessun dato carrello disponibile.").showAndWait();
             return;
         }
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PaymentSelection.fxml"));
-            Parent root = loader.load();
-            var ctrl = (PaymentSelectionController)loader.getController();
 
-            ctrl.setOnCartUpdated(this.onCartUpdated);
-
-            PaymentSelectionAppController paymentAppCtrl = new PaymentSelectionAppController(
-                    new FakePaymentGateway(1000L, 0.10));
-            ctrl.setController(paymentAppCtrl);
-            ctrl.setData(cartItems, currentViewData.total());
-
-            Stage payStage = new Stage();
-            payStage.initOwner(stage != null ? stage.getOwner() : totalLabel.getScene().getWindow());
-            payStage.initModality(Modality.APPLICATION_MODAL);
-            ctrl.setStage(payStage);
-            ctrl.setParentStage(this.stage);
-            payStage.setScene(new Scene(root));
-
-            payStage.showAndWait();
-
-        } catch (IOException e) {
-            logger.log(Level.SEVERE, "Errore durante l'apertura della schermata di pagamento", e);
-            new Alert(Alert.AlertType.ERROR, "Errore nell'apertura della schermata di pagamento: " + e.getMessage()).showAndWait();
-        }
+        Object[] data = {cartItems, currentViewData.total(), this.onCartUpdated};
+        // Passa onCartUpdated al PaymentSelection
+        Navigator.openModal("/fxml/PaymentSelection.fxml",
+                data,
+                this.onCartUpdated);  // Refresh dopo pagamento (badge=0)
     }
+
 
     private void populateUI(DisplayData viewData) {
         itemsBox.getChildren().clear();

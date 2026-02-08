@@ -42,8 +42,15 @@ public class ReviewController {
     private Product product;
     private static final Logger logger = Logger.getLogger(ReviewController.class.getName());
 
-    public void setAppController(ReviewAppController app) {
-        this.appController = app;
+    public void setAppController(Object app) {
+        this.appController = (ReviewAppController) app;
+    }
+
+    @SuppressWarnings("unused")
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof Product p) {
+            init(p);
+        }
     }
 
     public void init(Product product) {

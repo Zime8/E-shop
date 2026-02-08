@@ -2,10 +2,8 @@ package org.example.controllers.ui;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.Button;
@@ -13,18 +11,19 @@ import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
+import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.example.controllers.app.ProductDetailAppController;
-import org.example.controllers.app.ReviewAppController;
 import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.models.Shop;
+import org.example.util.Navigator;
 import org.example.util.Session;
 
 import java.awt.*;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -50,17 +49,53 @@ public class ProductDetailController {
     @FXML private ComboBox<String> sizeCombo;
     @FXML private Spinner<Integer> qtySpinner;
     @FXML private Label stockLabel;
+    @FXML private Pane rootPane;
 
     private ProductDetailAppController appController;
     private Product product;
     private Runnable onCartUpdate;
+    private Stage stage;
 
     public void setOnCartUpdate(Runnable callback) {
         this.onCartUpdate = callback;
     }
 
-    public void setAppController(ProductDetailAppController app) {
-        this.appController = app;
+    public void setAppController(Object app) {
+        this.appController = (ProductDetailAppController) app;
+    }
+
+    public void setStage(Stage stage) {
+        this.stage = stage;
+        setupPopupBackdrop();
+    }
+
+    private void setupPopupBackdrop() {
+        if (stage == null || rootPane == null) return;
+
+        // Popup style: undecorated + trasparente
+        stage.initStyle(StageStyle.TRANSPARENT);
+        stage.setAlwaysOnTop(true);  // Sopra tutto
+
+        Scene scene = stage.getScene();
+        scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+
+        // Click fuori chiude (solo su rootPane background)
+        rootPane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
+            if (event.getTarget() == rootPane) {
+                stage.close();
+            }
+        });
+
+        // Posiziona centro schermo
+        stage.setX((javafx.stage.Screen.getPrimary().getBounds().getWidth() - 450) / 2);
+        stage.setY((javafx.stage.Screen.getPrimary().getBounds().getHeight() - 500) / 2);
+    }
+
+    @SuppressWarnings("unused")
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof Product p) {
+            setProduct(p);
+        }
     }
 
     // Carica le informazioni della schermata relative al prodotto selezionato
@@ -154,20 +189,8 @@ public class ProductDetailController {
 
     @FXML private void onAddReview() {
         try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ListReview.fxml"));
-            Parent root = loader.load();
-            ReviewController ctrl = loader.getController();
-            ctrl.setAppController(new ReviewAppController());
-            ctrl.init(product);
-
-            Stage stage = new Stage();
-            stage.setTitle("Recensioni prodotto");
-            stage.initOwner(addReview.getScene().getWindow());
-            stage.initModality(Modality.WINDOW_MODAL);
-            stage.setScene(new Scene(root));
-            stage.showAndWait();
-
-        } catch (IOException ex) {
+            Navigator.openModal("/fxml/ListReview.fxml", product, null);
+        } catch (Exception ex) {
             showError("Impossibile aprire recensioni:\n" + ex.getMessage(), ex);
         }
     }

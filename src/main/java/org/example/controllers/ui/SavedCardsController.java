@@ -61,8 +61,8 @@ public class SavedCardsController {
                     "-fx-border-radius: 14;" +
                     "-fx-effect: dropshadow(gaussian, rgba(211,47,47,0.20), 16, 0.25, 0, 6);";
 
-    public void setAppController(SavedCardsAppController app){
-        this.appController = app;
+    public void setAppController(Object app){
+        this.appController = (SavedCardsAppController) app;
         reloadCards();
     }
 

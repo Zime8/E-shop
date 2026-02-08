@@ -1,16 +1,13 @@
 package org.example.controllers.ui;
 
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
 import org.example.controllers.app.WithdrawSelectionAppController;
-import org.example.control.interfaces.WithdrawSelectionControl;
 import org.example.models.CardViewModel;
 import org.example.ui.CardUi;
-import org.example.util.CardValidator;
 import org.example.util.Session;
 
 import java.math.BigDecimal;
@@ -45,10 +42,19 @@ public class WithdrawSelectionController {
     private final Map<Integer, String> transientCvvs = new ConcurrentHashMap<>();
 
     private Stage stage;
-    private WithdrawSelectionControl control;
+    private WithdrawSelectionAppController appController;
     private Runnable onWithdrawDone;
 
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.ITALY);
+
+    public void setAppController(Object app) {
+        this.appController = (WithdrawSelectionAppController) app;
+    }
+
+    public void loadData(Object dataObj) {
+        if (dataObj instanceof Integer userId) setUserId(userId);
+        else loadData();
+    }
 
     public void setStage(Stage stage) { this.stage = stage; }
 
@@ -66,8 +72,7 @@ public class WithdrawSelectionController {
         CardUi.bindConfirmEnablement(cards, cardsTable, confirmBtn);
         setupProgressIndicator();
 
-        control = new WithdrawSelectionAppController();  // ← Control BCE
-        loadData();
+        if(appController != null) loadData();
     }
 
     private void setupProgressIndicator() {
@@ -75,9 +80,10 @@ public class WithdrawSelectionController {
     }
 
     private void loadData() {
-        availableLabel.setText(currency.format(control.loadBalance()));
+        if (appController == null) return;
+        availableLabel.setText(currency.format(appController.loadBalance()));
         cards.clear();
-        cards.addAll(control.loadSavedCards());
+        cards.addAll(appController.loadSavedCards());
     }
 
     @FXML
@@ -92,9 +98,10 @@ public class WithdrawSelectionController {
             return;
         }
 
-        control.addInlineCard(holder, number, expiry, type);
+        appController.addInlineCardAsync(holder, number, expiry, type,
+                this::loadData,  // Refresh UI callback
+                this::showError);
         clearInlineFields();
-        loadData();
     }
 
     @FXML
@@ -104,8 +111,7 @@ public class WithdrawSelectionController {
             ((Stage) cardsTable.getScene().getWindow()).close();
     }
 
-    @FXML
-    private void onConfirm() {
+    @FXML private void onConfirm() {
         CardViewModel selected = cardsTable.getSelectionModel().getSelectedItem();
         if (selected == null) {
             showInfo("Seleziona una carta salvata.");
@@ -113,8 +119,8 @@ public class WithdrawSelectionController {
         }
 
         String cvv = transientCvvs.get(selected.getId());
-        if (!CardValidator.isValidCvv(cvv)) {
-            showInfo("Inserisci il CVV (3 cifre).");
+        if (cvv == null || !cvv.matches("\\d{3}")) {  // Simple UI check
+            showInfo("Inserisci CVV valido (3 cifre).");
             return;
         }
 
@@ -122,33 +128,27 @@ public class WithdrawSelectionController {
         try {
             String raw = amountField.getText().trim().replace(",", ".");
             amount = new BigDecimal(raw).setScale(2, RoundingMode.HALF_UP);
+            if (amount.signum() <= 0) {
+                showInfo("Importo positivo.");
+                return;
+            }
         } catch (NumberFormatException e) {
             showInfo("Importo non valido.");
             return;
         }
 
-        if (amount.signum() <= 0) {
-            showInfo("Importo deve essere positivo.");
-            return;
-        }
-
         setProcessing(true);
-        new Thread(() -> {
-            try {
-                control.confirmWithdraw(amount, selected.toEntity(), cvv);
-                Platform.runLater(() -> {
+        appController.confirmWithdrawAsync(selected.toEntity(), cvv, amount,
+                () -> {
                     setProcessing(false);
-                    showInfo("Prelievo effettuato: " + currency.format(amount));
+                    showInfo("Prelievo OK: " + currency.format(amount));
                     if (onWithdrawDone != null) onWithdrawDone.run();
                     if (stage != null) stage.close();
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
+                },
+                err -> {
                     setProcessing(false);
-                    showError("Errore prelievo: " + e.getMessage());
+                    showError(err);
                 });
-            }
-        }).start();
     }
 
     public void setUserId(long sellerUserId) {
