@@ -56,6 +56,7 @@ public class ProductDetailController {
     private Runnable onCartUpdate;
     private Stage stage;
 
+    @SuppressWarnings("unused") // Navigator
     public void setOnCartUpdate(Runnable callback) {
         this.onCartUpdate = callback;
     }
@@ -72,14 +73,12 @@ public class ProductDetailController {
     private void setupPopupBackdrop() {
         if (stage == null || rootPane == null) return;
 
-        // Popup style: undecorated + trasparente
         stage.initStyle(StageStyle.TRANSPARENT);
-        stage.setAlwaysOnTop(true);  // Sopra tutto
+        stage.setAlwaysOnTop(true);
 
         Scene scene = stage.getScene();
         scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
 
-        // Click fuori chiude (solo su rootPane background)
         rootPane.addEventHandler(MouseEvent.MOUSE_CLICKED, event -> {
             if (event.getTarget() == rootPane) {
                 stage.close();

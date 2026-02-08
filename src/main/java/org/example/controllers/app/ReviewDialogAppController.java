@@ -14,6 +14,7 @@ public class ReviewDialogAppController {
     private String comment;
     private Product product;
 
+    @SuppressWarnings("unused") // Navigator
     public ReviewDialogAppController() {
         // Costruttore vuoto
     }

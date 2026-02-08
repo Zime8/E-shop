@@ -1,6 +1,7 @@
 package org.example.controllers.app;
 
 import javafx.application.Platform;
+import javafx.scene.image.Image;
 import org.example.dao.UserDAO;
 import org.example.models.CartItem;
 import org.example.models.Product;
@@ -77,7 +78,7 @@ public class WishlistAppController {
         }
     }
 
-    public javafx.scene.image.Image loadProductImage(Product p) {
+    public Image loadProductImage(Product p) {
         try {
             return p.getImage();
         } catch (Exception e) {

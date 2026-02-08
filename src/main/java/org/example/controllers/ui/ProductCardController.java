@@ -1,29 +1,14 @@
 package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Pane;
-import javafx.scene.paint.Color;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import org.example.controllers.app.ProductCardAppController;
-import org.example.controllers.app.ProductDetailAppController;
 import org.example.models.Product;
 import org.example.util.ImageUtils;
 import org.example.util.Navigator;
 
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 public class ProductCardController {
-
-    private static final Logger logger = Logger.getLogger(ProductCardController.class.getName());
 
     @FXML private ImageView photo;
     @FXML private Label nameLbl ;

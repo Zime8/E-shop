@@ -81,7 +81,6 @@ public class WithdrawSelectionAppController {
         }, v -> onSuccess.run(), toStringConsumer(onError));
     }
 
-    // Aggiungi questo metodo
     private Consumer<Throwable> toStringConsumer(Consumer<String> errorHandler) {
         return throwable -> errorHandler.accept(
                 throwable.getMessage() != null ? throwable.getMessage() : "Errore sconosciuto"

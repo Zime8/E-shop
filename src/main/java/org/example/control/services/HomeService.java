@@ -40,22 +40,6 @@ public class HomeService {
         );
     }
 
-    public FilterCriteria createFilterCriteria(String sport, String brand, String shop,
-                                               String category, double minPrice, double maxPrice) {
-        return new FilterCriteria(
-                allToNull(sport),
-                allToNull(brand),
-                allToNull(shop),
-                allToNull(category),
-                Math.max(0, minPrice),
-                Math.max(minPrice, maxPrice)
-        );
-    }
-
-    public FilterCriteria resetFilters() {
-        return FilterCriteria.defaults();
-    }
-
     private String allToNull(String value) {
         return ALL.equals(value) ? null : value;
     }

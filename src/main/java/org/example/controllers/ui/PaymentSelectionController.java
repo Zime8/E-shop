@@ -65,10 +65,12 @@ public class PaymentSelectionController {
 
     private Runnable onCartUpdated;
 
+    @SuppressWarnings("unused") // Navigator
     public void setOnCartUpdated(Runnable onCartUpdated) {
         this.onCartUpdated = onCartUpdated;
     }
 
+    @SuppressWarnings("unused") // Navigator
     public void loadData(Object dataObj) {
         if (dataObj instanceof Object[] arr && arr.length >= 2) {
             @SuppressWarnings("unchecked")

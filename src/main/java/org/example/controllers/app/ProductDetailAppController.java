@@ -20,6 +20,7 @@ public class ProductDetailAppController {
         this.userDao = new UserDAO();
     }
 
+    @SuppressWarnings("unused") // Navigator
     public ProductDetailAppController() {
         this(ProductDaos.create());
     }

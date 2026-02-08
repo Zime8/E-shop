@@ -51,6 +51,7 @@ public class WithdrawSelectionController {
         this.appController = (WithdrawSelectionAppController) app;
     }
 
+    @SuppressWarnings("unused") // Navigator
     public void loadData(Object dataObj) {
         if (dataObj instanceof Integer userId) setUserId(userId);
         else loadData();
@@ -58,6 +59,7 @@ public class WithdrawSelectionController {
 
     public void setStage(Stage stage) { this.stage = stage; }
 
+    @SuppressWarnings("unused") // Navigator
     public void setOnWithdrawDone(Runnable r) {
         this.onWithdrawDone = r;
     }

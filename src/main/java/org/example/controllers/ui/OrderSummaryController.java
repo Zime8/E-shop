@@ -96,7 +96,6 @@ public class OrderSummaryController {
         grid.prefWidthProperty().bind(itemsBox.widthProperty());
         grid.setMaxWidth(Double.MAX_VALUE);
 
-        // Column constraints
         ColumnConstraints cImg = new ColumnConstraints();
         cImg.setMinWidth(56); cImg.setPrefWidth(56); cImg.setMaxWidth(56);
         cImg.setHalignment(HPos.CENTER);
