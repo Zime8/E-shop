@@ -115,21 +115,16 @@ public class ProductDetailController {
             if (!sizes.isEmpty()) {
                 sizeCombo.getSelectionModel().selectFirst();
                 String sel = sizeCombo.getValue();
-                product.setSize(sel);
                 refreshForSelectedSize(sel);
 
                 sizeCombo.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newSel) -> {
                     if (newSel == null) return;
-                    product.setSize(newSel);
                     try {
                         refreshForSelectedSize(newSel);
                     } catch (Exception e) {
                         logger.log(Level.WARNING, "Errore aggiornando per taglia " + newSel, e);
                     }
                 });
-            } else {
-                sizeCombo.setDisable(true);
-                updateStockAndQtyRange();
             }
         } catch (Exception ex) {
             logger.log(Level.WARNING, "Errore caricando taglie", ex);
@@ -147,10 +142,14 @@ public class ProductDetailController {
     @FXML private void onAddToCart() {
         if (product == null) return;
 
-        applySelectedSizeIfPresent();
+        String size = sizeCombo.getValue();
+        if (size == null || size.isBlank()) {
+            showSizeWarning();
+            return;
+        }
 
         int qty = getSelectedQtyOrDefault();
-        int max = getMaxAvailableQtySafe();
+        int max = getMaxAvailableQtySafe(size);
         if (!appController.isValidQuantity(qty, max)) {
             showQtyExceededWarning(max);
             return;
@@ -159,7 +158,7 @@ public class ProductDetailController {
         CartItem item = new CartItem(
                 product.getProductId(), product.getIdShop(), qty,
                 product.getPrice(), product.getName(),
-                product.getImageData(), product.getSize()
+                product.getImageData(), size
         );
 
         appController.addToCart(item);
@@ -175,9 +174,13 @@ public class ProductDetailController {
 
     @FXML private void addToWishList() {
         try {
-            if (!ensureSizeSelectedOrWarn()) return;
+            String size = sizeCombo.getValue();
+            if (size == null || size.isBlank()) {
+                showSizeWarning();
+                return;
+            }
 
-            appController.addToWishList(Session.getUser(), product.getProductId(), product.getIdShop(), product.getSize());
+            appController.addToWishList(Session.getUser(), product.getProductId(), product.getIdShop(), size);
             addToWishListBtn.setDisable(true);
             addToWishListBtn.setText(TXT_ADDED_TO_WISHLIST);
 
@@ -302,12 +305,9 @@ public class ProductDetailController {
         }
     }
 
-    private void updateStockAndQtyRange() {
+    private void updateStockAndQtyRange(String selSize) {
         try {
-            Integer stock;
-            String sel = sizeCombo.getValue();
-
-            stock = appController.getStockFor(product.getProductId(), product.getIdShop(), sel);
+            Integer stock = appController.getStockFor(product.getProductId(), product.getIdShop(), selSize);
 
             int max = stock != null ? stock : 0;
 
@@ -334,36 +334,25 @@ public class ProductDetailController {
 
     private void refreshForSelectedSize(String sel) {
         double priceSel = appController.getPriceFor(product.getProductId(), product.getIdShop(), sel);
-        product.setPrice(priceSel);
         priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
 
         boolean wished = appController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop(), sel);
         updateWishButton(wished);
 
-        updateStockAndQtyRange();
-    }
-
-    // Helper UI
-    private void applySelectedSizeIfPresent() {
-        if (sizeCombo != null && sizeCombo.getValue() != null) {
-            product.setSize(sizeCombo.getValue());
-        }
+        updateStockAndQtyRange(sel);
     }
 
     private int getSelectedQtyOrDefault() {
         return qtySpinner != null && qtySpinner.getValue() != null ? qtySpinner.getValue() : 1;
     }
 
-    private int getMaxAvailableQtySafe() {
+    private int getMaxAvailableQtySafe(String size) {
         try {
-            var vf = qtySpinner.getValueFactory();
-            if (vf instanceof SpinnerValueFactory.IntegerSpinnerValueFactory ivf) {
-                return ivf.getMax();
-            }
+            return appController.getStockFor(product.getProductId(), product.getIdShop(), size);
         } catch (Exception e) {
-            logger.log(Level.FINE, "Max qty error", e);
+            logger.warning("Errore stock: " + e.getMessage());
+            return 10;
         }
-        return Integer.MAX_VALUE;
     }
 
     private void showQtyExceededWarning(int max) {
@@ -379,17 +368,10 @@ public class ProductDetailController {
         }
     }
 
-    private boolean ensureSizeSelectedOrWarn() {
-        String selSize = sizeCombo != null ? sizeCombo.getValue() : null;
-        if (selSize == null || selSize.isBlank()) {
-            Alert a = new Alert(Alert.AlertType.WARNING);
-            a.setTitle("Taglia mancante");
-            a.setContentText("Seleziona una taglia prima di procedere.");
-            a.showAndWait();
-            return false;
-        }
-        product.setSize(selSize);
-        return true;
+    private void showSizeWarning() {
+        Alert alert = new Alert(Alert.AlertType.WARNING);
+        alert.setContentText("Seleziona una taglia.");
+        alert.showAndWait();
     }
 
     private void showError(String message, Throwable t) {

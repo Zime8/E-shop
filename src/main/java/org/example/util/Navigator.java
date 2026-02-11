@@ -47,6 +47,40 @@ public class Navigator {
         }
     }
 
+    public static void openModal(String fxmlPath, Object data, Object appController, Runnable onCloseCallback) {
+        try {
+            FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
+            Parent root = loader.load();
+            Object uiController = loader.getController();
+
+            // Inject AppController nel controller UI
+            if (appController != null) {
+                tryInvoke(uiController, "setAppController", appController);
+            }
+
+            // Passa dati opzionali
+            if (data != null) {
+                tryInvoke(uiController, "loadData", data);
+            }
+
+            // Crea e mostra la finestra modale
+            Stage dialog = new Stage();
+            dialog.setScene(new Scene(root));
+            dialog.initModality(Modality.APPLICATION_MODAL);
+            Window.getWindows().stream().filter(Window::isShowing).findFirst().ifPresent(dialog::initOwner);
+            dialog.setResizable(false);
+            dialog.centerOnScreen();
+
+            dialog.showAndWait();
+
+            if (onCloseCallback != null) onCloseCallback.run();
+
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Errore apertura finestra: " + fxmlPath, e);
+        }
+    }
+
+
     private static void refreshCaller() {
         Window owner = Window.getWindows().stream()
                 .filter(w -> w instanceof Stage && w.isShowing())

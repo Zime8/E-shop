@@ -4,9 +4,11 @@ import org.example.dao.ReviewDAO;
 import org.example.dao.UserDAO;
 import org.example.models.Product;
 import org.example.models.Review;
-import org.example.util.Session;
+import org.example.util.Navigator;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -14,10 +16,6 @@ public class ReviewAppController {
     private final ReviewDAO reviewDao =  new ReviewDAO();
     private final UserDAO userDao = new UserDAO();
     private static final Logger logger = Logger.getLogger(ReviewAppController.class.getName());
-
-    public ReviewDialogAppController createReviewDialogController(Product product) {
-        return new ReviewDialogAppController(product);
-    }
 
     public List<Review> loadReviews(Product product) {
         try {
@@ -28,27 +26,24 @@ public class ReviewAppController {
         }
     }
 
-    public Integer findCurrentUserId() {
-        Integer userId = Session.getUserId();
-        if (userId != null) return userId;
-
-        String username = Session.getUser();
-        if (username == null || username.isBlank()) return null;
-
+    public void openReviewDialog(Product product, Consumer<Optional<Review>> callback) {
         try {
-            return userDao.findUserIdByUsername(username);
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Errore ricerca user");
-            return null;
-        }
-    }
+            ReviewDialogAppController dialogAppController = new ReviewDialogAppController(product);
+            dialogAppController.setReviewDao(reviewDao);
+            dialogAppController.setUserDao(userDao);
 
-    public void upsertReview(long productId, int shopId, Integer userId,
-                             int rating, String title, String comment) {
-        try {
-            reviewDao.upsertReview(productId, shopId, userId, rating, title, comment);
+            dialogAppController.setOnReviewSaved(review -> callback.accept(Optional.ofNullable(review)));
+
+            Navigator.openModal(
+                    "/fxml/ReviewDialog.fxml",
+                    product,
+                    dialogAppController,
+                    () -> callback.accept(Optional.empty())
+            );
+
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Errore upsertReview");
+            logger.log(Level.SEVERE, "Errore apertura finestra recensione", e);
+            callback.accept(Optional.empty());
         }
     }
 }

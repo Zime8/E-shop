@@ -1,11 +1,8 @@
 package org.example.controllers.ui;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -13,19 +10,15 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import org.example.controllers.app.ReviewAppController;
-import org.example.controllers.app.ReviewDialogAppController;
 import org.example.models.Product;
 import org.example.models.Review;
 import org.example.util.Session;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class ReviewController {
@@ -126,59 +119,18 @@ public class ReviewController {
         ((Stage) closeBtn.getScene().getWindow()).close();
     }
 
-    @FXML
-    private void onAdd() {
-
+    @FXML private void onAdd() {
         String username = Session.getUser();
         if (username == null || username.isBlank()) {
-            new Alert(Alert.AlertType.WARNING, "Effettua l'accesso per lasciare una recensione.").showAndWait();
+            new Alert(Alert.AlertType.WARNING, "Login per recensione.").showAndWait();
             return;
         }
 
-        // usa prima l'id già in sessione
-        Integer userId = appController.findCurrentUserId();
-        if (userId == null && Session.isDemo()) {
-            userId = -1; // id fittizio per l’ospite demo
-        }
-        if (userId == null) {
-            new Alert(Alert.AlertType.ERROR, "Utente corrente non trovato.").showAndWait();
-            return;
-        }
-
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ReviewDialog.fxml"));
-        try {
-            Parent root = loader.load();
-
-            ReviewDialogController dialogUI = loader.getController();
-            ReviewDialogAppController dialogCtrl = appController.createReviewDialogController(product);
-
-            dialogUI.setController(dialogCtrl);
-            dialogCtrl.init(productTitle);
-
-            Stage st = new Stage();
-            st.setTitle("Scrivi una recensione");
-            st.initOwner(addBtn.getScene().getWindow());
-            st.initModality(Modality.WINDOW_MODAL);
-            st.setScene(new Scene(root));
-            st.showAndWait();
-
-            var res = dialogCtrl.getResult();
-            if (res.isEmpty()) return;
-
-            var data = res.get();
-            appController.upsertReview(
-                    product.getProductId(),
-                    product.getIdShop(),
-                    userId,
-                    data.rating(),
-                    data.title(),
-                    data.comment()
-            );
-
-            new Alert(Alert.AlertType.INFORMATION, "Grazie! La tua recensione è stata salvata.").showAndWait();
-            loadReviews();
-        } catch (IOException e){
-            logger.log(Level.WARNING, "Errore caricamente dialog Review", e);
-        }
+        appController.openReviewDialog(product, result -> {
+            if (result.isPresent()) {
+                new Alert(Alert.AlertType.INFORMATION, "Recensione salvata!").showAndWait();
+                loadReviews();
+            }
+        });
     }
 }

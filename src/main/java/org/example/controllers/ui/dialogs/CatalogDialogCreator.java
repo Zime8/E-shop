@@ -94,6 +94,8 @@ public abstract class CatalogDialogCreator {
         return dialog;
     }
 
+    protected abstract void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial);
+
     protected Dialog<CatalogForm> createBaseDialog(String title) {
         Dialog<CatalogForm> dialog = new Dialog<>();
         dialog.setTitle(title);
@@ -479,8 +481,6 @@ public abstract class CatalogDialogCreator {
         }
         a.showAndWait();
     }
-
-    protected abstract void attachValidationAndResult(Dialog<CatalogForm> dialog, ProductUI ui, Styles styles, CatalogForm initial);
 
     protected CatalogForm extractForm(ProductUI ui, int productId) {
         try {
