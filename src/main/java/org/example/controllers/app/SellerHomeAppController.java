@@ -1,15 +1,13 @@
 package org.example.controllers.app;
 
 import javafx.application.Platform;
-import javafx.scene.control.*;
+import javafx.scene.control.ComboBox;
 import org.example.dao.SellerDAO;
 import org.example.dao.ShopDAO;
-import org.example.models.*;
 import org.example.util.Session;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -20,10 +18,8 @@ import java.util.logging.Logger;
 public class SellerHomeAppController {
 
     private Integer currentShopId;
-
     private static final List<String> ORDER_STATES = List.of("in elaborazione", "spedito", "consegnato", "annullato");
 
-    // Esecutore async
     private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
         Thread t = new Thread(r, "seller-ui-worker");
         t.setDaemon(true);
@@ -31,8 +27,13 @@ public class SellerHomeAppController {
     });
     private static final Logger logger = Logger.getLogger(SellerHomeAppController.class.getName());
 
-    public Integer getCurrentUserId(){
+    // --- Stato utente/logged info ---
+    public Integer getCurrentUserId() {
         return Session.getUserId();
+    }
+
+    public Integer getCurrentShopId(){
+        return currentShopId;
     }
 
     public void ensureUserLoggedIn(Runnable onLoggedIn, Runnable onNotLoggedIn) {
@@ -43,6 +44,11 @@ public class SellerHomeAppController {
         }
     }
 
+    public void populateOrderStates(ComboBox<String> orderStateFilter, ComboBox<String> orderStateCombo) {
+        orderStateFilter.getItems().setAll(ORDER_STATES);
+        orderStateCombo.getItems().setAll(ORDER_STATES);
+    }
+
     public void loadSellerShop(Consumer<String> onShopName, Consumer<String> onError) {
         try {
             var shop = SellerDAO.findShopForUser(Session.getUserId());
@@ -50,21 +56,16 @@ public class SellerHomeAppController {
                 onError.accept("Nessun negozio associato.");
                 return;
             }
-            currentShopId = shop.shopId();
+            this.currentShopId = shop.shopId();
             Platform.runLater(() -> onShopName.accept(shop.shopName()));
         } catch (SQLException e) {
             onError.accept("Errore DB: " + e.getMessage());
         }
     }
 
-    public void populateOrderStates(ComboBox<String> orderStateFilter, ComboBox<String>orderStateCombo) {
-        orderStateFilter.getItems().setAll(ORDER_STATES);
-        orderStateCombo.getItems().setAll(ORDER_STATES);
-    }
-
+    // --- Saldo / prelievo ---
     public void refreshBalance(Consumer<BigDecimal> onBalance, Consumer<String> onError) {
         Integer userId = Session.getUserId();
-
         if (userId == null) {
             onError.accept("Non loggato - userId null");
             return;
@@ -76,8 +77,9 @@ public class SellerHomeAppController {
         );
     }
 
-
-    public void withdrawRequest(Runnable onHasBalance, Runnable onNoBalance, Runnable onNotLogged) {
+    public void withdrawRequest(Runnable onHasBalance,
+                                Runnable onNoBalance,
+                                Runnable onNotLogged) {
         ensureUserLoggedIn(
                 () -> {
                     if (hasAvailableBalance()) {
@@ -90,7 +92,7 @@ public class SellerHomeAppController {
         );
     }
 
-    public boolean hasAvailableBalance(){
+    public boolean hasAvailableBalance() {
         Integer userId = Session.getUserId();
         if (userId == null) return false;
 
@@ -102,106 +104,13 @@ public class SellerHomeAppController {
         }
     }
 
-    public void prefillProductName(int productId, Consumer<String> onName, Runnable onNotFound) {
-        runAsync(
-                () -> SellerDAO.listAllProductOptions().stream()
-                        .filter(o -> o.productId() == productId)
-                        .findFirst()
-                        .map(ProductOption::name),
-                optName -> optName.ifPresentOrElse(onName, onNotFound),
-                e -> { onNotFound.run(); logger.warning("Product name load failed: " + e); }
-        );
-    }
-
-    public void searchProductOptions(String firstToken, int limit, String[] allTokens,
-                                     Consumer<List<ProductOption>> onResults, Consumer<String> onError) {
-        runAsync(
-                () -> {
-                    List<ProductOption> all = SellerDAO.listProductOptionsByNameLike(firstToken, limit);
-                    return all.stream()
-                            .filter(o -> matchesAllTokens(o, allTokens))  // Riutilizza tuo metodo
-                            .toList();
-                },
-                onResults,
-                e -> onError.accept("Errore ricerca: " + e.getMessage())
-        );
-    }
-
-    public void reloadCatalog(Consumer<List<CatalogRow>> onSuccess, Consumer<String> onError){
-        runAsync(
-                () -> SellerDAO.listCatalog(currentShopId, null),
-                onSuccess,
-                e -> onError.accept("Errore nel caricamento catalogo: " + e.getMessage())
-        );
-    }
-
-    public void addProductAsync(CatalogForm data, Runnable onSuccess, Consumer<String> onError) {
-        runAsync(() -> {
-                    SellerDAO.upsertCatalogRow(currentShopId, data.productId(), data.size(),
-                            data.price(), data.quantity());
-                    return null;
-                }, onSuccess,
-                e -> Platform.runLater(() -> onError.accept("Errore durante l'aggiunta: " + e.getMessage()))
-        );
-    }
-
-    public void editProductAsync(CatalogForm data, Runnable onSuccess, Consumer<String> onError) {
-        runAsync(
-                () -> {
-                    SellerDAO.updateCatalogRow(currentShopId,
-                        data.productId(), data.size(), data.price(), data.quantity());
-                    return null;
-                },
-                result -> Platform.runLater(onSuccess),
-                e -> Platform.runLater(() -> onError.accept("Errore durante la modifica: " + e.getMessage()))
-        );
-    }
-
-    public void deleteProductAsync(int productId, String size, Runnable onSuccess, Consumer<String> onError) {
-        runAsync(
-                () -> {
-                    SellerDAO.deleteCatalogRow(currentShopId, productId, size);
-                    return null;
-                },
-                result -> Platform.runLater(onSuccess),
-                e -> Platform.runLater(() -> onError.accept("Errore durante l'eliminazione: " + e.getMessage()))
-        );
-    }
-
-    public void listOrderAsync(String stateFilter, Consumer<List<ShopOrderSummary>> onSuccess,
-                               Consumer<String> onError) {
-        runAsync(
-                () -> SellerDAO.listShopOrders(currentShopId, stateFilter),
-                onSuccess,
-                e -> onError.accept("Errore caricamento ordini: " + e.getMessage())
-        );
-    }
-
-    public void updateOrderStatusAsync(int orderId, String newState, Runnable onSuccess,
-                                       Consumer<String> onError) {
-        runAsync(
-                () -> {
-                    SellerDAO.updateOrderState(orderId, newState);
-                    return null;
-                },
-                result -> Platform.runLater(onSuccess),
-                e -> onError.accept("Errore durante l'aggiornamento dello stato: " + e.getMessage())
-        );
-    }
-
-    public boolean logout(){
+    // --- Logout ---
+    public boolean logout() {
         Session.logout();
         return true;
     }
 
-    public void loadOrderLines(int orderId, Consumer<List<ShopOrderLine>> onSuccess, Consumer<String> onError) {
-        runAsync(
-                () -> SellerDAO.listShopOrderLines(currentShopId, orderId),
-                onSuccess,
-                e -> onError.accept("Errore nel caricamento dettagli ordine: " + e.getMessage())
-        );
-    }
-
+    // --- Utilità su string/BigDecimal ---
     public String nullIfBlank(String s) {
         if (s == null) return null;
         String t = s.trim();
@@ -212,56 +121,10 @@ public class SellerHomeAppController {
         return b == null ? BigDecimal.ZERO : b;
     }
 
-    public boolean isValidCatalogForm(CatalogForm form) {
-        return form.price().compareTo(BigDecimal.ZERO) > 0 && form.quantity() > 0;
-    }
-
-    public void loadProductOptionAsync(String query, int limit,
-                                       Consumer<List<ProductOption>> onSuccess,
-                                       Consumer<String> onError) {
-        runAsync(
-                () -> SellerDAO.listProductOptionsByNameLike(query, limit),
-                onSuccess,
-                e -> onError.accept("Errore nel caricamento prodotti: " + e.getMessage())
-        );
-    }
-
-    public void loadAllProducts(ComboBox<ProductOption> combo, Consumer<String> onError) {
-        loadProductOptionAsync("", 100,
-                opts -> {
-                    combo.getItems().setAll(opts);
-                    if(combo.isShowing()) combo.show();
-                },
-                onError
-        );
-    }
-
-    public String extractNameForSearch(String s) {
-        if (s == null) return "";
-        String t = s.trim();
-        int dot = t.indexOf('·');
-        if (dot >= 0) t = t.substring(0, dot);
-        int par = t.indexOf('(');
-        if (par >= 0) t = t.substring(0, par);
-        return normalizeQuery(t);
-    }
-
-    public String normalizeQuery(String s) {
-        return (s == null ? "" : s)
-                .toLowerCase(Locale.ITALIAN)
-                .replaceAll("\\s+", " ")
-                .trim();
-    }
-
-    public boolean matchesAllTokens(ProductOption opt, String[] tokens) {
-        String name = normalizeQuery(opt.name());
-        for (String t : tokens) {
-            if (!t.isBlank() && !name.contains(t)) return false;
-        }
-        return true;
-    }
-
-    public <T> void runAsync(Callable<T> task, Consumer<T> onSuccess, Consumer<Exception> onError) {
+    // --- Async helper (potresti eventualmente spostarlo in una classe comune) ---
+    public <T> void runAsync(Callable<T> task,
+                             Consumer<T> onSuccess,
+                             Consumer<Exception> onError) {
         EXEC.submit(() -> {
             try {
                 T result = task.call();
@@ -273,7 +136,4 @@ public class SellerHomeAppController {
         });
     }
 
-    private void runAsync(Callable<Void> task, Runnable onSuccess, Consumer<Exception> onError) {
-        runAsync(task, v -> onSuccess.run(), onError);
-    }
 }

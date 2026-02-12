@@ -10,7 +10,7 @@ import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import org.example.controllers.app.CartAppController;
+import org.example.controllers.app.BuyProductController;
 import org.example.models.*;
 import org.example.util.Navigator;
 
@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 
 public class CartController {
 
-    private CartAppController appController;
+    private BuyProductController appController;
 
     @FXML private VBox cartItemsContainer;
     @FXML private Label totalLabel;
@@ -33,7 +33,7 @@ public class CartController {
 
     public void setOnCartUpdated(Runnable callback) { this.onCartUpdated = callback; }
 
-    public void setAppController(CartAppController app) {
+    public void setAppController(BuyProductController app) {
         this.appController = app;
         loadCartItems();
     }
@@ -71,7 +71,7 @@ public class CartController {
         CheckoutData data = appController.buildCheckoutData();
         if (data.items().isEmpty()) return;
 
-        Navigator.openModal("/fxml/OrderSummary.fxml", data, this.onCartUpdated);
+        Navigator.openModal("/fxml/OrderSummary.fxml", data, appController, this.onCartUpdated);
     }
 
     private void toggleCartPlaceholders(boolean hasItems) {

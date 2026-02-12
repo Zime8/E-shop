@@ -10,10 +10,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import org.example.controllers.app.HomeAppController;
-import org.example.controllers.app.LoginAppController;
-import org.example.controllers.app.RegisterAppController;
-import org.example.controllers.app.SellerHomeAppController;
+import org.example.controllers.app.*;
 import org.example.models.LoginResult;
 
 import java.io.IOException;
@@ -88,8 +85,8 @@ public class LoginController {
                 sellerCtrl.setAppController(sellerApp);
             } else {
                 HomeController homeCtrl = loader.getController();
-                HomeAppController homeApp = new HomeAppController();
-                homeCtrl.setAppController(homeApp);
+                BuyProductController buyProductController = new BuyProductController();
+                homeCtrl.setAppController(buyProductController);
             }
 
             Stage stage = (Stage) loginButton.getScene().getWindow();

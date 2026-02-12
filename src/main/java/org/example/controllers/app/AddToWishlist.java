@@ -2,7 +2,9 @@ package org.example.controllers.app;
 
 import javafx.application.Platform;
 import javafx.scene.image.Image;
+import org.example.dao.ProductDaos;
 import org.example.dao.UserDAO;
+import org.example.dao.api.ProductDao;
 import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.util.Session;
@@ -13,17 +15,19 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WishlistAppController {
+public class AddToWishlist {
 
     private Consumer<List<Product>> showItemsCallback;
     private Consumer<String> showAlertCallback;
     private Consumer<Product> notifyCartCallback;
 
-    private static final Logger logger = Logger.getLogger(WishlistAppController.class.getName());
+    private static final Logger logger = Logger.getLogger(AddToWishlist.class.getName());
     private final UserDAO userDao;
+    private final ProductDao productDao;
 
-    public WishlistAppController() {
+    public AddToWishlist() {
         this.userDao = new UserDAO();
+        this.productDao = ProductDaos.create();
     }
 
     public void init(Consumer<List<Product>> showItems,
@@ -43,6 +47,16 @@ public class WishlistAppController {
             logger.log(Level.SEVERE, "Errore caricamento wishlist", e);
             showItemsCallback.accept(List.of());
         }
+    }
+
+    public boolean existsWish(String user, long productId, int shopId) {
+        return productDao.existsWish(user, productId, shopId);
+    }
+    public boolean existsWish(String user, long productId, int shopId, String size) {
+        return productDao.existsWish(user, productId, shopId, size);
+    }
+    public void addToWishList(String user, long productId, int shopId, String size) {
+        userDao.addInWishList(user, productId, shopId, size);
     }
 
     public void removeFromWishlist(Product p) {

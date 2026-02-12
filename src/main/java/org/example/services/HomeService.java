@@ -1,4 +1,4 @@
-package org.example.control.services;
+package org.example.services;
 
 import org.example.dao.ProductDaos;
 import org.example.dao.api.ProductDao;

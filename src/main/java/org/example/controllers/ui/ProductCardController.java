@@ -1,9 +1,10 @@
 package org.example.controllers.ui;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.image.ImageView;
-import org.example.controllers.app.ProductCardAppController;
+import org.example.controllers.app.BuyProductController;
 import org.example.models.Product;
 import org.example.util.ImageUtils;
 import org.example.util.Navigator;
@@ -15,10 +16,12 @@ public class ProductCardController {
     @FXML private Label priceLbl;
     @FXML private Label nameShopLbl;
 
-    private ProductCardAppController appController;
+    private Product product;
+
+    private BuyProductController appController;
 
     public void setController(Object appController) {
-        this.appController = (ProductCardAppController) appController;
+        this.appController = (BuyProductController) appController;
     }
 
     @SuppressWarnings("unused")
@@ -30,25 +33,26 @@ public class ProductCardController {
 
     // Setta i prodotti nella schermata home
     public void setProduct(Product p) {
+        this.product = p;
         if(p == null) return;
 
         ImageUtils.setImage(photo, p.getImageData());
         nameLbl.setText(p.getName());
         nameShopLbl.setText(p.getNameShop());
         priceLbl.setText(String.format("€ %.2f", p.getPrice()));
-
-        appController.setProduct(p, appController.getOnAddToCartCallback());
     }
 
     public void setOnCartUpdate(Runnable callback) {
         if (appController != null) {
-            appController.setOnAddToCartCallback(callback);
+            appController.setOnAddToCartCallback(() -> {
+                Platform.runLater(callback);  // Solo thread-safety
+            });
         }
     }
 
     // Apri il dettaglio del prodotto se cliccato
     @FXML private void onCardClicked() {
-        Navigator.openModal("/fxml/ProductDetail.fxml", appController.getCurrentProduct(),
-                appController.getOnAddToCartCallback());
+        Navigator.openModal("/fxml/ProductDetail.fxml", product,
+                appController, appController.getOnAddToCartCallback());
     }
 }

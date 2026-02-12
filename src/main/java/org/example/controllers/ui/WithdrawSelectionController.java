@@ -5,7 +5,7 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.example.controllers.app.WithdrawSelectionAppController;
+import org.example.controllers.app.Withdraw;
 import org.example.models.CardViewModel;
 import org.example.ui.CardUi;
 import org.example.util.Session;
@@ -42,13 +42,13 @@ public class WithdrawSelectionController {
     private final Map<Integer, String> transientCvvs = new ConcurrentHashMap<>();
 
     private Stage stage;
-    private WithdrawSelectionAppController appController;
+    private Withdraw appController;
     private Runnable onWithdrawDone;
 
     private final NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
     public void setAppController(Object app) {
-        this.appController = (WithdrawSelectionAppController) app;
+        this.appController = (Withdraw) app;
     }
 
     @SuppressWarnings("unused") // Navigator

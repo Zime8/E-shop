@@ -6,7 +6,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
-import org.example.controllers.app.WishlistAppController;
+import org.example.controllers.app.AddToWishlist;
 import org.example.models.Product;
 
 import java.util.List;
@@ -18,7 +18,7 @@ public class WishlistController {
     @FXML private Label emptyLabel;
     @FXML private ScrollPane wishlistScroll;
 
-    private WishlistAppController appController;
+    private AddToWishlist appController;
     private Runnable onCartUpdated;
 
     private static final double MAX_SCROLL_HEIGHT = 360;
@@ -27,7 +27,7 @@ public class WishlistController {
         this.onCartUpdated = r;
     }
 
-    public void setAppController(WishlistAppController app) {
+    public void setAppController(AddToWishlist app) {
         this.appController = app;
         app.init(this::showItems, this::showAlert, this::notifyCartUpdated);
         app.loadItems();

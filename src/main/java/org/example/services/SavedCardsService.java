@@ -1,6 +1,5 @@
-package org.example.controllers.app;
+package org.example.services;
 
-import org.example.control.interfaces.SavedCardsControl;
 import org.example.dao.SavedCardsDAO;
 import org.example.models.Card;
 import org.example.util.Session;
@@ -12,11 +11,10 @@ import java.util.Optional;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class SavedCardsAppController implements SavedCardsControl {
+public class SavedCardsService {
 
-    private static final Logger logger = Logger.getLogger(SavedCardsAppController.class.getName());
+    private static final Logger logger = Logger.getLogger(SavedCardsService.class.getName());
 
-    @Override
     public Card addCard(String holder, String number, String expiry, String type) {
         validateHolder(holder);
         String normPan = normalizePan(number);
@@ -39,7 +37,6 @@ public class SavedCardsAppController implements SavedCardsControl {
         }
     }
 
-    @Override
     public void editCard(int cardId, String holder, String number, String expiry, String type) {
         validateHolder(holder);
         String normPan = normalizePan(number);
@@ -61,7 +58,6 @@ public class SavedCardsAppController implements SavedCardsControl {
         }
     }
 
-    @Override
     public List<Card> loadCards() {
         try {
             Integer userId = Session.getUserId();
@@ -75,7 +71,6 @@ public class SavedCardsAppController implements SavedCardsControl {
         }
     }
 
-    @Override
     public boolean deleteCard(int cardId) {
         try {
             Integer userId = Session.getUserId();

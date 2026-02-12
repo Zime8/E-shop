@@ -21,6 +21,7 @@ import org.example.controllers.app.*;
 import org.example.models.FilterCriteria;
 import org.example.models.Product;
 import org.example.util.Navigator;
+import org.example.util.Session;
 
 import java.io.IOException;
 import java.net.URL;
@@ -31,7 +32,7 @@ import java.util.logging.Logger;
 
 public class HomeController implements Initializable {
 
-    private HomeAppController appController;
+    private BuyProductController appController;
 
     public HomeController() {
         // costruttore usato da FXMLLoader
@@ -59,9 +60,9 @@ public class HomeController implements Initializable {
     @FXML private TilePane productPane;
     @FXML private Label sectionTitle;
 
-    public void setAppController(HomeAppController appController) {
+    public void setAppController(BuyProductController appController) {
         this.appController = appController;
-        welcomeLabel.setText("Benvenuto, " + appController.getCurrentUserName() + "!");
+        welcomeLabel.setText("Benvenuto, " +Session.getUser() + "!");
         updateCart();
 
         loadLatestArrivals();
@@ -130,7 +131,7 @@ public class HomeController implements Initializable {
 
     @FXML
     private void onLogout() {
-        appController.logout();
+        Session.logout();
         switchToLoginScene();
     }
 
@@ -165,7 +166,7 @@ public class HomeController implements Initializable {
             VBox popupContent = loader.load();
             CartController controller = loader.getController();
             controller.setOnCartUpdated(this::updateCart);
-            controller.setAppController(new CartAppController());
+            controller.setAppController(appController);
 
             cartPopup = new Popup();
             cartPopup.getContent().add(popupContent);
@@ -243,13 +244,13 @@ public class HomeController implements Initializable {
     }
 
     private void openProfileDetails() {
-        Navigator.openModal("/fxml/ProfileDetails.fxml", null, null);
+        Navigator.openModal("/fxml/ProfileDetails.fxml", null, new ModifyProfile(), null);
     }
     private void openPurchaseHistory() {
-        Navigator.openModal("/fxml/PurchaseHistory.fxml", null, null);
+        Navigator.openModal("/fxml/PurchaseHistory.fxml", null, new CheckOrders(), null);
     }
     private void openSavedCards() {
-        Navigator.openModal("/fxml/SavedCards.fxml", null, null);
+        Navigator.openModal("/fxml/SavedCards.fxml", null, new ModifyProfile(), null);
     }
 
     @FXML public void onWishes() {
@@ -262,7 +263,7 @@ public class HomeController implements Initializable {
             VBox popupContent = loader.load();
             WishlistController controller = loader.getController();
             controller.setOnCartUpdated(this::updateCart);
-            controller.setAppController(new WishlistAppController());
+            controller.setAppController(new AddToWishlist());
 
             Popup p = new Popup();
             p.getContent().add(popupContent);
@@ -350,7 +351,7 @@ public class HomeController implements Initializable {
                 FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/ProductCard.fxml"));
                 Node card = loader.load();
                 ProductCardController ctrl = loader.getController();
-                appController.createProductCard(ctrl, p);
+                appController.createProductCard(ctrl, p, this::updateCart);
                 ctrl.setOnCartUpdate(this::updateCart);
                 productPane.getChildren().add(card);
             } catch (IOException e){

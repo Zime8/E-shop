@@ -14,6 +14,8 @@
     import javafx.scene.control.TextField;
     import javafx.stage.Stage;
     import org.example.controllers.app.LoginAppController;
+    import org.example.controllers.app.SellerOrdersController;
+    import org.example.controllers.app.SellerProductsController;
     import org.example.controllers.ui.dialogs.AddCatalogDialogCreator;
     import org.example.controllers.ui.dialogs.EditCatalogDialogCreator;
     import org.example.controllers.app.SellerHomeAppController;
@@ -93,15 +95,14 @@
         private static final NumberFormat CURR_IT = NumberFormat.getCurrencyInstance(Locale.ITALY);
 
         private SellerHomeAppController appController;
+        private final SellerOrdersController ordersController = new SellerOrdersController();
+        private final SellerProductsController productsController = new SellerProductsController();
 
         public void setAppController(SellerHomeAppController app) {
             this.appController = app;
             Platform.runLater(() -> {
-                loadSellerShop();
-                appController.refreshBalance(this::onBalanceUpdated,
-                        errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
                 appController.populateOrderStates(orderStateFilter, orderStateCombo);
-                bootstrapData();
+                loadSellerShop();
             });
         }
 
@@ -129,8 +130,15 @@
 
         private void loadSellerShop() {
             appController.loadSellerShop(
-                    shop ->
-                        shopNameLabel.setText(shop),
+                    shop ->{
+                        shopNameLabel.setText(shop);
+                        Integer shopId = appController.getCurrentShopId();
+                        ordersController.setCurrentShopId(shopId);
+                        productsController.setCurrentShopId(shopId);
+                        appController.refreshBalance(this::onBalanceUpdated,
+                                errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
+                        bootstrapData();
+                    },
                     errorMsg -> {
                         showAlert(Alert.AlertType.ERROR, errorMsg);
                         disableAll();
@@ -195,7 +203,7 @@
         private void onAddProduct() {
             var dialog = new AddCatalogDialogCreator(logoutButton, appController).newDialog();
             dialog.showAndWait().ifPresent(data ->
-                    appController.addProductAsync(data, this::reloadCatalog,
+                    productsController.addProductAsync(data, this::reloadCatalog,
                             errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg)
                     )
             );
@@ -213,7 +221,7 @@
                     logoutButton, appController
             ).newDialog();
             dialog.showAndWait().ifPresent(data ->
-                    appController.editProductAsync(data, this::reloadCatalog,
+                    productsController.editProductAsync(data, this::reloadCatalog,
                             errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg))
             );
         }
@@ -230,7 +238,7 @@
             confirm.setContentText(sel.name() + " - taglia " + sel.size());
             confirm.showAndWait().ifPresent(btn -> {
                 if (btn == ButtonType.OK) {
-                    appController.deleteProductAsync(sel.productId(), sel.size(), this::reloadCatalog,
+                    productsController.deleteProductAsync(sel.productId(), sel.size(), this::reloadCatalog,
                             errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
                 }
             });
@@ -242,7 +250,7 @@
         private void onApplyOrderFilters() { reloadOrders(orderStateFilter.getValue()); }
 
         private void reloadOrders(String stateFilter){
-            appController.listOrderAsync(
+            ordersController.listOrderAsync(
                     stateFilter,
                     rows -> {
                         sellerOrdersTable.setItems(observableArrayList(rows));
@@ -276,7 +284,7 @@
                 showAlert(Alert.AlertType.INFORMATION, "Seleziona uno stato.");
                 return;
             }
-            appController.updateOrderStatusAsync(sel.orderId(), st,
+            ordersController.updateOrderStatusAsync(sel.orderId(), st,
                     () -> reloadOrders(orderStateFilter.getValue()),
                     errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg)
             );
@@ -414,7 +422,7 @@
             if (sellerOrdersTable == null) return;
             sellerOrdersTable.getSelectionModel().selectedItemProperty().addListener((obs, old, sel) -> {
                 if (sel != null) {
-                    appController.loadOrderLines(
+                    ordersController.loadOrderLines(
                             sel.orderId(),
                             lines -> {
                                 orderItemsTable.setItems(observableArrayList(lines));
@@ -428,7 +436,7 @@
         }
     
         private void reloadCatalog() {
-            appController.reloadCatalog(
+            productsController.reloadCatalog(
                     rawRows -> Platform.runLater(() -> updateCatalogFromData(rawRows)),
                     errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg)
             );

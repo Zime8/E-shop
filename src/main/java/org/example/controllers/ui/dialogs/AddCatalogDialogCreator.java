@@ -65,7 +65,7 @@ public class AddCatalogDialogCreator extends CatalogDialogCreator {
 
             CatalogForm form = new CatalogForm(pid, size, price, qty);
 
-            if (appController.isValidCatalogForm(form)) {
+            if (productsController.isValidCatalogForm(form)) {
                 return form;
             } else {
                 showAlert(Alert.AlertType.WARNING, "Prezzo o quantità non validi");

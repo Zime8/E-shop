@@ -5,8 +5,8 @@ import org.example.dao.ShopDAO;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
 import org.example.models.InlineCardData;
-import org.example.control.services.CardsService;
-import org.example.control.services.CardsService.AddCardResult;
+import org.example.services.CardsService;
+import org.example.services.CardsService.AddCardResult;
 import org.example.util.CardValidator;
 import org.example.util.Session;
 
@@ -20,8 +20,8 @@ import java.util.function.Consumer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WithdrawSelectionAppController {
-    private final Logger logger = Logger.getLogger(WithdrawSelectionAppController.class.getName());
+public class Withdraw {
+    private final Logger logger = Logger.getLogger(Withdraw.class.getName());
     private BigDecimal available = BigDecimal.ZERO;
     private Integer userId;
 

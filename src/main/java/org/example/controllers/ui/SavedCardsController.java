@@ -7,8 +7,9 @@ import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import org.example.controllers.app.SavedCardsAppController;
+import org.example.controllers.app.ModifyProfile;
 import org.example.models.Card;
+import org.example.ui.CardUi;
 
 import java.util.Optional;
 
@@ -17,7 +18,7 @@ public class SavedCardsController {
     @FXML private ListView<Card> cardsListView;
 
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
-    private SavedCardsAppController appController;
+    private ModifyProfile appController;
 
     // Costanti UI
     private static final String CARD_TYPE_CREDITO = "Credito";
@@ -62,7 +63,7 @@ public class SavedCardsController {
                     "-fx-effect: dropshadow(gaussian, rgba(211,47,47,0.20), 16, 0.25, 0, 6);";
 
     public void setAppController(Object app){
-        this.appController = (SavedCardsAppController) app;
+        this.appController = (ModifyProfile) app;
         reloadCards();
     }
 
@@ -92,7 +93,7 @@ public class SavedCardsController {
                 showInfo("Carta aggiunta!");
 
             } catch (IllegalStateException e) {
-                showError("Carta già salvata: " + appController.maskPan(card.number()));
+                showError("Carta già salvata: " + CardUi.maskPan(card.number()));
             } catch (Exception e) {
                 showError("Errore salvataggio: " + e.getMessage());
             }
@@ -273,7 +274,7 @@ public class SavedCardsController {
 
             holderLabel.setText("Intestatario: " + card.holder());
             numberLabel.setText("Numero: " +
-                    (appController != null ? appController.maskPan(card.number()) : "**** **** **** ****"));
+                    (appController != null ? CardUi.maskPan(card.number()) : "**** **** **** ****"));
             expiryLabel.setText("Scadenza: " + card.expiry());
             typeLabel.setText("Tipo: " + card.type());
 
@@ -309,7 +310,7 @@ public class SavedCardsController {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
         confirm.setTitle("Conferma eliminazione");
         confirm.setHeaderText("Eliminare questa carta?");
-        confirm.setContentText("Intestatario: " + card.holder() + "\nNumero: " + appController.maskPan(card.number()));
+        confirm.setContentText("Intestatario: " + card.holder() + "\nNumero: " + CardUi.maskPan(card.number()));
 
         Optional<ButtonType> res = confirm.showAndWait();
         if (res.isPresent() && res.get() == ButtonType.OK) {

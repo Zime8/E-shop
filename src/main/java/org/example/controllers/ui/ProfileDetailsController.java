@@ -6,7 +6,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
-import org.example.controllers.app.ProfileDetailsAppController;
+import org.example.controllers.app.ModifyProfile;
 
 public class ProfileDetailsController {
 
@@ -16,14 +16,14 @@ public class ProfileDetailsController {
     @FXML private TextField phoneField;
     @FXML private Button editBtn;
 
-    private ProfileDetailsAppController appController;
+    private ModifyProfile appController;
 
     private boolean editMode = false;
 
     public void setAppController(Object app) {
-        this.appController = (ProfileDetailsAppController) app;
+        this.appController = (ModifyProfile) app;
         if (app != null) {
-            ((ProfileDetailsAppController) app).loadUserData(this::displayUserData);
+            ((ModifyProfile) app).loadUserData(this::displayUserData);
         }
     }
 
@@ -35,7 +35,7 @@ public class ProfileDetailsController {
         phoneField.setEditable(false);
     }
 
-    private void displayUserData(String[] data) {
+    public void displayUserData(String[] data) {
         usernameField.setText(data[0]);
         passwordField.setText(data[1]);
         emailField.setText(data[2]);

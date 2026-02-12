@@ -15,7 +15,8 @@ import javafx.scene.input.MouseEvent;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
-import org.example.controllers.app.ProductDetailAppController;
+import org.example.controllers.app.BuyProductController;
+import org.example.controllers.app.AddToWishlist;
 import org.example.models.CartItem;
 import org.example.models.Product;
 import org.example.models.Shop;
@@ -51,7 +52,8 @@ public class ProductDetailController {
     @FXML private Label stockLabel;
     @FXML private Pane rootPane;
 
-    private ProductDetailAppController appController;
+    private BuyProductController appController;
+    private final AddToWishlist wishlistController = new AddToWishlist();
     private Product product;
     private Runnable onCartUpdate;
     private Stage stage;
@@ -62,7 +64,7 @@ public class ProductDetailController {
     }
 
     public void setAppController(Object app) {
-        this.appController = (ProductDetailAppController) app;
+        this.appController = (BuyProductController) app;
     }
 
     public void setStage(Stage stage) {
@@ -131,7 +133,7 @@ public class ProductDetailController {
         }
 
         try {
-            boolean alreadyWished = appController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop());
+            boolean alreadyWished = wishlistController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop());
             updateWishButton(alreadyWished);
         } catch (Exception ex) {
             logger.log(Level.WARNING, "Errore controllo wishlist", ex);
@@ -180,7 +182,7 @@ public class ProductDetailController {
                 return;
             }
 
-            appController.addToWishList(Session.getUser(), product.getProductId(), product.getIdShop(), size);
+            wishlistController.addToWishList(Session.getUser(), product.getProductId(), product.getIdShop(), size);
             addToWishListBtn.setDisable(true);
             addToWishListBtn.setText(TXT_ADDED_TO_WISHLIST);
 
@@ -336,7 +338,7 @@ public class ProductDetailController {
         double priceSel = appController.getPriceFor(product.getProductId(), product.getIdShop(), sel);
         priceLbl.setText(String.format(EUR_PRICE_FMT, priceSel));
 
-        boolean wished = appController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop(), sel);
+        boolean wished = wishlistController.existsWish(Session.getUser(), product.getProductId(), product.getIdShop(), sel);
         updateWishButton(wished);
 
         updateStockAndQtyRange(sel);

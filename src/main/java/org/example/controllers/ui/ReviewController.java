@@ -19,7 +19,6 @@ import org.example.util.Session;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-import java.util.logging.Logger;
 
 public class ReviewController {
 
@@ -33,7 +32,6 @@ public class ReviewController {
 
     private ReviewAppController appController;
     private Product product;
-    private static final Logger logger = Logger.getLogger(ReviewController.class.getName());
 
     public void setAppController(Object app) {
         this.appController = (ReviewAppController) app;

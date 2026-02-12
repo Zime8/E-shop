@@ -1,4 +1,4 @@
-package org.example.control.services;
+package org.example.services;
 
 import org.example.dao.SavedCardsDAO;
 import org.example.models.Card;

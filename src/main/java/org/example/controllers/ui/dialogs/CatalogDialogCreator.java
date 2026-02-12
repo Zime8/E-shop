@@ -11,6 +11,7 @@ import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 import javafx.util.StringConverter;
+import org.example.controllers.app.SellerProductsController;
 import org.example.models.CatalogForm;
 import org.example.controllers.app.SellerHomeAppController;
 import org.example.models.ProductOption;
@@ -24,6 +25,7 @@ public abstract class CatalogDialogCreator {
     protected final CatalogForm initial;
     protected final Button ownerButton;
     protected final SellerHomeAppController appController;
+    protected final SellerProductsController productsController = new SellerProductsController();
 
     private static final String TEXT_DARK = "#0f172a";
     private static final String TEXT_MUTED = "#64748b";
@@ -74,7 +76,7 @@ public abstract class CatalogDialogCreator {
 
         if (initial == null) {
             setupAddModeHandlers(ui.combo);
-            appController.loadAllProducts(ui.combo,
+            productsController.loadAllProducts(ui.combo,
                     errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
         } else {
             prefillEditMode(initial, ui);
@@ -292,7 +294,7 @@ public abstract class CatalogDialogCreator {
         ui.size.setDisable(true);
         ui.price.setText(initial.price().toPlainString());
         ui.qty.setText(String.valueOf(initial.quantity()));
-        appController.prefillProductName(initial.productId(),
+        productsController.prefillProductName(initial.productId(),
                 ui.name::setText,
                 () -> ui.name.setText("Prodotto #" + initial.productId())
         );
@@ -301,8 +303,8 @@ public abstract class CatalogDialogCreator {
     private void installShowAllOnOpen(ComboBox<ProductOption> cb) {
         cb.showingProperty().addListener((obs, was, showing) -> {
             if (!Boolean.TRUE.equals(showing)) return;
-            if (appController.normalizeQuery(cb.getEditor().getText()).isEmpty()) {
-                appController.loadAllProducts(cb,
+            if (productsController.normalizeQuery(cb.getEditor().getText()).isEmpty()) {
+                productsController.loadAllProducts(cb,
                         errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
             }
         });
@@ -380,7 +382,7 @@ public abstract class CatalogDialogCreator {
         cb.getEditor().textProperty().addListener((o, old, neu) -> {
             if (handleSelectionSuppressed(cb)) return;
 
-            String q = appController.extractNameForSearch(neu);
+            String q = productsController.extractNameForSearch(neu);
             if (handleEmptyOrUnchangedQuery(cb, debounce, lastQ, q)) return;
 
             boolean wasShowing = cb.isShowing();
@@ -406,7 +408,7 @@ public abstract class CatalogDialogCreator {
         if (q.isEmpty()) {
             debounce.stop();
             lastQ[0] = "";
-            if (cb.isShowing()) appController.loadAllProducts(cb,
+            if (cb.isShowing()) productsController.loadAllProducts(cb,
                     errorMsg -> showAlert(Alert.AlertType.ERROR, errorMsg));
             return true;
         }
@@ -421,7 +423,7 @@ public abstract class CatalogDialogCreator {
                                          String[] lastQ,
                                          boolean wasShowing) {
         debounce.stop();
-        debounce.setOnFinished(evt -> appController.searchProductOptions(first, 100, tokens,
+        debounce.setOnFinished(evt -> productsController.searchProductOptions(first, 100, tokens,
             filtered -> {
                 if (!filtered.isEmpty()) {
                     cb.getItems().setAll(filtered);
@@ -488,7 +490,7 @@ public abstract class CatalogDialogCreator {
             BigDecimal price = new BigDecimal(ui.price().getText().trim());
             int qty = Integer.parseInt(ui.qty().getText().trim());
             CatalogForm form = new CatalogForm(productId, size, price, qty);
-            if (appController.isValidCatalogForm(form)) return form;
+            if (productsController.isValidCatalogForm(form)) return form;
             showAlert(Alert.AlertType.WARNING, "Prezzo o quantità non validi");
             return null;
         } catch (Exception ex) {

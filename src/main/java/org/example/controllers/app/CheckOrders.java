@@ -2,14 +2,14 @@ package org.example.controllers.app;
 
 import org.example.models.OrderSummaryView;
 import org.example.models.OrderLineView;
-import org.example.control.services.PurchaseHistoryService;
+import org.example.services.PurchaseHistoryService;
 import org.example.util.Session;
 
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
-public class PurchaseHistoryAppController {
+public class CheckOrders {
     private final PurchaseHistoryService service = new PurchaseHistoryService();
     private final Map<Integer, List<OrderLineView>> orderCache = new java.util.HashMap<>();
 

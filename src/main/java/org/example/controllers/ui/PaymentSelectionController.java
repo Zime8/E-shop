@@ -6,16 +6,16 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
+import org.example.controllers.app.BuyProductController;
 import org.example.gateway.PaymentResult;
 import org.example.models.Card;
 import org.example.models.CardViewModel;
 import org.example.models.CartItem;
 import org.example.models.InlineCardData;
-import org.example.control.services.CardsService;
+import org.example.services.CardsService;
 import org.example.ui.CardUi;
 import org.example.util.CardValidator;
 import org.example.util.Session;
-import org.example.controllers.app.PaymentSelectionAppController;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
@@ -46,7 +46,7 @@ public class PaymentSelectionController {
 
     @FXML private ComboBox<String> typeCombo;
 
-    private PaymentSelectionAppController appController;
+    private BuyProductController appController;
 
     private final ObservableList<CardViewModel> cards = FXCollections.observableArrayList();
     private final Map<Integer, String> transientCvvs = new ConcurrentHashMap<>();
@@ -57,7 +57,7 @@ public class PaymentSelectionController {
     private BigDecimal total;
 
     public void setAppController(Object app) {
-        this.appController = (PaymentSelectionAppController) app;
+        this.appController = (BuyProductController) app;
     }
 
     public void setStage(Stage stage) { this.stage = stage; }
@@ -190,7 +190,7 @@ public class PaymentSelectionController {
                 expiryField.getText().trim(), typeCombo.getValue()
         );
 
-        CardsService.AddCardResult result = CardsService.addInlineCard(appController.getUserId(), data);
+        CardsService.AddCardResult result = CardsService.addInlineCard(Session.getUserId(), data);
 
         if (result.ok()) {
             CardViewModel newCardVM = new CardViewModel(result.card());

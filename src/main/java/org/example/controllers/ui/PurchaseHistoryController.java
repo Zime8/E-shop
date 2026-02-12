@@ -9,7 +9,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.stage.Stage;
-import org.example.controllers.app.PurchaseHistoryAppController;
+import org.example.controllers.app.CheckOrders;
 import org.example.models.OrderLineView;
 import org.example.models.OrderSummaryView;
 
@@ -48,12 +48,12 @@ public class PurchaseHistoryController {
 
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    private PurchaseHistoryAppController appController;
+    private CheckOrders appController;
 
     public void setAppController(Object app){
-        this.appController = (PurchaseHistoryAppController) app;
+        this.appController = (CheckOrders) app;
         if(app != null) {
-            ((PurchaseHistoryAppController) app).loadOrders(this::displayOrders, this::displayItems);
+            ((CheckOrders) app).loadOrders(this::displayOrders, this::displayItems);
         }
     }
 

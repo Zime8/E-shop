@@ -71,6 +71,8 @@ public class Navigator {
             dialog.setResizable(false);
             dialog.centerOnScreen();
 
+            tryInvoke(uiController, "setStage", dialog);
+
             dialog.showAndWait();
 
             if (onCloseCallback != null) onCloseCallback.run();

@@ -10,8 +10,8 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import org.example.controllers.app.OrderSummaryAppController;
-import org.example.controllers.app.OrderSummaryAppController.DisplayData;
+import org.example.controllers.app.BuyProductController;
+import org.example.controllers.app.BuyProductController.*;
 import org.example.models.CartItem;
 import org.example.models.CheckoutData;
 import org.example.util.Navigator;
@@ -27,7 +27,7 @@ public class OrderSummaryController {
     @FXML private Label totalLabel;
 
     private Stage stage;
-    private OrderSummaryAppController appController;
+    private BuyProductController appController;
     private Runnable onCartUpdated;
     private List<CartItem> cartItems;
     private DisplayData currentViewData;
@@ -44,7 +44,7 @@ public class OrderSummaryController {
     }
 
     public void setAppController(Object app) {
-        this.appController = (OrderSummaryAppController) app;
+        this.appController = (BuyProductController) app;
     }
 
     @SuppressWarnings("unused")  //Navigator
@@ -81,6 +81,7 @@ public class OrderSummaryController {
         Object[] data = {cartItems, currentViewData.total(), this.onCartUpdated};
         Navigator.openModal("/fxml/PaymentSelection.fxml",
                 data,
+                appController,
                 this.onCartUpdated);
     }
 
@@ -113,7 +114,7 @@ public class OrderSummaryController {
 
         grid.getColumnConstraints().addAll(cImg, cName, cQty, cSub);
 
-        List<OrderSummaryAppController.ItemView> safeRows =
+        List<ItemView> safeRows =
                 (viewData == null || viewData.rows() == null) ? List.of() : viewData.rows();
 
         int r = 0;

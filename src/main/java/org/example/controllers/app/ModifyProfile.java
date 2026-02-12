@@ -1,15 +1,20 @@
 package org.example.controllers.app;
 
+import org.example.services.SavedCardsService;
 import org.example.dao.UserDAO;
+import org.example.models.Card;
 import org.example.util.Session;
+
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.function.Consumer;
 
-public class ProfileDetailsAppController {
+public class ModifyProfile {
 
     private static final String PSW = "******";
-    private static final Logger logger = Logger.getLogger(ProfileDetailsAppController.class.getName());
+    private static final Logger logger = Logger.getLogger(ModifyProfile.class.getName());
+    private final SavedCardsService savedCardsService = new SavedCardsService();
 
     private final UserDAO userDao = new UserDAO();
 
@@ -63,6 +68,22 @@ public class ProfileDetailsAppController {
             logger.log(Level.SEVERE, "Errore durante l'aggiornamento dei dati utente", e);
             onError.accept(e.getMessage());
         }
+    }
+
+    public Card addCard(String holder, String number, String expiry, String type) {
+        return savedCardsService.addCard(holder, number, expiry, type);
+    }
+
+    public List<Card> loadCards() {
+        return savedCardsService.loadCards();
+    }
+
+    public void editCard(int cardId, String holder, String number, String expiry, String type) {
+        savedCardsService.editCard(cardId, holder, number, expiry, type);
+    }
+
+    public boolean deleteCard(int cardId) {
+        return savedCardsService.deleteCard(cardId);
     }
 }
 
