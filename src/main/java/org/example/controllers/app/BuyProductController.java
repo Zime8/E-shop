@@ -83,7 +83,7 @@ public class BuyProductController {
         CartItem qtyItem = item.withQuantity(quantity);
         Session.addToCart(qtyItem);
         if (onAddToCartCallback != null) {
-            onAddToCartCallback.run(); // Trigger refresh badge/home
+            onAddToCartCallback.run();
         }
     }
     public void addToCart(CartItem item) {
