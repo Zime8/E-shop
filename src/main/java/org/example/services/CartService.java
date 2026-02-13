@@ -1,7 +1,5 @@
 package org.example.services;
 
-import org.example.dao.ProductDaos;
-import org.example.dao.api.ProductDao;
 import org.example.models.Aggregated;
 import org.example.models.CartItem;
 import org.example.models.CheckoutData;
@@ -12,11 +10,6 @@ import java.math.BigDecimal;
 import java.util.*;
 
 public class CartService {
-    private final ProductDao productDao = ProductDaos.create();
-
-    public int getStockFor(long productId, int shopId, String size){
-        return productDao.getStockFor(productId, shopId, size);
-    }
 
     public CheckoutData buildCheckoutData(List<CartItem> cartItems) {
         if (cartItems == null || cartItems.isEmpty()) {

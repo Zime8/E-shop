@@ -49,8 +49,8 @@ public class BuyProductController {
     }
 
     // Schermata carta prodotto: gestione prodotto corrente
-    private Product currentProduct; // Non più private per use case state
-    private Runnable onAddToCartCallback; // Callback per refresh badge/UI
+    private Product currentProduct;
+    private Runnable onAddToCartCallback;
 
     public void setProduct(Product product, Runnable onAddToCartCallback) {
         this.currentProduct = product;
