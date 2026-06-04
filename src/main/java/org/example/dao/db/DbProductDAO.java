@@ -63,7 +63,7 @@ public class DbProductDAO implements ProductRepository {
                 return Optional.empty();
             }
         } catch (SQLException e) {
-            logger.log(Level.WARNING, "findById failed: " + productId, e);
+            logger.log(Level.WARNING, e, () -> "findById failed: " + productId);
             return Optional.empty();
         }
     }
