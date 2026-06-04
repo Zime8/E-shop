@@ -2,6 +2,7 @@ package org.example.models.entity;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
+import java.util.Objects;
 
 public record CartItem(
         long productId,
@@ -43,5 +44,39 @@ public record CartItem(
 
     public BigDecimal subtotal() {
         return unitPrice.multiply(BigDecimal.valueOf(quantity));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CartItem cartItem = (CartItem) o;
+        return productId == cartItem.productId &&
+                shopId == cartItem.shopId &&
+                quantity == cartItem.quantity &&
+                unitPrice.equals(cartItem.unitPrice) &&
+                Objects.equals(productName, cartItem.productName) &&
+                Objects.equals(size, cartItem.size) &&
+                Arrays.equals(productImage, cartItem.productImage);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(productId, shopId, quantity, unitPrice, productName, size);
+        result = 31 * result + Arrays.hashCode(productImage);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "CartItem{" +
+                "productId=" + productId +
+                ", shopId=" + shopId +
+                ", quantity=" + quantity +
+                ", unitPrice=" + unitPrice +
+                ", productName='" + productName + '\'' +
+                ", productImage=" + (productImage != null ? "bytes[" + productImage.length + "]" : "null") +
+                ", size='" + size + '\'' +
+                '}';
     }
 }

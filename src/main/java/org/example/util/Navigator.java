@@ -39,7 +39,7 @@ public class Navigator {
             stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
-            throw new RuntimeException("Errore caricamento Home.fxml", e);
+            throw new NavigationException("Errore caricamento Home.fxml", e);
         }
     }
 
@@ -53,7 +53,7 @@ public class Navigator {
             stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
-            throw new RuntimeException("Errore caricamento SellerHome.fxml", e);
+            throw new NavigationException("Errore caricamento SellerHome.fxml", e);
         }
     }
 
@@ -67,7 +67,7 @@ public class Navigator {
             stage.setTitle("Login");
             stage.show();
         } catch (IOException e) {
-            throw new RuntimeException("Errore caricamento Login.fxml", e);
+            throw new NavigationException("Errore caricamento Login.fxml", e);
         }
     }
 
@@ -94,7 +94,7 @@ public class Navigator {
             stage.setTitle("Registrazione");
             stage.show();
         } catch (IOException e) {
-            throw new RuntimeException("Errore caricamento Register.fxml", e);
+            throw new NavigationException("Errore caricamento Register.fxml", e);
         }
     }
 
@@ -113,7 +113,7 @@ public class Navigator {
             dialog.showAndWait();
 
         } catch (IOException e) {
-            throw new RuntimeException("Errore apertura finestra: " + fxmlPath, e);
+            throw new NavigationException("Errore apertura finestra: " + fxmlPath, e);
         }
     }
 
@@ -152,7 +152,7 @@ public class Navigator {
             stage.showAndWait();
 
         } catch (IOException e) {
-            throw new RuntimeException("Errore apertura finestra trasparente: " + fxmlPath, e);
+            throw new NavigationException("Errore apertura finestra trasparente: " + fxmlPath, e);
         }
     }
 
