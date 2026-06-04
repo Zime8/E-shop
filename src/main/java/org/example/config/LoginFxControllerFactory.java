@@ -4,6 +4,8 @@ import javafx.util.Callback;
 import org.example.boundary.LoginController;
 import org.example.boundary.RegisterController;
 
+import java.lang.reflect.InvocationTargetException;
+
 public class LoginFxControllerFactory implements Callback<Class<?>, Object> {
 
     private final LoginContext loginContext;
@@ -30,8 +32,10 @@ public class LoginFxControllerFactory implements Callback<Class<?>, Object> {
 
         try {
             return type.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("Impossibile creare il controller: " + type.getName(), e);
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException e) {
+            throw new ControllerCreationException(
+                    "Impossibile creare il controller: " + type.getName(), e);
         }
     }
 }

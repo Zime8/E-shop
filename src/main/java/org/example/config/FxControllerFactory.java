@@ -3,6 +3,8 @@ package org.example.config;
 import javafx.util.Callback;
 import org.example.boundary.*;
 
+import java.lang.reflect.InvocationTargetException;
+
 public class FxControllerFactory implements Callback<Class<?>, Object> {
 
     private final AppContext appContext;
@@ -55,8 +57,10 @@ public class FxControllerFactory implements Callback<Class<?>, Object> {
 
         try {
             return type.getDeclaredConstructor().newInstance();
-        } catch (Exception e) {
-            throw new RuntimeException("Impossibile creare il controller: " + type.getName(), e);
+        } catch (InstantiationException | IllegalAccessException |
+                 InvocationTargetException | NoSuchMethodException e) {
+            throw new ControllerCreationException(
+                    "Impossibile creare il controller: " + type.getName(), e);
         }
     }
 }
