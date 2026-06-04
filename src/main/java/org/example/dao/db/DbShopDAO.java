@@ -16,8 +16,6 @@ public final class DbShopDAO implements ShopRepository {
 
     private static final Logger logger = Logger.getLogger(DbShopDAO.class.getName());
 
-    public DbShopDAO(){}
-
     // Saldo del venditore
     @Override
     public BigDecimal getBalance(long userId){

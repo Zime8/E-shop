@@ -5,7 +5,9 @@ import org.example.demo.DemoData;
 import org.example.models.entity.Product;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -23,9 +25,6 @@ public class DemoWishlistDAO implements WishlistRepository {
         String key = DemoData.prodKey(productId, shopId, size);
         Product p = DemoData.products().get(key);
 
-        System.out.println("WISHLIST add -> key=" + key + ", found=" + (p != null)
-                + ", productId=" + productId + ", shopId=" + shopId + ", size=" + size);
-
         if (p == null) {
             p = new Product(
                     productId,
@@ -38,7 +37,7 @@ public class DemoWishlistDAO implements WishlistRepository {
                     BigDecimal.ZERO,
                     size,
                     null,
-                    LocalDateTime.now()
+                    LocalDateTime.now(Clock.system(ZoneId.of("Europe/Rome")))
             );
         }
 

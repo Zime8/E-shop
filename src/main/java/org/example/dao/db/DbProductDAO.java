@@ -26,7 +26,7 @@ public class DbProductDAO implements ProductRepository {
                 return list;
             }
         } catch (SQLException e) {
-            logger.log(Level.SEVERE, "Errore durante findLatest", e);
+            logger.log(Level.SEVERE, e, () -> "Errore durante findLatest");
             return Collections.emptyList();
         }
     }

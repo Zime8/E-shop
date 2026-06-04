@@ -13,14 +13,10 @@ public final class DbOrderDAO implements OrderRepository {
 
     private static final String ORDER_ID = "id_order";
 
-    public DbOrderDAO() {
-    }
-
     // CREAZIONE ORDINE
     @Override
     public CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items, String address) {
 
-        OrderValidation.validateUserId(userId);
         OrderValidation.validateItems(items);
 
         try {
@@ -36,7 +32,6 @@ public final class DbOrderDAO implements OrderRepository {
     // Ordini completi come model `Order`
     @Override
     public List<Order> listOrdersModel(int userId) {
-        OrderValidation.validateUserId(userId);
 
         // PRODUZIONE
         final String CALL_H = "{ call sp_list_orders_header(?) }";

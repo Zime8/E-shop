@@ -6,14 +6,15 @@ import org.example.dao.support.OrderValidation;
 import org.example.demo.DemoData;
 import org.example.models.entity.*;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 public final class DemoOrderDAO implements OrderRepository {
 
     @Override
     public CreationResult placeOrderWithStockDecrement(int userId, List<CartItem> items, String address) {
-        OrderValidation.validateUserId(userId);
         OrderValidation.validateItems(items);
 
         ensureDemoSeed();
@@ -29,7 +30,6 @@ public final class DemoOrderDAO implements OrderRepository {
 
     @Override
     public List<Order> listOrdersModel(int userId) {
-        OrderValidation.validateUserId(userId);
 
         DemoData.ensureLoaded();
         var src = DemoData.orders().getOrDefault(userId, Collections.emptyList());
@@ -108,7 +108,7 @@ public final class DemoOrderDAO implements OrderRepository {
     private CreationResult createDemoOrders(int userId, Map<Integer, List<CartItem>> byShop) {
         List<Integer> createdIds = new ArrayList<>();
         Map<Integer, Integer> shopToOrderId = new LinkedHashMap<>();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(Clock.system(ZoneId.of("Europe/Rome")));
 
         for (var entry : byShop.entrySet()) {
             int shopId = entry.getKey();

@@ -7,6 +7,7 @@ import org.example.models.dto.ProductDto;
 import org.example.models.dto.ReviewDto;
 import org.example.models.entity.Review;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -82,7 +83,7 @@ public class ReviewAppController {
                     rating,
                     cleanTitle,
                     cleanComment,
-                    LocalDateTime.now(ZoneId.of("Europe/Rome"))
+                    LocalDateTime.now(Clock.system(ZoneId.of("Europe/Rome")))
             );
         } catch (Exception e) {
             logger.log(Level.WARNING, "Errore durante il salvataggio della recensione", e);

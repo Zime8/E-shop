@@ -4,7 +4,9 @@ import org.example.dao.ReviewRepository;
 import org.example.demo.DemoData;
 import org.example.models.entity.Review;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 public class DemoReviewDAO implements ReviewRepository {
@@ -55,7 +57,7 @@ public class DemoReviewDAO implements ReviewRepository {
                 rating,
                 cleanTitle,
                 cleanComment,
-                LocalDateTime.now()
+                LocalDateTime.now(Clock.system(ZoneId.of("Europe/Rome")))
         ));
     }
 
