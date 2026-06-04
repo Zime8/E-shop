@@ -17,6 +17,8 @@ public class SavedCardsController {
 
     @FXML private ListView<Card> cardsListView;
 
+    private static final String ERROR_CONTROLLER = "Controller non inizializzato";
+
     private final ObservableList<Card> cards = FXCollections.observableArrayList();
     private ModifyProfile appController;
 
@@ -87,7 +89,7 @@ public class SavedCardsController {
         result.ifPresent(card -> {
             try {
                 if (appController == null) {
-                    showError("Controller non inizializzato.");
+                    showError(ERROR_CONTROLLER);
                     return;
                 }
 
@@ -109,7 +111,7 @@ public class SavedCardsController {
     private void reloadCards() {
         try {
             if (appController == null) {
-                showError("Controller non inizializzato.");
+                showError(ERROR_CONTROLLER);
                 return;
             }
             cards.setAll(appController.loadCards());
@@ -305,7 +307,7 @@ public class SavedCardsController {
         result.ifPresent(updated -> {
             try {
                 if (appController == null) {
-                    showError("Controller non inizializzato.");
+                    showError(ERROR_CONTROLLER);
                     return;
                 }
                 appController.editCard(card.id(), updated.holder(), updated.number(), updated.expiry(), updated.type());
@@ -329,7 +331,7 @@ public class SavedCardsController {
         if (res.isPresent() && res.get() == ButtonType.OK) {
             try {
                 if (appController == null) {
-                    showError("Controller non inizializzato.");
+                    showError(ERROR_CONTROLLER);
                     return;
                 }
                 if (appController.deleteCard(card.id())) {

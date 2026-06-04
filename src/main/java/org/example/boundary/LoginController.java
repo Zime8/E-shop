@@ -16,6 +16,8 @@ import java.util.logging.Logger;
 
 public class LoginController {
 
+    private static final String ERROR_NAVIGATION = "Navigazione non disponibile";
+
     private static final Logger logger = Logger.getLogger(LoginController.class.getName());
     private static final double LOGIN_WIDTH = 600;
     private static final double LOGIN_HEIGHT = 500;
@@ -52,7 +54,7 @@ public class LoginController {
             return;
         }
         if (navigator == null) {
-            showAlert(Alert.AlertType.ERROR, "Navigazione non disponibile.");
+            showAlert(Alert.AlertType.ERROR, ERROR_NAVIGATION);
             return;
         }
 
@@ -88,7 +90,7 @@ public class LoginController {
             return;
         }
         if (navigator == null) {
-            showAlert(Alert.AlertType.ERROR, "Navigazione non disponibile.");
+            showAlert(Alert.AlertType.ERROR, ERROR_NAVIGATION);
             return;
         }
 
@@ -104,7 +106,7 @@ public class LoginController {
 
     private void navigate() {
         if (navigator == null) {
-            showAlert(Alert.AlertType.ERROR, "Navigazione non disponibile.");
+            showAlert(Alert.AlertType.ERROR, ERROR_NAVIGATION);
             return;
         }
         Stage stage = (Stage) loginButton.getScene().getWindow();

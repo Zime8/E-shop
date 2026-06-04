@@ -21,6 +21,8 @@ import java.util.*;
 
 public class CartController {
 
+    private static final String EURO_PRICE_FORMAT = "€ %.2f";
+
     private BuyProductController appController;
     private Navigator navigator;
 
@@ -62,7 +64,7 @@ public class CartController {
 
         emptyCartLabel.setVisible(false);
         double total = rows.stream().mapToDouble(r -> r.agg().subtotal().doubleValue()).sum();
-        totalLabel.setText(String.format("€ %.2f", total));
+        totalLabel.setText(String.format(EURO_PRICE_FORMAT, total));
         rows.forEach(this::addRow);
     }
 
@@ -89,7 +91,7 @@ public class CartController {
         gridRow.add(nameLabel, 1, 0);
 
         // Colonna 2: Prezzo unitario
-        Label unitLabel = new Label(String.format("€ %.2f", row.agg().unitPrice()));
+        Label unitLabel = new Label(String.format(EURO_PRICE_FORMAT, row.agg().unitPrice()));
         unitLabel.setStyle("-fx-text-fill: #d32f2f;");
         gridRow.add(unitLabel, 2, 0);
 
@@ -98,7 +100,7 @@ public class CartController {
         gridRow.add(qtyBox, 3, 0);
 
         // Colonna 4: Subtotal
-        Label subLabel = new Label(String.format("€ %.2f", row.agg().subtotal().doubleValue()));
+        Label subLabel = new Label(String.format(EURO_PRICE_FORMAT, row.agg().subtotal().doubleValue()));
         subLabel.setStyle("-fx-font-weight: bold;");
         gridRow.add(subLabel, 4, 0);
 

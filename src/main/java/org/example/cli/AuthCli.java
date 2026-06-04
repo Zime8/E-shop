@@ -63,7 +63,8 @@ final class AuthCli {
             switch (arg) {
                 case "--user" -> expecting = "user";
                 case "--pass" -> expecting = "pass";
-                default -> { }
+                default -> throw new IllegalArgumentException("Argomento non riconosciuto: " + arg);
+
             }
         }
 
