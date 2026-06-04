@@ -7,7 +7,7 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.control.Button?>
 
-<VBox fx:controller="org.example.controllers.ui.CartController"
+<VBox fx:controller="org.example.boundary.CartController"
       xmlns="http://javafx.com/javafx"
       xmlns:fx="http://javafx.com/fxml"
       spacing="10"

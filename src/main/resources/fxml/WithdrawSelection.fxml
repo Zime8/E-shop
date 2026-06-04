@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.ui.WithdrawSelectionController"
+            fx:controller="org.example.boundary.WithdrawSelectionController"
             prefWidth="700" prefHeight="620"
             style="-fx-background-color: #faf6f6;">
     <VBox alignment="TOP_CENTER" spacing="22"

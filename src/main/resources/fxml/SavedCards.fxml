@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 <?import java.net.URL?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.ui.SavedCardsController"
+            fx:controller="org.example.boundary.SavedCardsController"
             prefWidth="560" prefHeight="600"
             style="-fx-background-color: #faf6f6;">
     <VBox alignment="TOP_CENTER" spacing="22"

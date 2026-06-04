@@ -1,120 +1,94 @@
-    package org.example.util;
+package org.example.util;
 
-    import org.example.models.CartItem;
+import org.example.models.entity.CartItem;
 
-    import java.util.*;
-    import java.util.concurrent.ConcurrentHashMap;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
-    public final class Session {
-        private Session() {}
+public final class Session {
 
-        // userId corrente
-        private static final ThreadLocal<Integer> currentUserId = new ThreadLocal<>();
+    private Integer currentUserId;
+    private String currentUser;
+    private boolean demo;
+    private final List<CartItem> cartItems = new ArrayList<>();
 
-        // userId → stato privato utente
-        private static final Map<Integer, UserSession> sessions = new ConcurrentHashMap<>();
+    public Integer getUserId() {
+        return currentUserId;
+    }
 
-        // Stato privato per utente
-        private static class UserSession {
-            String currentUser;
-            boolean demo;
-            final List<CartItem> cartItems = new ArrayList<>();
+    public String getUser() {
+        return currentUser;
+    }
 
-            UserSession(String user) {
-                this.currentUser = user;
-            }
-        }
+    public void setUser(String user) {
+        this.currentUser = user;
+    }
 
-        // Get session per user corrente
-        private static UserSession getCurrentSession() {
-            Integer userId = currentUserId.get();
-            if (userId == null) return null;
-            return sessions.computeIfAbsent(userId, k -> new UserSession(null));
-        }
+    public void login(int userId, String username) {
+        this.currentUserId = userId;
+        this.currentUser = username;
+    }
 
-        // UTENTE
-        public static String getUser() {
-            UserSession s = getCurrentSession();
-            return s != null ? s.currentUser : null;
-        }
+    public void logout() {
+        this.currentUserId = null;
+        this.currentUser = null;
+        this.demo = false;
+        this.cartItems.clear();
+    }
 
-        public static void setUser(String user) {
-            UserSession s = getCurrentSession();
-            if (s != null) s.currentUser = user;
-        }
+    public boolean isDemo() {
+        return demo;
+    }
 
-        public static Integer getUserId() {
-            return currentUserId.get();
-        }
+    public void setDemo(boolean demo) {
+        this.demo = demo;
+    }
 
-        public static void setUserId(Integer userId) {
-            currentUserId.set(userId);
-        }
+    public List<CartItem> getCartItems() {
+        return List.copyOf(cartItems);
+    }
 
-        public static void login(int userId, String username) {
-            setUserId(userId);
-            UserSession s = getCurrentSession();
-            if(s == null) return;
-            s.currentUser = username;
-        }
-
-        public static void logout() {
-            Integer userId = getUserId();
-            if (userId != null) {
-                sessions.remove(userId);
-                currentUserId.remove();
-            }
-        }
-
-        // CARRELLO (per user corrente)
-        public static List<CartItem> getCartItems() {
-            UserSession s = getCurrentSession();
-            return s != null ? List.copyOf(s.cartItems) : List.of();
-        }
-
-        public static void setCartItems(List<CartItem> items) {
-            UserSession s = getCurrentSession();
-            if (s != null) {
-                s.cartItems.clear();
-                s.cartItems.addAll(items);
-            }
-        }
-
-        public static void addToCart(CartItem item) {
-            UserSession s = getCurrentSession();
-            if (s == null) return;
-            s.cartItems.add(item);
-        }
-
-        public static void removeFromCart(CartItem item) {
-            UserSession s = getCurrentSession();
-            if (s == null) return;
-            s.cartItems.remove(item);
-        }
-
-        public static void clearCart() {
-            UserSession s = getCurrentSession();
-            if (s != null) s.cartItems.clear();
-        }
-
-        public static void removeLineFromCart(long productId, int shopId, String size) {
-            UserSession s = getCurrentSession();
-            if (s == null) return;
-            s.cartItems.removeIf(p ->
-                    p.getProductId() == productId &&
-                            p.getShopId() == shopId &&
-                            Objects.equals(p.getSize(), size)
-            );
-        }
-
-        // DEMO
-        public static boolean isDemo() {
-            UserSession s = getCurrentSession();
-            return s != null && s.demo;
-        }
-
-        public static void setDemo(boolean demo) {
-            UserSession s = getCurrentSession();
-            if (s != null) s.demo = demo;
+    public void setCartItems(List<CartItem> items) {
+        cartItems.clear();
+        if (items != null) {
+            cartItems.addAll(items);
         }
     }
+
+    public void addToCart(CartItem item) {
+        if (item == null) return;
+
+        for (int i = 0; i < cartItems.size(); i++) {
+            CartItem existing = cartItems.get(i);
+            if (sameLine(existing, item.productId(), item.shopId(), item.size())) {
+                cartItems.set(i, existing.withQuantity(existing.quantity() + item.quantity()));
+                return;
+            }
+        }
+
+        cartItems.add(item);
+    }
+
+    private boolean sameLine(CartItem item, long productId, int shopId, String size) {
+        return item.productId() == productId
+                && item.shopId() == shopId
+                && Objects.equals(item.size(), size);
+    }
+
+    public void removeFromCart(CartItem item) {
+        cartItems.remove(item);
+    }
+
+    public void clearCart() {
+        cartItems.clear();
+    }
+
+    public void removeLineFromCart(long productId, int shopId, String size) {
+        cartItems.removeIf(p ->
+                p.productId() == productId &&
+                        p.shopId() == shopId &&
+                        Objects.equals(p.size(), size)
+        );
+    }
+}

@@ -3,7 +3,7 @@
 <?import javafx.scene.layout.*?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controllers.ui.ProfileController"
+      fx:controller="org.example.boundary.ProfileController"
       spacing="5"
       style="-fx-background-color: white;
              -fx-border-color: #d32f2f;

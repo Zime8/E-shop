@@ -5,7 +5,7 @@
 <?import javafx.scene.control.Label?>
 
 <VBox xmlns:fx="http://javafx.com/fxml"
-      fx:controller="org.example.controllers.ui.ProductCardController"
+      fx:controller="org.example.boundary.ProductCardController"
       alignment="TOP_CENTER"
       spacing="8"
       prefWidth="180" prefHeight="260"

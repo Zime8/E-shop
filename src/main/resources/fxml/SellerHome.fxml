@@ -6,7 +6,7 @@
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.image.Image?>
 <AnchorPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="org.example.controllers.ui.SellerHomeController"
+            fx:controller="org.example.boundary.SellerHomeController"
             prefWidth="1100" prefHeight="720"
             style="-fx-background-color: #faf6f6;">
 

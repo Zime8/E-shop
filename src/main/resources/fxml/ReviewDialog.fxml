@@ -5,7 +5,7 @@
 
 <?import java.net.URL?>
 <StackPane fx:id="root" xmlns:fx="http://javafx.com/fxml"
-           fx:controller="org.example.controllers.ui.ReviewDialogController">
+           fx:controller="org.example.boundary.ReviewDialogController">
     <stylesheets>
         <URL value="@/css/review.css"/>
     </stylesheets>

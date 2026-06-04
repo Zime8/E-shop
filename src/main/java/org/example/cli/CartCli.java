@@ -1,24 +1,32 @@
 package org.example.cli;
 
-import org.example.dao.api.ProductDao;
-import org.example.dao.db.ProductDaoDb;
-import org.example.models.Product;
-import org.example.models.CartItem;
+import org.example.control.session.CartSession;
+import org.example.dao.ProductRepository;
+import org.example.models.entity.Product;
+import org.example.models.entity.CartItem;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 @SuppressWarnings("java:S106")
 final class CartCli {
 
-    private static final ProductDao dao = new ProductDaoDb();
+    private final ProductRepository productDao;
+    private final CartSession cartSession;
+    private final ProductSearchSession searchSession;
 
-    // Stato carrello in memoria
-    private static final List<CartItem> cart = new ArrayList<>();
+    public CartCli(ProductRepository productDao, CartSession cartSession, ProductSearchSession searchSession) {
+        this.productDao = productDao;
+        this.cartSession = cartSession;
+        this.searchSession = searchSession;
+    }
 
-    private CartCli() {}
+    void handle(String[] args) {
+        if (args.length == 0) {
+            printHelp();
+            return;
+        }
 
-    static void handle(String[] args) {
-        if (args.length == 0) { printHelp(); return; }
         String sub = args[0].toLowerCase();
         String[] rest = Arrays.copyOfRange(args, 1, args.length);
 
@@ -38,7 +46,7 @@ final class CartCli {
         }
     }
 
-    private static void printHelp() {
+    private void printHelp() {
         System.out.println("""
             cart add  --id <productId> --shop <shopId> --size <size> [--qty <n>]
             cart show
@@ -46,13 +54,13 @@ final class CartCli {
             """);
     }
 
-    private static Map<String, String> parseArgs(String[] args) {
-        Map<String, String> m = new HashMap<>();
+    private Map<String, String> parseArgs(String[] args) {
+        Map<String, String> params = new HashMap<>();
         String pendingKey = null;
 
         for (String tok : args) {
             if (pendingKey != null) {
-                m.put(pendingKey, tok);
+                params.put(pendingKey, tok);
                 pendingKey = null;
                 continue;
             }
@@ -61,95 +69,112 @@ final class CartCli {
             }
         }
 
-        return m;
+        return params;
     }
 
 
-    private static void add(String[] args)  {
+    private void add(String[] args) {
         Map<String, String> p = parseArgs(args);
-        Long pid = parseLong(p.get("id"));
-        Integer shop = parseInt(p.get("shop"));
+        Long productId = parseLong(p.get("id"));
+        Integer shopId = parseInt(p.get("shop"));
         String size = p.get("size");
         Integer qty = parseInt(p.getOrDefault("qty", "1"));
 
-        if (pid == null || shop == null || size == null) {
+        if (productId == null || shopId == null || size == null) {
             System.err.println("Specifica --id <productId>, --shop <shopId>, --size <size> [--qty <n>]");
             return;
         }
-        if (qty == null || qty < 1) qty = 1;
+        if (qty == null || qty < 1) {
+            qty = 1;
+        }
 
-        // Stock e prezzo correnti dal DB
-        int stock = Optional.ofNullable(dao.getStockFor(pid, shop, size)).orElse(0);
+        int stock = Optional.ofNullable(productDao.getStockFor(productId, shopId, size)).orElse(0);
         if (stock <= 0) {
             System.out.println("❌ Prodotto esaurito per la taglia " + size);
             return;
         }
-        if (qty > stock) {
-            System.out.println("⚠️ Quantità richiesta maggiore dello stock. Imposto qty=" + stock);
-            qty = stock;
-        }
-        double price = dao.getPriceFor(pid, shop, size);
 
-        // Prova a recuperare nome/brand/shop dall'ultima search solo per stampa
-        Product base = ProductCli.findInLastSearch(pid, shop).orElse(null);
-        String name = base != null ? base.getName() : ("(id " + pid + ")");
+        List<CartItem> currentItems = cartSession.getCartItems();
+        int currentQty = currentItems.stream()
+                .filter(i -> i.productId() == productId
+                        && i.shopId() == shopId
+                        && Objects.equals(i.size(), size))
+                .mapToInt(CartItem::quantity)
+                .sum();
 
-        // Cerca item esistente
-        int idx = -1;
-        for (int i = 0; i < cart.size(); i++) {
-            CartItem it = cart.get(i);
-            if (it.getProductId() == pid && it.getShopId() == shop && Objects.equals(it.getSize(), size)) {
-                idx = i; break;
-            }
+        int finalQtyToAdd = Math.min(qty, stock - currentQty);
+        if (finalQtyToAdd <= 0) {
+            System.out.println("⚠️ Hai già raggiunto lo stock massimo disponibile per questo prodotto.");
+            return;
         }
 
-        if (idx >= 0) {
-            CartItem old = cart.get(idx);
-            int newQty = Math.min(stock, old.getQuantity() + qty);
-            // crea nuova istanza con quantità aggiornata e prezzo corrente
-            CartItem updated = new CartItem(pid, shop, newQty, price, old.getProductName(), old.getProductImage(), size);
-            cart.set(idx, updated);
-        } else {
-            // nuova riga carrello
-            CartItem added = new CartItem(pid, shop, qty, price, name, null, size);
-            cart.add(added);
+        if (finalQtyToAdd < qty) {
+            System.out.println("⚠️ Quantità richiesta maggiore dello stock residuo. Imposto qty=" + finalQtyToAdd);
         }
+
+        BigDecimal price = BigDecimal.valueOf(productDao.getPriceFor(productId, shopId, size));
+        Product base = searchSession.find(productId, shopId).orElse(null);
+        String name = base != null ? base.name() : ("(id " + productId + ")");
+
+        CartItem added = new CartItem(
+                productId,
+                shopId,
+                finalQtyToAdd,
+                price,
+                name,
+                null,
+                size
+        );
+
+        cartSession.addToCart(added);
 
         System.out.printf("🛒 Aggiunto al carrello: %s | size %s | qty %d | € %.2f cad.%n",
-                name, size, qty, price);
+                name, size, finalQtyToAdd, price);
     }
 
-    private static void show() {
-        if (cart.isEmpty()) {
+    private void show() {
+        List<CartItem> items = cartSession.getCartItems();
+        if (items.isEmpty()) {
             System.out.println("Carrello vuoto.");
             return;
         }
-        double total = 0.0;
+
+        BigDecimal total = BigDecimal.ZERO;
+
         System.out.printf("%-10s %-8s %-28s %-6s %-8s %-10s%n",
-                "productId","shopId","name","size","qty","subtot");
-        for (CartItem it : cart) {
-            double unit = it.getUnitPrice() == null ? 0.0 : it.getUnitPrice();
-            double sub = unit * it.getQuantity();
-            total += sub;
+                "productId", "shopId", "name", "size", "qty", "subtot");
+
+        for (CartItem item : items) {
+            BigDecimal unit = item.unitPrice() == null ? BigDecimal.ZERO : item.unitPrice();
+            BigDecimal subtotal = unit.multiply(BigDecimal.valueOf(item.quantity()));
+            total = total.add(subtotal);
+
             System.out.printf("%-10d %-8d %-28.28s %-6.6s %-8d %-10.2f%n",
-                    it.getProductId(), it.getShopId(), it.getProductName(), it.getSize(),
-                    it.getQuantity(), sub);
+                    item.productId(), item.shopId(), item.productName(), item.size(),
+                    item.quantity(), subtotal.doubleValue());
         }
+
         System.out.printf("%nTotale: € %.2f%n", total);
     }
 
-    private static void clear() {
-        cart.clear();
+    private void clear() {
+        cartSession.clearCart();
         System.out.println("Carrello svuotato.");
     }
 
-    // Getter per il prossimo step (checkout)
-    static List<CartItem> items() { return Collections.unmodifiableList(cart); }
-
-    public static void clearAll() {
-        cart.clear();
+    private static Long parseLong(String s) {
+        try {
+            return s == null? null: Long.parseLong(s);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
-    private static Long parseLong(String s) { try { return s == null? null: Long.parseLong(s); } catch(Exception e){ return null; } }
-    private static Integer parseInt(String s){ try { return s == null? null: Integer.parseInt(s);} catch(Exception e){ return null; } }
+    private static Integer parseInt(String s){
+        try {
+            return s == null? null: Integer.parseInt(s);
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

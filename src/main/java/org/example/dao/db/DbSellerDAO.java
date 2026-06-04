@@ -1,0 +1,183 @@
+package org.example.dao.db;
+
+import org.example.database.DatabaseConnection;
+import org.example.models.dto.CatalogRow;
+import org.example.models.dto.ProductOption;
+import org.example.models.dto.ShopOrderLine;
+import org.example.models.dto.ShopOrderSummary;
+
+import java.math.BigDecimal;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+public final class DbSellerDAO {
+
+    private DbSellerDAO() {}
+
+    private static final String COL_PRODUCT_ID = "product_id";
+    private static final String COL_NAME       = "name_p";
+    private static final String COL_SPORT      = "sport";
+    private static final String COL_BRAND      = "brand";
+    private static final String COL_CATEGORY   = "category";
+
+    // Catalogo
+
+    public static List<CatalogRow> listCatalog(int shopId, String search) throws SQLException {
+        final String call = "{ call sp_seller_list_catalog(?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, shopId);
+            cs.setString(2, (search == null || search.isBlank()) ? null : search.trim());
+            try (ResultSet rs = cs.executeQuery()) {
+                List<CatalogRow> out = new ArrayList<>();
+                while (rs.next()) {
+                    out.add(new CatalogRow(
+                            rs.getInt(COL_PRODUCT_ID),
+                            rs.getString(COL_NAME),
+                            rs.getString(COL_SPORT),
+                            rs.getString(COL_BRAND),
+                            rs.getString(COL_CATEGORY),
+                            rs.getString("size"),
+                            rs.getBigDecimal("price"),
+                            rs.getInt("quantity")
+                    ));
+                }
+                return out;
+            }
+        }
+    }
+
+    public static void upsertCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
+        Objects.requireNonNull(size, "size");
+        final String call = "{ call sp_seller_upsert_catalog(?, ?, ?, ?, ?) }";
+        catalogRow(shopId, productId, size, price, qty, call);
+    }
+
+    private static void catalogRow(int shopId, int productId, String size, BigDecimal price, int qty, String call) throws SQLException {
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, shopId);
+            cs.setInt(2, productId);
+            cs.setString(3, size);
+            cs.setBigDecimal(4, price);
+            cs.setInt(5, qty);
+            cs.executeUpdate();
+        }
+    }
+
+    public static void updateCatalogRow(int shopId, int productId, String size, BigDecimal price, int qty) throws SQLException {
+        final String call = "{ call sp_seller_update_catalog(?, ?, ?, ?, ?) }";
+        catalogRow(shopId, productId, size, price, qty, call);
+    }
+
+    public static void deleteCatalogRow(int shopId, int productId, String size) throws SQLException {
+        final String call = "{ call sp_seller_delete_catalog(?, ?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, shopId);
+            cs.setInt(2, productId);
+            cs.setString(3, size);
+            cs.executeUpdate();
+        }
+    }
+
+    public static List<ProductOption> listAllProductOptions() throws SQLException {
+        final String call = "{ call sp_seller_list_all_product_options() }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call);
+             ResultSet rs = cs.executeQuery()) {
+            List<ProductOption> out = new ArrayList<>();
+            while (rs.next()) {
+                out.add(new ProductOption(
+                        rs.getInt(COL_PRODUCT_ID),
+                        rs.getString(COL_NAME),
+                        rs.getString(COL_BRAND),
+                        rs.getString(COL_SPORT),
+                        rs.getString(COL_CATEGORY)
+                ));
+            }
+            return out;
+        }
+    }
+
+    public static List<ProductOption> listProductOptionsByNameLike(String query, int limit) throws SQLException {
+        final String call = "{ call sp_seller_list_product_options_by_name(?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setString(1, query == null ? "" : query.trim());
+            cs.setInt(2, Math.max(1, limit));
+            try (ResultSet rs = cs.executeQuery()) {
+                List<ProductOption> out = new ArrayList<>();
+                while (rs.next()) {
+                    out.add(new ProductOption(
+                            rs.getInt(COL_PRODUCT_ID),
+                            rs.getString(COL_NAME),
+                            rs.getString(COL_BRAND),
+                            rs.getString(COL_SPORT),
+                            rs.getString(COL_CATEGORY)
+                    ));
+                }
+                return out;
+            }
+        }
+    }
+
+    // Ordini per shop
+
+    public static List<ShopOrderSummary> listShopOrders(int shopId, String stateFilter) throws SQLException {
+        final String call = "{ call sp_seller_list_shop_orders(?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, shopId);
+            cs.setString(2, (stateFilter == null || stateFilter.isBlank()) ? null : stateFilter.trim());
+            try (ResultSet rs = cs.executeQuery()) {
+                List<ShopOrderSummary> out = new ArrayList<>();
+                while (rs.next()) {
+                    out.add(new ShopOrderSummary(
+                            rs.getInt("id_order"),
+                            rs.getTimestamp("date_order"),
+                            rs.getString("state_order"),
+                            rs.getBigDecimal("total"),
+                            rs.getString("customer"),
+                            rs.getString("address")
+                    ));
+                }
+                return out;
+            }
+        }
+    }
+
+    public static List<ShopOrderLine> listShopOrderLines(int shopId, int orderId) throws SQLException {
+        final String call = "{ call sp_seller_list_shop_order_lines(?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, shopId);
+            cs.setInt(2, orderId);
+            try (ResultSet rs = cs.executeQuery()) {
+                List<ShopOrderLine> out = new ArrayList<>();
+                while (rs.next()) {
+                    out.add(new ShopOrderLine(
+                            rs.getLong("id_product"),
+                            rs.getString("product_name"),
+                            rs.getString("size"),
+                            rs.getInt("quantity"),
+                            rs.getBigDecimal("price")
+                    ));
+                }
+                return out;
+            }
+        }
+    }
+
+    public static void updateOrderState(int orderId, String newState) throws SQLException {
+        final String call = "{ call sp_seller_update_order_state(?, ?) }";
+        try (Connection c = DatabaseConnection.getConnection();
+             CallableStatement cs = c.prepareCall(call)) {
+            cs.setInt(1, orderId);
+            cs.setString(2, newState);
+            cs.executeUpdate();
+        }
+    }
+}

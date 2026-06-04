@@ -1,9 +1,9 @@
 package org.example.demo;
 
-import org.example.models.Card;
-import org.example.models.Order;
-import org.example.models.Product;
-import org.example.models.Review;
+import org.example.models.dto.Card;
+import org.example.models.entity.Order;
+import org.example.models.entity.Product;
+import org.example.models.entity.Review;
 
 import java.util.List;
 import java.util.Map;
@@ -48,9 +48,19 @@ public final class DemoData {
         // Qualche prodotto di esempio
         PRODUCTS.put(prodKey(1001, 1, "42"), makeProduct(1001, "Scarpa Demo Run", "Running", "BrandX", "Scarpe", 59.90, "42"));
         PRODUCTS.put(prodKey(1002, 1, "M"),  makeProduct(1002, "Maglia Demo", "Calcio", "BrandY", "Maglie", 39.90, "M"));
+        PRODUCTS.put(prodKey(1003, 1, "43"), makeProduct(1003, "Nike Air Zoom Sprint", "Running", "Nike", "Scarpe", 89.90, "43"));
+        PRODUCTS.put(prodKey(1004, 1, "44"), makeProduct(1004, "Adidas Ultraboost Demo", "Running", "Adidas", "Scarpe", 119.90, "44"));
+        PRODUCTS.put(prodKey(1005, 2, "M"),  makeProduct(1005, "Puma Training Tee", "Fitness", "Puma", "Maglie", 29.90, "M"));
+        PRODUCTS.put(prodKey(1006, 2, "L"),  makeProduct(1006, "Under Armour HeatGear", "Fitness", "Under Armour", "Maglie", 34.90, "L"));
+        PRODUCTS.put(prodKey(1007, 3, "5"),  makeProduct(1007, "Wilson Tour Tennis Balls", "Tennis", "Wilson", "Accessori", 12.90, "5"));
+        PRODUCTS.put(prodKey(1008, 3, "unique"), makeProduct(1008, "Babolat Pure Drive Bag", "Tennis", "Babolat", "Borse", 64.90, "unique"));
+        PRODUCTS.put(prodKey(1009, 4, "L"),  makeProduct(1009, "Joma Match Jersey", "Calcio", "Joma", "Maglie", 24.90, "L"));
+        PRODUCTS.put(prodKey(1010, 4, "42"), makeProduct(1010, "Mizuno Morelia Club", "Calcio", "Mizuno", "Scarpe", 79.90, "42"));
+        PRODUCTS.put(prodKey(1011, 5, "unique"), makeProduct(1011, "Speedo Swim Goggles Fast", "Nuoto", "Speedo", "Accessori", 19.90, "unique"));
+        PRODUCTS.put(prodKey(1012, 5, "M"),  makeProduct(1012, "Arena Swim Jammer", "Nuoto", "Arena", "Costumi", 39.90, "M"));
 
         for (var p : PRODUCTS.values()) {
-            STOCK.putIfAbsent(stockKey(p.getProductId(), p.getIdShop(), p.getSize()), 5);
+            STOCK.putIfAbsent(stockKey(p.productId(), p.idShop(), p.size()), 5);
         }
     }
 
@@ -83,16 +93,18 @@ public final class DemoData {
 
     private static Product makeProduct(int id, String name, String sport, String brand, String category,
                                        double price, String size) {
-        Product p = new Product();
-        p.setProductId(id);
-        p.setName(name);
-        p.setSport(sport);
-        p.setBrand(brand);
-        p.setCategory(category);
-        p.setIdShop(1);
-        p.setNameShop("Negozio Demo");
-        p.setPrice(price);
-        p.setSize(size);
-        return p;
+        return new Product(
+                id,
+                1,
+                name,
+                sport,
+                brand,
+                category,
+                "Negozio Demo",
+                java.math.BigDecimal.valueOf(price),
+                size,
+                null,
+                java.time.LocalDateTime.now()
+        );
     }
 }

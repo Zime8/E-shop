@@ -4,7 +4,6 @@ import javafx.application.Platform;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
-import org.example.models.CardViewModel;
 
 import java.util.Map;
 

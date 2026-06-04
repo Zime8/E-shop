@@ -1,22 +1,27 @@
 package org.example.cli;
 
-import org.example.dao.UserDAO;
-import org.example.models.LoginResult;
-import org.example.models.LoginStatus;
-import org.example.util.Session;
+import org.example.control.session.UserContext;
+import org.example.dao.UserRepository;
+import org.example.models.dto.LoginResult;
+import org.example.models.dto.LoginStatus;
 
 import java.io.Console;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Scanner;
 
 @SuppressWarnings("java:S106")
 final class AuthCli {
 
-    private static final UserDAO dao =  new UserDAO();
+    private final UserRepository userRepository;
+    private final UserContext userContext;
 
-    private AuthCli() {}
+    public AuthCli(UserRepository userRepository, UserContext userContext) {
+        this.userRepository = userRepository;
+        this.userContext = userContext;
+    }
 
-    static void handleLoginCommand(String[] args) {
+    void handleLoginCommand(String[] args) {
         Map<String, String> params = parseArgs(args);
         String user = params.get("user");
         String pass = params.get("pass");
@@ -28,17 +33,14 @@ final class AuthCli {
             pass = promptPassword();
         }
 
-        try {
-            Session.setDemo(false);
-        } catch (Exception ignored) {
-            // Ok
-        }
+        userContext.setDemo(false);
 
-        LoginResult res = dao.checkLogin(user, pass);
+        LoginResult res = userRepository.checkLogin(user, pass);
 
         if (res.status() == LoginStatus.SUCCESS) {
-            CliSession.setAuthenticated(user, res.userId(), res.role());
-            System.out.printf("✅ Login eseguito: %s (id=%d, ruolo=%s)%n", user, res.userId(), res.role());
+            userContext.login(res.userId(), user);
+            System.out.printf("✅ Login eseguito: %s (id=%d, ruolo=%s)%n",
+                    user, res.userId(), res.role());
         } else if (res.status() == LoginStatus.INVALID_CREDENTIALS) {
             System.out.println("❌ Credenziali non valide.");
             System.exit(1);
@@ -61,7 +63,7 @@ final class AuthCli {
             switch (arg) {
                 case "--user" -> expecting = "user";
                 case "--pass" -> expecting = "pass";
-                default -> { /* ignora token non riconosciuti */ }
+                default -> { }
             }
         }
 
@@ -73,9 +75,8 @@ final class AuthCli {
 
     private static String prompt() {
         System.out.print("Username: ");
-        return System.console() == null
-                ? new java.util.Scanner(System.in).nextLine()
-                : System.console().readLine();
+        Console console = System.console();
+        return console == null ? new Scanner(System.in).nextLine() : console.readLine();
     }
 
     private static String promptPassword() {
@@ -85,6 +86,6 @@ final class AuthCli {
             return pwd == null ? "" : new String(pwd);
         }
         System.out.print("Password: ");
-        return new java.util.Scanner(System.in).nextLine();
+        return new Scanner(System.in).nextLine();
     }
 }

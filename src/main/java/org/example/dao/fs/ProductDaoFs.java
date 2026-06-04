@@ -1,16 +1,17 @@
 package org.example.dao.fs;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.example.dao.api.ProductDao;
+import org.example.dao.ProductRepository;
 import org.example.dao.fs.model.*;
-import org.example.models.Product;
+import org.example.models.entity.Product;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class ProductDaoFs implements ProductDao {
+public class ProductDaoFs implements ProductRepository {
     private final FsStore store;
 
     public ProductDaoFs(Path dataRoot) { this.store = new FsStore(dataRoot); }
@@ -35,26 +36,64 @@ public class ProductDaoFs implements ProductDao {
                     .collect(Collectors.toMap(FsShop::idShop, FsShop::nameS));
 
             Comparator<Product> cmp = Comparator
-                    .comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
-                    .thenComparing(Product::getProductId, Comparator.reverseOrder());
+                    .comparing(Product::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                    .thenComparing(Product::productId, Comparator.reverseOrder());
 
             return products.stream().map(fp -> {
-                var p = new Product();
-                p.setProductId(fp.productId());
-                p.setName(fp.nameP());
-                p.setSport(fp.sport());
-                p.setBrand(fp.brand());
-                p.setCategory(fp.category());
-                if (fp.createdAt() != null) p.setCreatedAt(LocalDateTime.parse(fp.createdAt()));
-                var min = minByProduct.getOrDefault(fp.productId(), Optional.empty());
-                min.ifPresent(av -> {
-                    p.setPrice(av.price());
-                    p.setIdShop(av.idShop());
-                    p.setNameShop(shopNames.get(av.idShop()));
-                });
-                return p;
-            }).sorted(cmp).limit(Math.max(0, limit)).toList();
+                        var min = minByProduct.getOrDefault(fp.productId(), Optional.empty());
+                        if (min.isEmpty()) return null;
+                        var av = min.get();
+
+                        return new Product(
+                                fp.productId(),
+                                av.idShop(),
+                                fp.nameP(),
+                                fp.sport(),
+                                fp.brand(),
+                                fp.category(),
+                                shopNames.get(av.idShop()),
+                                BigDecimal.valueOf(av.price()),
+                                null,
+                                null,
+                                fp.createdAt() != null ? LocalDateTime.parse(fp.createdAt()) : null
+                        );
+                    }).filter(Objects::nonNull)
+                    .sorted(cmp).limit(Math.max(0, limit)).toList();
+
         } finally { store.rw.readLock().unlock(); }
+    }
+
+    @Override
+    public Optional<Product> findById(long productId) {
+        store.rw.readLock().lock();
+        try {
+            var products = store.readList(PRODUCTS, new TypeReference<List<FsProduct>>() {});
+            var avail    = store.readList(AVAILABILITY, new TypeReference<List<FsAvailability>>() {});
+            var shops    = store.readList(SHOPS, new TypeReference<List<FsShop>>() {});
+
+            Optional<FsProduct> fp = products.stream()
+                    .filter(p -> p.productId() == productId).findFirst();  // ← FIX: productId()
+            if (fp.isEmpty()) return Optional.empty();
+
+            Optional<FsAvailability> av = avail.stream()
+                    .filter(a -> a.productId() == productId)
+                    .min(Comparator.comparingDouble(FsAvailability::price));
+            if (av.isEmpty()) return Optional.empty();
+
+            Map<Integer, String> shopNames = shops.stream()
+                    .collect(Collectors.toMap(FsShop::idShop, FsShop::nameS));
+
+            return Optional.of(new Product(
+                    fp.get().productId(), av.get().idShop(), fp.get().nameP(),
+                    fp.get().sport(), fp.get().brand(), fp.get().category(),
+                    shopNames.getOrDefault(av.get().idShop(), ""),
+                    BigDecimal.valueOf(av.get().price()), null, null,
+                    fp.get().createdAt() != null ?
+                            LocalDateTime.parse(fp.get().createdAt()) : null
+            ));
+        } finally {
+            store.rw.readLock().unlock();
+        }
     }
 
     @Override
@@ -70,20 +109,14 @@ public class ProductDaoFs implements ProductDao {
                                     Collectors.collectingAndThen(Collectors.minBy(Double::compare), o -> o.orElse(0.0)))));
 
             return products.stream()
-                    .filter(fp -> fp.nameP()!=null && fp.nameP().toLowerCase().contains(q))
-                    .map(fp -> {
-                        var p = new Product();
-                        p.setProductId(fp.productId());
-                        p.setName(fp.nameP());
-                        p.setSport(fp.sport());
-                        p.setBrand(fp.brand());
-                        p.setCategory(fp.category());
-                        p.setPrice(minPrice.getOrDefault(fp.productId(), 0.0));
-                        if (fp.createdAt()!=null) p.setCreatedAt(LocalDateTime.parse(fp.createdAt()));
-                        return p;
-                    })
-                    .sorted(Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
-                            .thenComparing(Product::getProductId, Comparator.reverseOrder()))
+                    .filter(fp -> fp.nameP() != null && fp.nameP().toLowerCase().contains(q))
+                    .map(fp -> new Product(
+                            fp.productId(), 0, fp.nameP(), fp.sport(), fp.brand(),
+                            fp.category(), "", BigDecimal.valueOf(minPrice.getOrDefault(fp.productId(), 0.0)),
+                            null, null, fp.createdAt() != null ? LocalDateTime.parse(fp.createdAt()) : null
+                    ))
+                    .sorted(Comparator.comparing(Product::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(Product::productId, Comparator.reverseOrder()))
                     .toList();
         } finally { store.rw.readLock().unlock(); }
     }
@@ -118,26 +151,21 @@ public class ProductDaoFs implements ProductDao {
             return products.stream()
                     .filter(p -> sportVal == null || Objects.equals(p.sport(), sportVal))
                     .filter(p -> brandVal == null || Objects.equals(p.brand(), brandVal))
-                    .filter(p -> catVal  == null || Objects.equals(p.category(), catVal))
+                    .filter(p -> catVal == null || Objects.equals(p.category(), catVal))
                     .map(fp -> {
                         var min = availFiltered.getOrDefault(fp.productId(), Optional.empty());
                         if (min.isEmpty()) return null;
                         var a = min.get();
-                        var p = new Product();
-                        p.setProductId(fp.productId());
-                        p.setName(fp.nameP());
-                        p.setSport(fp.sport());
-                        p.setBrand(fp.brand());
-                        p.setCategory(fp.category());
-                        p.setPrice(a.price());
-                        p.setIdShop(a.idShop());
-                        p.setNameShop(shopNames.get(a.idShop()));
-                        if (fp.createdAt()!=null) p.setCreatedAt(LocalDateTime.parse(fp.createdAt()));
-                        return p;
+                        return new Product(
+                                fp.productId(), a.idShop(), fp.nameP(), fp.sport(), fp.brand(),
+                                fp.category(), shopNames.get(a.idShop()),
+                                BigDecimal.valueOf(a.price()), null, null,
+                                fp.createdAt() != null ? LocalDateTime.parse(fp.createdAt()) : null
+                        );
                     })
                     .filter(Objects::nonNull)
-                    .sorted(Comparator.comparing(Product::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()))
-                            .thenComparing(Product::getProductId, Comparator.reverseOrder()))
+                    .sorted(Comparator.comparing(Product::createdAt, Comparator.nullsLast(Comparator.reverseOrder()))
+                            .thenComparing(Product::productId, Comparator.reverseOrder()))
                     .toList();
         } finally { store.rw.readLock().unlock(); }
     }

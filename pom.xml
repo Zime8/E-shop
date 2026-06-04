@@ -33,6 +33,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
+            <!-- Force patch per GHSA-72hv-8253-57qq -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>2.19.2</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -267,13 +274,13 @@
                     <groupId>org.openjfx</groupId>
                     <artifactId>javafx-base</artifactId>
                     <version>${javafx.version}</version>
-                    <classifier>Linux</classifier>
+                    <classifier>linux</classifier>
                 </dependency>
                 <dependency>
                     <groupId>org.openjfx</groupId>
                     <artifactId>javafx-graphics</artifactId>
                     <version>${javafx.version}</version>
-                    <classifier>Linux</classifier>
+                    <classifier>linux</classifier>
                 </dependency>
                 <dependency>
                     <groupId>org.openjfx</groupId>

@@ -1,10 +1,11 @@
 package org.example.dao;
 
+import org.example.dao.db.DbOrderDAO;
 import org.example.database.DatabaseConnection;
-import org.example.models.CartItem;
-import org.example.util.Session;
+import org.example.models.entity.CartItem;
 import org.junit.jupiter.api.*;
 
+import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,12 +16,11 @@ import static org.junit.jupiter.api.Assertions.*;
 class OrderDAOSuccessPaymentTest {
 
     private Integer createdOrderId = null;
+    private final OrderRepository orderRepository = new DbOrderDAO();
 
     @BeforeAll
     void useOriginalDb() throws Exception {
         DatabaseConnection.clearOverride();
-
-        Session.setDemo(false);
 
         // la connessione deve aprirsi
         DatabaseConnection.getConnection();
@@ -119,7 +119,7 @@ class OrderDAOSuccessPaymentTest {
         int productId;
         int shopId;
         String size;
-        double unitPrice;
+        BigDecimal unitPrice;
         int buyQty = 2;
 
         // prendo una riga reale dal catalogo
@@ -136,7 +136,7 @@ class OrderDAOSuccessPaymentTest {
                 shopId = rs.getInt("id_shop");
                 productId = rs.getInt("product_id");
                 size = rs.getString("size");
-                unitPrice = rs.getBigDecimal("price").doubleValue();
+                unitPrice = rs.getBigDecimal("price");
             }
         }
 
@@ -147,8 +147,8 @@ class OrderDAOSuccessPaymentTest {
         List<CartItem> items = List.of(item);
 
         // eseguo l’ordine
-        OrderDAO.CreationResult res =
-                OrderDAO.placeOrderWithStockDecrement(userId, items, "Via di Test 123, Roma");
+        DbOrderDAO.CreationResult res =
+                orderRepository.placeOrderWithStockDecrement(userId, items, "Via di Test 123, Roma");
 
         assertNotNull(res, "CreationResult nullo");
         assertEquals(1, res.orderIds().size(), "Con un solo shop deve creare un solo ordine");

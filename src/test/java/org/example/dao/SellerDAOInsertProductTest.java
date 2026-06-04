@@ -1,7 +1,9 @@
 package org.example.dao;
 
+import org.example.dao.db.DbSellerDAO;
+import org.example.dao.db.DbShopDAO;
 import org.example.database.DatabaseConnection;
-import org.example.models.CatalogRow;
+import org.example.models.dto.CatalogRow;
 import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
@@ -21,9 +23,11 @@ class SellerDAOInsertProductTest {
     @BeforeAll
     void sanity() throws Exception {
         DatabaseConnection.getConnection();
-        var shop = SellerDAO.findShopForUser(VENDOR_USER_ID);
-        assertNotNull(shop, "Nessuno shop associato al venditore");
-        shopId = shop.shopId();
+
+        DbShopDAO shopDAO = new DbShopDAO();
+        var shop = shopDAO.findShopForUser(VENDOR_USER_ID);
+        assertTrue(shop.isPresent(), "Nessuno shop associato al venditore");
+        shopId = shop.get().shopId();
     }
 
     @AfterEach
@@ -52,7 +56,7 @@ class SellerDAOInsertProductTest {
         // Primo upsert: deve creare la riga con prezzo e qty specificati
         BigDecimal firstPrice = new BigDecimal("119.99");
         int firstQty = 5;
-        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, firstPrice, firstQty);
+        DbSellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, firstPrice, firstQty);
 
         CatalogRow row1 = findCatalogRow(shopId, size);
         assertNotNull(row1, "La variante inserita non è stata trovata nel catalogo");
@@ -62,7 +66,7 @@ class SellerDAOInsertProductTest {
         // Secondo upsert: la quantità si somma e il prezzo NON cambia
         BigDecimal newPrice = new BigDecimal("100.00");
         int addQty = 2;
-        SellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, newPrice, addQty);
+        DbSellerDAO.upsertCatalogRow(shopId, PRODUCT_ID, size, newPrice, addQty);
 
         CatalogRow row2 = findCatalogRow(shopId, size);
         assertNotNull(row2, "Variante non trovata dopo secondo upsert");
@@ -99,7 +103,7 @@ class SellerDAOInsertProductTest {
     }
 
     private CatalogRow findCatalogRow(int shopId, String size) throws Exception {
-        var catalog = SellerDAO.listCatalog(shopId, null);
+        var catalog = DbSellerDAO.listCatalog(shopId, null);
         return catalog.stream()
                 .filter(r -> r.productId() == SellerDAOInsertProductTest.PRODUCT_ID && size.equals(r.size()))
                 .findFirst()

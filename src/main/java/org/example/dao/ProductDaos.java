@@ -1,7 +1,6 @@
 package org.example.dao;
 
-import org.example.dao.api.ProductDao;
-import org.example.dao.db.ProductDaoDb;
+import org.example.dao.db.DbProductDAO;
 import org.example.dao.fs.ProductDaoFs;
 
 import java.util.logging.Level;
@@ -12,7 +11,7 @@ public final class ProductDaos {
 
     private static final Logger logger = Logger.getLogger(ProductDaos.class.getName());
 
-    public static ProductDao create() {
+    public static ProductRepository create() {
         String mode = System.getProperty("persist.mode",
                 System.getenv().getOrDefault("PERSIST_MODE", "DB"));
         if ("FS".equalsIgnoreCase(mode)) {
@@ -26,7 +25,7 @@ public final class ProductDaos {
             }
         }
         logger.info("[DAO] Mode=DB");
-        return new ProductDaoDb();
+        return new DbProductDAO();
     }
 
 }

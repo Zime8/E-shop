@@ -1,5 +1,19 @@
 package org.example.cli;
 
+import org.example.control.session.CartSession;
+import org.example.control.session.SessionCartSession;
+import org.example.control.session.SessionUserContext;
+import org.example.control.session.UserContext;
+import org.example.dao.OrderRepository;
+import org.example.dao.ProductDaos;
+import org.example.dao.ProductRepository;
+import org.example.dao.UserRepository;
+import org.example.dao.db.DbOrderDAO;
+import org.example.dao.db.DbUserDAO;
+import org.example.dao.gateway.FakePaymentGateway;
+import org.example.dao.gateway.PaymentGateway;
+import org.example.util.Session;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -10,8 +24,23 @@ import java.util.List;
 public final class MainCli {
 
     private static final String PROMPT = "eshop> ";
+    private final CheckoutCli checkoutCli;
+    private final AuthCli authCli;
+    private final CartCli cartCli;
+    private final ProductCli productCli;
+    private final UserContext userContext;
 
-    private MainCli() {}
+    MainCli(CheckoutCli checkoutCli,
+            AuthCli authCli,
+            CartCli cartCli,
+            ProductCli productCli,
+            UserContext userContext) {
+        this.checkoutCli = checkoutCli;
+        this.authCli = authCli;
+        this.cartCli = cartCli;
+        this.productCli = productCli;
+        this.userContext = userContext;
+    }
 
     private static void printHelp() {
         System.out.println("""
@@ -39,20 +68,38 @@ public final class MainCli {
     }
 
     public static void main(String[] args) {
-        // Modalità interattiva: nessun argomento
+        MainCli app = bootstrap();
+
         if (args.length == 0) {
             printHelp();
-            interactiveShell();
+            app.interactiveShell();
             return;
         }
 
-        // Modalità batch: un singolo comando passato da riga di comando
-        int code = executeOnce(args /*interactive=*/);
+        int code = app.executeOnce(args);
         if (code != 0) System.exit(code);
     }
 
-    // legge comandi da stdin e li esegue finché l'utente non esce
-    private static void interactiveShell() {
+    private static MainCli bootstrap() {
+        UserRepository userRepository = new DbUserDAO();
+        ProductRepository productDao = ProductDaos.create();
+        OrderRepository orderRepository = new DbOrderDAO();
+        PaymentGateway paymentGateway = new FakePaymentGateway(800, 0.10);
+
+        Session session = new Session();
+        UserContext userContext = new SessionUserContext(session);
+        CartSession cartSession = new SessionCartSession(session);
+        ProductSearchSession searchSession = new ProductSearchSession();
+
+        AuthCli authCli = new AuthCli(userRepository, userContext);
+        ProductCli productCli = new ProductCli(productDao, searchSession);
+        CartCli cartCli = new CartCli(productDao, cartSession, searchSession);
+        CheckoutCli checkoutCli = new CheckoutCli(orderRepository, paymentGateway, cartSession, userContext);
+
+        return new MainCli(checkoutCli, authCli, cartCli, productCli, userContext);
+    }
+
+    private void interactiveShell() {
         try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
             boolean running = true;
             while (running) {
@@ -79,31 +126,28 @@ public final class MainCli {
         System.out.println("Bye!");
     }
 
-    // Esegue un singolo comando, restituendo un exit code
-    private static int executeOnce(String[] args) {
+    private int executeOnce(String[] args) {
         String cmd = args[0].toLowerCase();
         String[] rest = slice(args);
 
-        // sempre permessi
         if ("help".equals(cmd) || "-h".equals(cmd) || "--help".equals(cmd)) {
             printHelp();
             return 0;
         }
         if ("login".equals(cmd)) {
-            AuthCli.handleLoginCommand(rest);
+            authCli.handleLoginCommand(rest);
             return 0;
         }
 
-        // serve login per tutto il resto
-        if (!CliSession.isAuthenticated()) {
+        if (!userContext.isLoggedIn()) {
             System.out.println("Devi prima effettuare il login:\n  login --user <username> --pass <password>");
             return 1;
         }
 
         switch (cmd) {
-            case "product"  -> ProductCli.handle(rest);
-            case "cart"     -> CartCli.handle(rest);
-            case "checkout" -> CheckoutCli.handle(rest);
+            case "product"  -> productCli.handle(rest);
+            case "cart"     -> cartCli.handle(rest);
+            case "checkout" -> checkoutCli.handle(rest);
             default -> {
                 System.err.println("Comando sconosciuto: " + cmd);
                 printHelp();
@@ -113,7 +157,6 @@ public final class MainCli {
         return 0;
     }
 
-    // Split degli argomenti rispettando virgolette e backslash
     private static String[] splitArgs(String line) {
         List<String> tokens = new ArrayList<>();
         ArgLexer lx = new ArgLexer();
@@ -126,16 +169,15 @@ public final class MainCli {
                 lx.append(c);
                 escape = false;
             } else if (c == '\\') {
-                escape = true;                  // backslash: il prossimo char è “letterale”
+                escape = true;
             } else {
-                lx.onChar(c, tokens);           // delega la logica di quote/flush
+                lx.onChar(c, tokens);
             }
         }
-        lx.finish(tokens);                      // flush finale
+        lx.finish(tokens);
         return tokens.toArray(new String[0]);
     }
 
-    // Piccolo lexer che gestisce stato (virgolette) e flush dei token
     private static final class ArgLexer {
         private final StringBuilder cur = new StringBuilder();
         private boolean inQuotes = false;
@@ -144,32 +186,32 @@ public final class MainCli {
         void onChar(char c, List<String> out) {
             if (inQuotes) {
                 if (c == quoteChar) {
-                    inQuotes = false;           // chiude le virgolette
+                    inQuotes = false;
                 } else {
-                    cur.append(c);              // testo dentro virgolette
+                    cur.append(c);
                 }
                 return;
             }
 
             if (c == '"' || c == '\'') {
                 inQuotes = true;
-                quoteChar = c;                  // apre virgolette
+                quoteChar = c;
                 return;
             }
 
             if (Character.isWhitespace(c)) {
-                flush(out);                     // separatore tra token
+                flush(out);
                 return;
             }
 
-            cur.append(c);                      // testo non quotato
-        }
-
-        void append(char c) {                   // usato per gestire l'escape nel metodo esterno
             cur.append(c);
         }
 
-        void finish(List<String> out) {         // flush finale
+        void append(char c) {
+            cur.append(c);
+        }
+
+        void finish(List<String> out) {
             flush(out);
         }
 

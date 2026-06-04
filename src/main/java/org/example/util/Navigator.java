@@ -1,152 +1,171 @@
 package org.example.util;
 
-import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.Window;
+import javafx.util.Callback;
+import org.example.config.AppContext;
+import org.example.control.session.UserContext;
+import org.example.models.dto.LoginResult;
+import org.example.models.dto.LoginStatus;
 
 import java.io.IOException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.function.Consumer;
 
 public class Navigator {
 
-    private static final Logger logger = Logger.getLogger(Navigator.class.getName());
+    private AppContext appContext;
+    private final Session session;
+    private final UserContext userContext;
+    private final Callback<Class<?>, Object> loginControllerFactory;
 
-    private Navigator() {
-        throw new UnsupportedOperationException("Utility class - non serve istanziare");
+    public Navigator(Session session, UserContext userContext, Callback<Class<?>, Object> loginControllerFactory) {
+        this.session = session;
+        this.userContext = userContext;
+        this.loginControllerFactory = loginControllerFactory;
     }
 
-    public static void openModal(String fxmlPath, Object data, Runnable onCloseCallback) {
+    public void goToBuyerHome(Stage stage) {
         try {
-            FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
+            FXMLLoader loader = createAppLoader("/fxml/Home.fxml");
             Parent root = loader.load();
-            Object uiController = loader.getController();
 
-            injectAppController(uiController);
+            stage.setScene(new Scene(root));
+            stage.setTitle("Home");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (IOException e) {
+            throw new RuntimeException("Errore caricamento Home.fxml", e);
+        }
+    }
 
-            if (data != null) {
-                tryInvoke(uiController, "loadData", data);
+    public void goToSellerHome(Stage stage) {
+        try {
+            FXMLLoader loader = createAppLoader("/fxml/SellerHome.fxml");
+            Parent root = loader.load();
+
+            stage.setScene(new Scene(root));
+            stage.setTitle("Area Venditore");
+            stage.setMaximized(true);
+            stage.show();
+        } catch (IOException e) {
+            throw new RuntimeException("Errore caricamento SellerHome.fxml", e);
+        }
+    }
+
+    public void goToLogin(Stage stage) {
+        try {
+            appContext = null;
+            FXMLLoader loader = createLoginLoader("/fxml/Login.fxml");
+            Parent root = loader.load();
+
+            stage.setScene(new Scene(root));
+            stage.setTitle("Login");
+            stage.show();
+        } catch (IOException e) {
+            throw new RuntimeException("Errore caricamento Login.fxml", e);
+        }
+    }
+
+    public void goAfterLogin(Stage stage, LoginResult result) {
+        if (result == null || result.status() != LoginStatus.SUCCESS) {
+            return;
+        }
+
+        appContext = new AppContext(session, userContext, this);
+
+        if ("venditore".equalsIgnoreCase(result.role())) {
+            goToSellerHome(stage);
+        } else {
+            goToBuyerHome(stage);
+        }
+    }
+
+    public void goToRegister(Stage stage) {
+        try {
+            FXMLLoader loader = createLoginLoader("/fxml/Register.fxml");
+            Parent root = loader.load();
+
+            stage.setScene(new Scene(root));
+            stage.setTitle("Registrazione");
+            stage.show();
+        } catch (IOException e) {
+            throw new RuntimeException("Errore caricamento Register.fxml", e);
+        }
+    }
+
+    public <T> void openModal(String fxmlPath, Consumer<T> controllerInitializer) {
+        try {
+            FXMLLoader loader = createAppLoader(fxmlPath);
+            Parent root = loader.load();
+
+            T controller = loader.getController();
+
+            if (controllerInitializer != null) {
+                controllerInitializer.accept(controller);
             }
 
             Stage dialog = createModalStage(root);
-            tryInvoke(uiController, "setStage", dialog);
-
             dialog.showAndWait();
-            if(onCloseCallback != null) onCloseCallback.run();
-
-            refreshCaller();
 
         } catch (IOException e) {
-            throw new IllegalArgumentException("Errore apertura " + fxmlPath, e);
+            throw new RuntimeException("Errore apertura finestra: " + fxmlPath, e);
         }
     }
 
-    public static void openModal(String fxmlPath, Object data, Object appController, Runnable onCloseCallback) {
+    public <T> void openTransparentModal(String fxmlPath, Consumer<T> controllerInitializer) {
         try {
-            FXMLLoader loader = new FXMLLoader(Navigator.class.getResource(fxmlPath));
+            FXMLLoader loader = createAppLoader(fxmlPath);
             Parent root = loader.load();
-            Object uiController = loader.getController();
 
-            // Inject AppController nel controller UI
-            if (appController != null) {
-                tryInvoke(uiController, "setAppController", appController);
+            T controller = loader.getController();
+            if (controllerInitializer != null) {
+                controllerInitializer.accept(controller);
             }
 
-            // Passa dati opzionali
-            if (data != null) {
-                tryInvoke(uiController, "loadData", data);
+            Stage stage = new Stage();
+            stage.initStyle(StageStyle.TRANSPARENT);
+
+            Scene scene = new Scene(root);
+            scene.setFill(javafx.scene.paint.Color.TRANSPARENT);
+            stage.setScene(scene);
+
+            stage.initModality(Modality.APPLICATION_MODAL);
+
+            Window owner = Window.getWindows().stream()
+                    .filter(Window::isShowing)
+                    .findFirst()
+                    .orElse(null);
+
+            if (owner != null) {
+                stage.initOwner(owner);
+                stage.setX(owner.getX());
+                stage.setY(owner.getY());
+                stage.setWidth(owner.getWidth());
+                stage.setHeight(owner.getHeight());
             }
 
-            // Crea e mostra la finestra modale
-            Stage dialog = new Stage();
-            dialog.setScene(new Scene(root));
-            dialog.initModality(Modality.APPLICATION_MODAL);
-            Window.getWindows().stream().filter(Window::isShowing).findFirst().ifPresent(dialog::initOwner);
-            dialog.setResizable(false);
-            dialog.centerOnScreen();
-
-            tryInvoke(uiController, "setStage", dialog);
-
-            dialog.showAndWait();
-
-            if (onCloseCallback != null) onCloseCallback.run();
+            stage.showAndWait();
 
         } catch (IOException e) {
-            throw new IllegalArgumentException("Errore apertura finestra: " + fxmlPath, e);
+            throw new RuntimeException("Errore apertura finestra trasparente: " + fxmlPath, e);
         }
     }
 
-
-    private static void refreshCaller() {
-        Window owner = Window.getWindows().stream()
-                .filter(w -> w instanceof Stage && w.isShowing())
-                .findFirst().orElse(null);
-        if (owner != null && owner.getScene().getRoot().getUserData() instanceof Runnable refresher) {
-            Platform.runLater(refresher);
-        }
+    private FXMLLoader createLoginLoader(String fxmlPath) {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+        loader.setControllerFactory(loginControllerFactory);
+        return loader;
     }
 
-
-    private static void injectAppController(Object uiController) {
-        try {
-            String appSimpleName = uiController.getClass().getSimpleName().replace("Controller", "AppController");
-            String appClassName = "org.example.controllers.app." + appSimpleName;
-
-            Class<?> appClass = Class.forName(appClassName);
-            Object appController = appClass.getDeclaredConstructor().newInstance();
-
-            Method setter = findSetter(uiController.getClass());
-            if (setter != null) {
-                setter.invoke(uiController, appController);
-            } else {
-                logger.log(Level.SEVERE, "Inject AppController failed: {0}", uiController.getClass().getName());
-            }
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Inject AppController FAILED", e);
-        }
-    }
-
-    private static Method findSetter(Class<?> clazz) {
-        try {
-            return clazz.getMethod("setAppController", Object.class);
-        } catch (NoSuchMethodException e) {
-            return null;
-        }
-    }
-
-    private static void tryInvoke(Object target, String methodName, Object... args) {
-        // Prova prima single Object
-        if (args.length == 1) {
-            try {
-                Method method = target.getClass().getMethod(methodName, Object.class);
-                method.invoke(target, args[0]);
-                return;
-            } catch (Exception e) {
-                // Ignora
-            }
-        }
-
-        // Poi multi-arg
-        Class<?>[] paramTypes = Arrays.stream(args)
-                .map(Object::getClass)
-                .toArray(Class[]::new);
-
-        try {
-            Method method = target.getClass().getMethod(methodName, paramTypes);
-            method.invoke(target, args);
-        } catch (NoSuchMethodException e) {
-            logger.fine(() -> String.format("No method %s(%s)",
-                    methodName, Arrays.toString(paramTypes)));
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "Invoke FAILED: {0}",
-                    new Object[]{e.getMessage()});
-        }
+    public FXMLLoader createAppLoader(String fxmlPath) {
+        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+        loader.setControllerFactory(getOrCreateAppContext().getControllerFactory());
+        return loader;
     }
 
     private static Stage createModalStage(Parent root) {
@@ -157,5 +176,12 @@ public class Navigator {
         stage.setResizable(false);
         stage.centerOnScreen();
         return stage;
+    }
+
+    private AppContext getOrCreateAppContext() {
+        if (appContext == null) {
+            appContext = new AppContext(session, userContext, this);
+        }
+        return appContext;
     }
 }
