@@ -1,5 +1,6 @@
 package org.example.control;
 
+import org.example.control.dependencies.BuyProductDependencies;
 import org.example.control.services.*;
 import org.example.control.session.UserContext;
 import org.example.models.dto.*;
@@ -19,22 +20,15 @@ public class BuyProductController {
     private final CheckOrders checkOrdersController;
     private final WishlistAppController wishlistAppController;
 
-    public BuyProductController(HomeService homeService,
-                                CartService cartService,
-                                ProductDetailService productDetailService,
-                                PaymentSelectionService paymentService,
-                                UserContext userContext,
-                                ModifyProfile modifyProfileController,
-                                CheckOrders checkOrdersController,
-                                WishlistAppController wishlistAppController){
-        this.homeService = homeService;
-        this.cartService = cartService;
-        this.productDetailService = productDetailService;
-        this.paymentService = paymentService;
-        this.userContext = userContext;
-        this.modifyProfileController = modifyProfileController;
-        this.checkOrdersController = checkOrdersController;
-        this.wishlistAppController = wishlistAppController;
+    public BuyProductController(BuyProductDependencies deps) {
+        this.homeService = deps.homeService();
+        this.cartService = deps.cartService();
+        this.productDetailService = deps.productDetailService();
+        this.paymentService = deps.paymentService();
+        this.userContext = deps.userContext();
+        this.modifyProfileController = deps.modifyProfileController();
+        this.checkOrdersController = deps.checkOrdersController();
+        this.wishlistAppController = deps.wishlistAppController();
     }
 
     // Schermata home: ricerca, filtri e setup product card

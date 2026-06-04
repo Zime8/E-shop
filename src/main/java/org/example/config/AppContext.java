@@ -1,6 +1,7 @@
 package org.example.config;
 
 import org.example.control.*;
+import org.example.control.dependencies.BuyProductDependencies;
 import org.example.control.services.*;
 import org.example.control.session.CartSession;
 import org.example.control.session.SessionCartSession;
@@ -71,7 +72,7 @@ public class AppContext {
                 cartService
         );
 
-        this.buyProductController = new BuyProductController(
+        BuyProductDependencies buyProductDependencies = new BuyProductDependencies(
                 homeService,
                 cartService,
                 productDetailService,
@@ -81,6 +82,8 @@ public class AppContext {
                 checkOrdersController,
                 wishlistAppController
         );
+
+        this.buyProductController = new BuyProductController(buyProductDependencies);
 
         this.sellerHomeAppController = new SellerHomeAppController(shopRepository, userContext);
         this.sellerOrdersController = new SellerOrdersController();
