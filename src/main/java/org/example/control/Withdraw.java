@@ -73,7 +73,7 @@ public class Withdraw {
                 Thread.sleep(900);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new RuntimeException("Operazione interrotta", e);
+                throw new AppControllerException("Operazione interrotta", e);
             }
 
             confirmWithdraw(userId, amount, card, cvv);
@@ -115,7 +115,7 @@ public class Withdraw {
             throw e;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Errore conferma prelievo", e);
-            throw new RuntimeException("Errore durante il prelievo", e);
+            throw new AppControllerException("Errore durante il prelievo", e);
         }
     }
 

@@ -40,7 +40,7 @@ public class PurchaseHistoryService {
 
                 callback.accept(result);
             } catch (RuntimeException e) {
-                logger.log(Level.SEVERE, "Errore caricamento ordini per userId=" + userId, e);
+                logger.log(Level.SEVERE, e, () -> "Errore caricamento ordini per userId=" + userId);
                 callback.accept(new ProcessResult(List.of(), Map.of()));
             }
         });

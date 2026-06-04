@@ -19,6 +19,8 @@ import java.util.logging.Logger;
 
 public class SellerProductsController {
 
+    private static final String ERROR_SHOP_SELECTED = "Nessun negozio selezionato";
+
     private Integer currentShopId;
 
     private static final ExecutorService EXEC = Executors.newCachedThreadPool(r -> {
@@ -36,7 +38,7 @@ public class SellerProductsController {
                               Consumer<String> onError) {
         if (currentShopId == null) {
             logger.warning("reloadCatalog: shopId NULL");
-            onError.accept("Shop non selezionato");
+            onError.accept(ERROR_SHOP_SELECTED);
             return;
         }
 
@@ -51,7 +53,7 @@ public class SellerProductsController {
                                 Runnable onSuccess,
                                 Consumer<String> onError) {
         if (currentShopId == null) {
-            onError.accept("Nessun negozio selezionato");
+            onError.accept(ERROR_SHOP_SELECTED);
             return;
         }
 
@@ -69,7 +71,7 @@ public class SellerProductsController {
                                  Runnable onSuccess,
                                  Consumer<String> onError) {
         if (currentShopId == null) {
-            onError.accept("Nessun negozio selezionato");
+            onError.accept(ERROR_SHOP_SELECTED);
             return;
         }
 
@@ -88,7 +90,7 @@ public class SellerProductsController {
                                    Runnable onSuccess,
                                    Consumer<String> onError) {
         if (currentShopId == null) {
-            onError.accept("Nessun negozio selezionato");
+            onError.accept(ERROR_SHOP_SELECTED);
             return;
         }
 

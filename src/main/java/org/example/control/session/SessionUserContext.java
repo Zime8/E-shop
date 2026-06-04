@@ -47,6 +47,6 @@ public class SessionUserContext implements UserContext {
 
     @Override
     public void logout(){
-        session.logout();;
+        session.logout();
     }
 }

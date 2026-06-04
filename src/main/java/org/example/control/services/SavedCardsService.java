@@ -5,13 +5,12 @@ import org.example.dao.SavedCardsRepository;
 import org.example.models.dto.Card;
 
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
-import java.util.logging.Logger;
 
 public class SavedCardsService {
 
-    private static final Logger logger = Logger.getLogger(SavedCardsService.class.getName());
     private final SavedCardsRepository savedCardsRepository;
     private final UserContext userContext;
 
@@ -114,7 +113,7 @@ public class SavedCardsService {
         int month = Integer.parseInt(e.substring(0, 2));
         int year = 2000 + Integer.parseInt(e.substring(3, 5));
         YearMonth expYm = YearMonth.of(year, month);
-        YearMonth nowYm = YearMonth.now();
+        YearMonth nowYm = YearMonth.now(ZoneId.of("Europe/Rome"));
         if (expYm.isBefore(nowYm))
             throw new IllegalArgumentException("La carta risulta scaduta.");
     }
